@@ -61,3 +61,4 @@ Funcionalidades mais difíceis de tratar, mas interessantes.
 - Especificação OpenGL 4.6 (core-profile): <https://www.khronos.org/registry/OpenGL/specs/gl/glspec46.core.pdf>
 - Gramáticas livre de contexto, compiladores, etc.
 - Livros-texto de curvas e superfícies.
+- Método numérico para EDO de 2da ordem: <https://willbeason.com/2021/06/24/introduction-to-runge-kutta-nystrom-methods/> e <https://willbeason.com/2021/06/25/improve-your-runge-kutta-nystrom-algorithms-with-this-one-weird-trick/>
