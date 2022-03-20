@@ -1,0 +1,33 @@
+Gramática livre de contexto para expressões
+
+surface ::= vector [ additive , additive ] [ additive , additive ]
+
+vector ::= ( additive , additive, additive )
+
+
+additive ::= additive + multiplicative
+           | additive - multiplicative
+           | multiplicative
+
+multiplicative ::= multiplicative * unary
+                 | multiplicative exponential
+                 | multiplicative / unary
+                 | unary
+
+unary ::= + unary
+        | - unary
+        | * unary
+        | / unary
+        | exponential
+
+exponential ::= factor ^ unary
+              | factor
+
+factor ::= number
+         | constant             #pi ou e
+         | ( additive )
+         | variable             #u ou v
+         | function factor
+
+function ::= function_name ^ multiplicative
+           | function_name
