@@ -1,33 +1,57 @@
-Gramática livre de contexto para expressões
+Gramática livre de contexto para a descrição dos objetos:
 
-surface ::= vector [ additive , additive ] [ additive , additive ]
+S ::= D S       #lista de declarações
+    | epsilon
 
-vector ::= ( additive , additive, additive )
+I ::= [ A , A ] #intervalo
 
+D ::= param   id : I ;                  #parâmetro
+    | grid    id : I A ;                #variável de grade
+    | curve   id = A t : I ;            #def. de curva
+    | surface id = A u : I v : I ;      #def. de superfície
+    | point   id = A ;                  #ponto
+    | vector  id = A @ A;               #vetor ancorado
 
-additive ::= additive + multiplicative
-           | additive - multiplicative
-           | multiplicative
+Expressões matemáticas:
+/*
+Contém:
+        + - * / binários
+        + - * / unários (* / novidade: /x = 1/x, *x = x)
+        ^ para exponenciação de reais e funções também: sin x^2, sin^2 x
+        aplicação de função justaposta: f x, cos u, sin -x^2
+        multiplicação justaposta: sin xy = sin (x*y)
+        derivada total e parcial: C'(t), S_u (1,2)
+        Obs: multiplicação justaposta tem precedência MAIOR que a comum!
+        Por exemplo:    1/ab = 1/(ab), mas 1/a*b = (1/a)*b = (1/a)b
+                        sin uv = sin (uv), mas sin u*v = (sin u)*v
+*/
 
-multiplicative ::= multiplicative * unary
-                 | multiplicative exponential
-                 | multiplicative / unary
-                 | unary
+A ::= A + M
+    | A - M
+    | M
 
-unary ::= + unary
-        | - unary
-        | * unary
-        | / unary
-        | exponential
+M ::= M + U
+    | M - U
+    | U
 
-exponential ::= factor ^ unary
-              | factor
+U ::= + U
+    | - U
+    | * U
+    | / U
+    | J
 
-factor ::= number
-         | constant             #pi ou e
-         | ( additive )
-         | variable             #u ou v
-         | function factor
+J ::= FN U
+    | E J
+    | E
 
-function ::= function_name ^ multiplicative
-           | function_name
+FN ::= FN ^ U
+     | FN '
+     | FN _ var
+     | func
+
+E ::= F ^ U
+    | F
+
+F ::= c
+    | ( A )
+    | var
