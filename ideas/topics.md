@@ -10,7 +10,7 @@ A primeira etapa da aplicação é a definição dos objetos de interesse:
 - Descrição textual dos objetos de interesse numa gramática especial
 - Interpretação da descrição em uma estrutura de dados apropriada
 - Geração de objetos não descritos porém necessários, como diversas derivadas e a primeira forma fundamental
-- Compilação das fórmulas simbólicas em *shaders* na GPU, aproveitando as otimizações feitas pelo compilador e do fato de se ter um código de máquina específico para cada função
+- Compilação das fórmulas simbólicas, aproveitando as otimizações feitas pelo compilador e do fato de se ter um código de máquina específico para cada função
 
 A segunda etapa é a visualização em si:
 - Os objetos são discretizados para a renderização em um espaço 3D, curvas são segmentadas e superfícies são trianguladas
@@ -18,3 +18,5 @@ A segunda etapa é a visualização em si:
 - As superfícies terão visão geodésica, texturas, e
 - Desenhos de curvas e regiões vetoriais
 - Controle de parâmetros globais e dos objetos
+
+A estética dos gráficos gerados e a perfórmance da interface são relevantes para o projeto, por isso o projeto será feito em *C++* e *OpenGL*.
