@@ -1,57 +1,97 @@
-Gramática livre de contexto para a descrição dos objetos:
+Gramática de descrição de objetos
 
-S ::= D S       #lista de declarações
-    | epsilon
+Há 8 tipos de objeto:
+    Parâmetro. Ex: "param a:[0, 10];" <- parâmetro a entre 0 e 10.
+    Curva. Ex: "curve c = (cos t, sin t), t:[0, 2pi];" <- círculo unitário.
+    Superfície. Ex: "surface s = (u, v, 0), u:[0, 1], v:[0,1];" <- quadrado 1x1.
+    Definição. Ex: "define r = a+b;" <- define o símbolo r = a+b.
+    Function. Ex: "function f(a,b) = 3a+b;" <- define a função f.
+    Grade. Ex: "grid k:[0, 4], 4;" <- define k em {0, 1, 2, 3}.
+    Point. Ex: "point p = (0,0,1);" <- define o ponto p.
+    Vector. Ex: "vector v = (1, 1, 1) @ (0, 0, 0);" <- define o vetor v, desenhado na origem.
 
-I ::= [ A , A ] #intervalo
+Um objeto pode fazer referência a outro definido anteriormente, mas apenas pontos e vetores podem se referir a uma grade.
 
-D ::= param   id : I ;                  #parâmetro
-    | grid    id : I A ;                #variável de grade
-    | curve   id = A t : I ;            #def. de curva
-    | surface id = A u : I v : I ;      #def. de superfície
-    | point   id = A ;                  #ponto
-    | vector  id = A @ A;               #vetor ancorado
+Uma grade é um parâmetro que pode instanciar múltiplos pontos e vetores de mesma fórmula.
+Por exemplo:
+    grid k:[0,4], 4;
+    point p = (k, 0, 0);
+-> Isso faz com que p seja 4 pontos: (0, 0, 0) (1, 0, 0) (2, 0, 0) (3, 0, 0)
 
-Expressões matemáticas:
-/*
-Contém:
-        + - * / binários
-        + - * / unários (* / novidade: /x = 1/x, *x = x)
-        ^ para exponenciação de reais e funções também: sin x^2, sin^2 x
-        aplicação de função justaposta: f x, cos u, sin -x^2
-        multiplicação justaposta: sin xy = sin (x*y)
-        derivada total e parcial: C'(t), S_u (1,2)
-        Obs: multiplicação justaposta tem precedência MAIOR que a comum!
-        Por exemplo:    1/ab = 1/(ab), mas 1/a*b = (1/a)*b = (1/a)b
-                        sin uv = sin (uv), mas sin u*v = (sin u)*v
-*/
+Pontos e vetores podem se referir a mais de uma grade, aumentando a dimensão da instanciação.
+Isso é útil para desenhar campos vetoriais.
 
-A ::= A + M
-    | A - M
-    | M
+Símbolos pré-definidos: 
+    e1 = (1, 0, 0)
+    e2 = (0, 1, 0)
+    e3 = (0, 0, 1)
+    org = (0, 0, 0)
+    pi, e
+    exp, sqrt, log, len, sin, cos, tan
 
-M ::= M + U
-    | M - U
-    | U
+Multiplicação justaposta entre vetores indica produto escalar.
+Multiplicação por asterisco entre vetores indica produto vetorial.
 
-U ::= + U
-    | - U
-    | * U
-    | / U
-    | J
+Aplicação de funções não precisa de parênteses, basta que o argumento seja da forma UNARY.
+Uma função pode ser composta: f' para derivada total, f_x para derivada parcial, e f^u para potenciação.
+As 3 formas podem ser combinadas.
 
-J ::= FN U
-    | E J
-    | E
+Ex: sin^2 x = (sin x)^2
+    f'^2 -1 = ( f'(-1) )^2
 
-FN ::= FN ^ U
-     | FN '
-     | FN _ var
-     | func
+********************************
 
-E ::= F ^ U
-    | F
+PROG    -> DECL PROG
+PROG    -> DECL
 
-F ::= c
-    | ( A )
-    | var
+DECL    -> param    id : INT ;
+DECL    -> curve    id = ADD, t : INT ;
+DECL    -> surface  id = ADD, u : INT, v : INT ;
+DECL    -> define   id = ADD ;
+DECL    -> function id ( ARGS ) = ADD ;
+DECL    -> grid     id : INT , ADD ;
+DECL    -> point    id = ADD ;
+DECL    -> vector   id = ADD @ ADD ;
+
+ARGS    -> id ARGS
+ARGS    -> id
+
+INT     -> [ ADD, ADD ]
+
+ADD     -> ADD + MULT
+ADD     -> ADD - MULT
+ADD     -> MULT
+
+MULT    -> MULT * UNARY
+MULT    -> MULT K
+MULT    -> MULT / UNARY
+MULT    -> UNARY
+
+UNARY   -> + UNARY
+UNARY   -> - UNARY
+UNARY   -> * UNARY
+UNARY   -> / UNARY
+UNARY   -> APP
+
+APP     -> FUNC UNARY
+APP     -> EXP
+
+FUNC    -> FUNC ^ UNARY
+FUNC    -> FUNC _ var_id
+FUNC    -> FUNC '
+FUNC    -> func_id
+
+EXP     -> FACT ^ UNARY
+EXP     -> FACT
+
+FACT    -> const
+FACT    -> number
+FACT    -> var_id
+FACT    -> TUPLE
+
+TUPLE   -> ( LIST )
+
+LIST    -> ADD, LIST
+LIST    -> ADD
+
+********************************
