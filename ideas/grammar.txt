@@ -81,8 +81,11 @@ FUNC    -> FUNC _ var_id
 FUNC    -> FUNC '
 FUNC    -> func_id
 
-EXP     -> FACT ^ UNARY
-EXP     -> FACT
+EXP     -> COMP ^ UNARY
+EXP     -> COMP
+
+COMP    -> FACT . number
+COMP    -> FACT
 
 FACT    -> const
 FACT    -> number
