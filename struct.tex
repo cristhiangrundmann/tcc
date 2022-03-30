@@ -1,0 +1,49 @@
+\documentclass[10pt,a4paper,final]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[main=portuguese, english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{tcolorbox}
+
+\author{Cristhian Grundmann}
+\title{Visualização de curvas e superfícies a partir de geodésicas}
+
+\begin{document}
+
+\maketitle
+
+%\tableofcontents
+
+
+\section{Gramática de descrição de objetos}
+A gramática permite a declaração de 8 tipos de objeto: parâmetro, curva, superfície, definição, função, grade, ponto e vetor.
+
+Os objetos podem fazer referência apenas a objetos definidos anteriormente, porém apenas pontos e vetores podem se referir a grades, diretamente ou indiretamente.
+
+A gramática descreve duas estruturas principais: as declarações dos objetos(\texttt{DECL}) e as expressões matemáticas(\texttt{ADD}). As declarações têm estrutura simples, já as expressões são mais complexas.
+
+A gramática das expressões matemáticas é mais especial quando comparada às linguagens de programação gerais, pois o domínio desse projeto é muito mais limitado. As partes não usuais são:
+
+\begin{itemize}
+\item Multiplicação justaposta: \texttt{2 x y z}
+\item Função sem parênteses: \texttt{sin -x}
+\item Recíproco unário: \texttt{/x = 1/x}
+\item Múltiplicação unária(sem efeito): \texttt{*x = x}
+\item Potenciação e derivação em funções: \texttt{f\textasciicircum 2 x}, \texttt{sin' x}
+\end{itemize}
+
+
+\begin{tcolorbox}
+\begin{small}
+\lstinputlisting[title=Gramática completa]{grammar.txt}
+\end{small}
+\end{tcolorbox}
+
+
+
+\end{document}

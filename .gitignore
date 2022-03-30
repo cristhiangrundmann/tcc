@@ -1,3 +1,11 @@
+#Texmaker
+*.log
+*.aux
+*.synctex.gz
+*.toc
+*.dvi
+*.lol
+
 # Prerequisites
 *.d
 
