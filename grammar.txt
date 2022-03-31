@@ -9,16 +9,18 @@ DECL    -> grid     id : INT , ADD ;
 DECL    -> point    id = ADD ;
 DECL    -> vector   id = ADD @ ADD ;
 
-ARGS    -> id ARGS | id
+ARGS    -> FTAG id , ARGS | id
 
-INT     -> [ ADD, ADD ]
+FTAG    -> * | eps
+
+INT     -> [ ADD , ADD ]
 
 ADD     -> ADD + MULT
 ADD     -> ADD - MULT
 ADD     -> MULT
 
 MULT    -> MULT * UNARY
-MULT    -> MULT K
+MULT    -> MULT APP
 MULT    -> MULT / UNARY
 MULT    -> UNARY
 
