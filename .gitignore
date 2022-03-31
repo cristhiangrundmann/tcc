@@ -5,6 +5,8 @@
 *.toc
 *.dvi
 *.lol
+*.lot
+*.lof
 
 # Prerequisites
 *.d
