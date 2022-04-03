@@ -9,9 +9,7 @@ DECL    -> grid     id : INT , ADD ;
 DECL    -> point    id = ADD ;
 DECL    -> vector   id = ADD @ ADD ;
 
-ARGS    -> FTAG id , ARGS | id
-
-FTAG    -> * | eps
+ARGS    -> id , ARGS | id
 
 INT     -> [ ADD , ADD ]
 
