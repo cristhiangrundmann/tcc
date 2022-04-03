@@ -1,5 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
+
+#define WUN __attribute__((warn_unused_result))
+
+#define MATCH(x) {if(token.type != x) {printf("Syntax error: %s @ %d\n", __FILE__, __LINE__); exit(1);}}
+#define MATCHA(x) {MATCH(x); token.advance(MAX_MATCH);}
+
+#define PDECL(x,y,z) predef[x] = table.insert(y); predef[x]->type = z;
 
 //ascii tokens: ( ) [ ] : ; = @ , . + - * / _ ^ '
 #define EOI         256
@@ -8,8 +16,10 @@
 #define VAR_ID      259
 #define FUNC_ID     260
 #define COMMAND_ID  261
-#define CONST       262
+#define CONST_ID       262
 #define EPS         263
+
+using std::vector;
 
 int next_address(char c)
 {
@@ -22,6 +32,7 @@ int next_address(char c)
 struct Node
 {
     Node *parent;
+    void *data;
     Node *children[62];
     char c;
     int type;
@@ -30,6 +41,7 @@ struct Node
     Node()
     {
         parent = nullptr;
+        data = nullptr;
         for(int i = 0; i < 62; i++) children[i] = nullptr;
         c = 0;
         type = ID;
@@ -91,7 +103,6 @@ enum TableMode
 struct Token
 {
     const char *str;
-    void *data;
     Node *table;
     Node *id;
     double number;
@@ -101,7 +112,6 @@ struct Token
     Token()
     {
         str = nullptr;
-        data = nullptr;
         table = nullptr;
         id = nullptr;
         number = 0;
@@ -173,13 +183,85 @@ struct Token
     }
 };
 
+struct Interval
+{
+    void *a, *b;
+};
+
+struct Param
+{
+    Interval i;
+};
+
+struct Curve
+{
+    void *e;
+    Interval t;
+};
+
+struct Surface
+{
+    void *e;
+    Interval u, v;
+};
+
+struct Define
+{
+    void *e;
+};
+
+struct Function
+{
+    void *e;
+    vector<Node*> args;
+};
+
+struct Grid
+{
+    Interval i;
+    void *e;
+};
+
+struct Point
+{
+    void *e;
+};
+
+struct Vector
+{
+    void *v, *p;
+};
+
+enum Operator
+{
+    PLUS, MINUS, TIMES, DIVIDE, DOT, POW, PRIME, PARTIAL, 
+    UPLUS, UMINUS, UTIMES, UDIVIDE, APP, COMP, VARCONST, NUM, TUPLE, FUNC
+};
+
+struct Expr
+{
+    Operator op;
+
+    union
+    {
+        Expr *two[2];
+        Expr *one;
+        Node *func;
+        struct
+        {
+            Expr *p_func;
+            Node *p_id;
+        };
+        double number;
+        Node *vc;
+    };
+};
+
 enum Predef
 {
     U=0, V, T, E, PI, PARAM, CURVE, SURFACE, DEFINE, FUNCTION, GRID, POINT, VECTOR,
     SIN, COS, TAN, LOG, SQRT, EXP, LEN
 };
-
-#define PDECL(x,y,z) predef[x] = table.insert(y); predef[x]->type = z;
 
 struct Program
 {
@@ -188,9 +270,6 @@ struct Program
     Node *predef[31];
 
     const char *code; 
-
-    #define MATCH(x) {if(token.type != x) {printf("Syntax error: %s @ %d\n", __FILE__, __LINE__); exit(1);}}
-    #define MATCHA(x) {MATCH(x); token.advance(MAX_MATCH);}
 
     Program(const char *src)
     {
@@ -201,8 +280,8 @@ struct Program
         PDECL(U, "u", VAR_ID);
         PDECL(V, "v", VAR_ID);
         PDECL(T, "t", VAR_ID);
-        PDECL(E, "e", CONST);
-        PDECL(PI, "pi", CONST);
+        PDECL(E, "e", CONST_ID);
+        PDECL(PI, "pi", CONST_ID);
         PDECL(PARAM, "param", COMMAND_ID);
         PDECL(CURVE, "curve", COMMAND_ID);
         PDECL(SURFACE, "surface", COMMAND_ID);
@@ -221,7 +300,7 @@ struct Program
 
         token.advance(MAX_MATCH);
 
-        parse_prog();
+        vector<Node*> prog = parse_prog();
 
         MATCHA(EOI);
     }
@@ -231,130 +310,135 @@ struct Program
         return token.type == type;
     }
 
-    void parse_prog()
+    WUN vector<Node*> parse_prog()
     {
+        vector<Node*> vec;
         while(true)
         {
-            if(cmp(COMMAND_ID)) parse_decl();
+            if(cmp(COMMAND_ID)) vec.push_back(parse_decl());
             else break;
         }
+        return vec;
     }
 
-    void parse_args()
+    WUN vector<Node*> parse_args()
     {
-        parse_arg();
+        vector<Node*> vec;
+        vec.push_back(parse_arg());
 
         while(true)
         {
             if(cmp(','))
             {
                 token.advance(INSERT);
-                parse_arg();
+                vec.push_back(parse_arg());
             }
             else break;
         }
+
+        return vec;
     }
 
-    void parse_arg()
+    WUN Node* parse_arg()
     {
         Token t = token;
         MATCHA(ID);
         t.id->type = VAR_ID;
+        return t.id;
     }
 
-    void delete_args()
-    {
-        delete_arg();
-
-        while(true)
-        {
-            if(cmp(','))
-            {
-                token.advance(MAX_MATCH);
-                delete_arg();
-            }
-            else break;
-        }
-    }
-
-    void delete_arg()
-    {
-        Token t = token;
-        MATCHA(VAR_ID);                
-        t.id->type = ID;
-    }
-
-    void parse_decl()
+    WUN Node* parse_decl()
     {
         MATCH(COMMAND_ID);
 
-        if(token.id == predef[PARAM]) parse_param();
-        if(token.id == predef[CURVE]) parse_curve();
-        if(token.id == predef[SURFACE]) parse_surface();
-        if(token.id == predef[DEFINE]) parse_define();
-        if(token.id == predef[FUNCTION]) parse_function();
-        if(token.id == predef[GRID]) parse_grid();
-        if(token.id == predef[POINT]) parse_point();
-        if(token.id == predef[VECTOR]) parse_vector();
+        if(token.id == predef[PARAM]) return parse_param();
+        if(token.id == predef[CURVE]) return parse_curve();
+        if(token.id == predef[SURFACE]) return parse_surface();
+        if(token.id == predef[DEFINE]) return parse_define();
+        if(token.id == predef[FUNCTION]) return parse_function();
+        if(token.id == predef[GRID]) return parse_grid();
+        if(token.id == predef[POINT]) return parse_point();
+        if(token.id == predef[VECTOR]) return parse_vector();
+
+        return nullptr;
     }
 
-    void parse_param()
+    WUN Node* parse_param()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA(':');
-        parse_int();
+        Interval i = parse_int();
         MATCHA(';');
         t.id->type = VAR_ID;
+        Param *p = new Param;
+        p->i = i;
+        t.id->data = p;
+        return t.id;
     }
 
-    void parse_curve()
+    WUN Node* parse_curve()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA('=');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(',');
         MATCHA(VAR_ID);
         MATCHA(':');
-        parse_int();
+        Interval i = parse_int();
         MATCHA(';');
         t.id->type = FUNC_ID;
+        Curve *c = new Curve;
+        c->e = e;
+        c->t = i;
+        t.id->data = c;
+        return t.id;
     }
 
-    void parse_surface()
+    WUN Node* parse_surface()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA('=');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(',');
         MATCHA(VAR_ID);
         MATCHA(':');
-        parse_int();
+        Interval u = parse_int();
         MATCHA(',');
         MATCHA(VAR_ID);
         MATCHA(':');
-        parse_int();
+        Interval v = parse_int();
         MATCHA(';');
         t.id->type = FUNC_ID;
+        Surface *s = new Surface;
+        s->e = e;
+        s->u = u;
+        s->v = v;
+        t.id->data = s;
+        return t.id;
     }
 
-    void parse_define()
+    WUN Node* parse_define()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA('=');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(';');
         t.id->type = VAR_ID;
+        Define *d = new Define;
+        d->e = e;
+        t.id->data = e;
+        return t.id;
     }
 
-    void parse_function()
+    WUN Node* parse_function()
     {
         token.advance(INSERT);
         Token t = token;
@@ -362,229 +446,355 @@ struct Program
         Token t2 = token;
         MATCH('(');
         token.advance(INSERT);
-        parse_args();
+        vector<Node*> args = parse_args();
         MATCHA(')');
         MATCHA('=');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(';');
         t.id->type = FUNC_ID;
         Token cur = token;
         token = t2;
         MATCHA('(');
-        delete_args();
         token = cur;
+        Function *f = new Function;
+        f->e = e;
+        f->args = args;
+        t.id->data = f;
+        return t.id;
     }
 
-    void parse_grid()
+    WUN Node* parse_grid()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA(':');
-        parse_int();
+        Interval i = parse_int();
         MATCHA(',');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(';');
         t.id->type = VAR_ID;
+        Grid *g = new Grid;
+        g->i = i;
+        g->e = e;
+        t.id->data = g;
+        return t.id;
     }
 
-    void parse_point()
+    WUN Node* parse_point()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA('=');
-        parse_add();
+        Expr *e = parse_add();
         MATCHA(';');
         t.id->type = VAR_ID;
+        Point *p = new Point;
+        p->e = e;
+        t.id->data = p;
+        return t.id;
     }
 
-    void parse_vector()
+    WUN Node* parse_vector()
     {
         token.advance(INSERT);
         Token t = token;
         MATCHA(ID);
         MATCHA('=');
-        parse_add();
+        Expr *v = parse_add();
         MATCHA('@');
-        parse_add();
+        Expr *p = parse_add();
         MATCHA(';');
         t.id->type = VAR_ID;
+        Vector *vec = new Vector;
+        vec->v = v;
+        vec->p = p;
+        t.id->data = vec;
+        return t.id;
     }
 
-    void parse_int()
+    WUN Interval parse_int()
     {
+        Interval i;
         MATCHA('[');
-        parse_add();
+        i.a = parse_add();
         MATCHA(',');
-        parse_add();
+        i.b = parse_add();
         MATCHA(']');
+        return i;
     }
 
-    void parse_add()
+    WUN Expr *parse_add()
     {
-        parse_mult();
+        Expr *sum = parse_mult();
 
         while(true)
         {
+            Expr *e;
+            Expr *b;
             if(cmp('+'))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
-                parse_mult();
+                b = parse_mult();
+                e->op = PLUS;
             }
             else if(cmp('-'))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
-                parse_mult();
+                b = parse_mult();
+                e->op = MINUS;
             }
             else break;
+            e->two[0] = sum;
+            e->two[1] = b;
+            sum = e;
         }
+
+        return sum;
     }
 
-    void parse_mult()
+    WUN Expr *parse_mult()
     {
-        parse_unary();
+        Expr *prod = parse_unary();
 
         while(true)
         {
+            Expr *e;
+            Expr *b;
             if(cmp('*'))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
-                parse_unary();
+                b = parse_unary();
+                e->op = TIMES;
             }
             else if(cmp('/'))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
-                parse_unary();
+                b = parse_unary();
+                e->op = DIVIDE;
             }
-            else if(cmp(FUNC_ID) || cmp(CONST) || cmp(NUMBER) || cmp(VAR_ID) || cmp('('))
+            else if(cmp(FUNC_ID) || cmp(CONST_ID) || cmp(NUMBER) || cmp(VAR_ID) || cmp('('))
             {
-                parse_app();
+                e = new Expr;
+                b = parse_app();
+                e->op = DOT;
             }
             else break;
+            e->two[0] = prod;
+            e->two[1] = b;
+            prod = e;
         }
+
+        return prod;
     }
 
-    void parse_unary()
+    WUN Expr *parse_unary()
     {
+        Expr *u;
         if(cmp('+'))
         {
+            u = new Expr;
             token.advance(MAX_MATCH);
-            parse_unary();
+            u->one = parse_unary();
+            u->op = UPLUS;
         }
         else if(cmp('-'))
         {
+            u = new Expr;
             token.advance(MAX_MATCH);
-            parse_unary();
+            u->one = parse_unary();
+            u->op = UMINUS;
         }
         else if(cmp('*'))
         {
+            u = new Expr;
             token.advance(MAX_MATCH);
-            parse_unary();
+            u->one = parse_unary();
+            u->op = UTIMES;
         }
         else if(cmp('/'))
         {
+            u = new Expr;
             token.advance(MAX_MATCH);
-            parse_unary();
+            u->one = parse_unary();
+            u->op = UDIVIDE;
         }
-        else parse_app();
+        else u = parse_app();
+
+        return u;
     }
 
-    void parse_app()
+    WUN Expr *parse_app()
     {
+        Expr *app;
         if(cmp(FUNC_ID))
         {
-            parse_func();
-            parse_unary();
+            app = new Expr;
+            Expr *f = parse_func();
+            Expr *u = parse_unary();
+            app->op = APP;
+            app->two[0] = f;
+            app->two[1] = u;
         }
-        else parse_exp();
+        else app = parse_pow();
+
+        return app;
     }
 
-    void parse_func()
+    WUN Expr *parse_func()
     {
+        Expr *func = new Expr;
+
+        Token t = token;
         MATCHA(FUNC_ID);
+
+        func->op = FUNC;
+        func->func = t.id;
 
         while(true)
         {
+            Expr *e;
             if(cmp('\''))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
+                e->op = PRIME;
+                e->one = func;
+                func = e;
             }
             else if(cmp('^'))
             {
+                e = new Expr;
                 token.advance(MAX_MATCH);
-                parse_unary();
+                Expr *b = parse_unary();
+                e->op = POW;
+                e->two[0] = func;
+                e->two[1] = b;
+                func = e;
             }
             else if(cmp('_'))
             {
+                e = new Expr;
                 token.advance(MAX);
+                Token t = token;
                 if(token.length > 0) token.length = 1; //WRONG
                 token.advance(MAX_MATCH);
+
+                e->op = PARTIAL;
+                e->p_func = func;
+                e->p_id = t.id;
+                func = e;
             }
             else break;
         }
+
+        return func;
     }
 
-    void parse_exp()
+    WUN Expr *parse_pow()
     {
-        parse_comp();
+        Expr *pow = parse_comp();
+
         if(cmp('^'))
         {
             token.advance(MAX_MATCH);
-            parse_unary();
+            Expr *b = parse_unary();
+            Expr *e = new Expr;
+            e->op = POW;
+            e->two[0] = pow;
+            e->two[1] = b;
+            pow = e;
         }
-        else ;
+        
+        return pow;
     }
 
-    void parse_comp()
+    WUN Expr *parse_comp()
     {
-        parse_fact();
+        Expr *comp = parse_fact();
 
         if(cmp('.'))
         {
             token.advance(MAX_MATCH);
+            Token t = token;
             MATCHA(NUMBER);
+
+            Expr *e = new Expr;
+            Expr *n = new Expr;
+            n->op = NUM;
+            n->number = t.number;
+            e->op = COMP;
+            e->two[0] = comp;
+            e->two[1] = n;
+            comp = e;
         }
-        else ;
+
+        return comp;
     }
 
-    void parse_fact()
+    WUN Expr *parse_fact()
     {
-        if(cmp(CONST))
+        Expr *fact;
+        Token t = token;
+
+        if(cmp(CONST_ID))
         {
+            fact = new Expr;
+            fact->op = VARCONST;
+            fact->vc = t.id;
             token.advance(MAX_MATCH);
         }
         else if(cmp(NUMBER))
         {
+            fact = new Expr;
+            fact->op = NUM;
+            fact->number = t.number;
             token.advance(MAX_MATCH);
         }
         else if(cmp(VAR_ID))
         {
+            fact = new Expr;
+            fact->op = VARCONST;
+            fact->vc = t.id;
             token.advance(MAX_MATCH);
         }
-        else parse_tuple();
+        else fact = parse_tuple();
+
+        return fact;
     }
 
-    void parse_tuple()
+    WUN Expr *parse_tuple()
     {
         MATCHA('(');
-        parse_list();
-        MATCHA(')');
-    }
+        
+        Expr *tuple = parse_add();
 
-    void parse_list()
-    {
-        parse_add();
-        if(cmp(','))
+        while(true)
         {
-            token.advance(MAX_MATCH);
-            parse_list();
+            if(cmp(','))
+            {
+                token.advance(MAX_MATCH);
+                Expr *a = parse_add();
+                Expr *e = new Expr;
+                e->op = TUPLE;
+                e->two[0] = a;
+                e->two[1] = tuple;
+                tuple = e;
+            }
+            else break;
         }
-        else ;
+
+        MATCHA(')');
+
+        return tuple;
     }
+
 };
-
-
 
 int main()
 {
