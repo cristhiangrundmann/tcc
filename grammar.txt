@@ -28,14 +28,14 @@ UNARY   -> * UNARY
 UNARY   -> / UNARY
 UNARY   -> APP
 
-APP     -> FUNC UNARY | EXP
+APP     -> FUNC UNARY | POW
 
 FUNC    -> FUNC ^ UNARY
 FUNC    -> FUNC _ var_id
 FUNC    -> FUNC '
 FUNC    -> func_id
 
-EXP     -> COMP ^ UNARY | COMP
+POW     -> COMP ^ UNARY | COMP
 
 COMP    -> FACT . number | FACT
 
