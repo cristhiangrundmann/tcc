@@ -16,7 +16,7 @@
 #define VAR_ID      259
 #define FUNC_ID     260
 #define COMMAND_ID  261
-#define CONST_ID       262
+#define CONST_ID    262
 #define EPS         263
 
 using std::vector;
@@ -134,6 +134,8 @@ struct Token
 
         length = 1;
 
+        id = nullptr;
+
         switch(*str)
         {
             case 0:
@@ -176,7 +178,7 @@ struct Token
                 }
                 else
                 {
-                    printf("Syntax error: (%d)\n", *str);
+                    printf("Invalid character: (%c)\n", *str);
                     exit(1);
                 }
         }
@@ -191,19 +193,7 @@ struct Interval
 struct Param
 {
     Interval i;
-};
-
-struct Curve
-{
-    void *e;
-    Interval t;
-};
-
-struct Surface
-{
-    void *e;
-    Interval u, v;
-};
+};  
 
 struct Define
 {
@@ -213,6 +203,7 @@ struct Define
 struct Function
 {
     void *e;
+    Interval t, u, v;
     vector<Node*> args;
 };
 
@@ -268,6 +259,9 @@ struct Program
     Token token;
     Node table;
     Node *predef[31];
+    vector<Node*> prog;
+    vector<Node*> curve_args;
+    vector<Node*> surface_args;
 
     const char *code; 
 
@@ -298,9 +292,13 @@ struct Program
         PDECL(EXP, "exp", FUNC_ID);
         PDECL(LEN, "len", FUNC_ID);
 
+        curve_args.push_back(predef[T]);
+        surface_args.push_back(predef[U]);
+        surface_args.push_back(predef[V]);
+
         token.advance(MAX_MATCH);
 
-        vector<Node*> prog = parse_prog();
+        prog = parse_prog();
 
         MATCHA(EOI);
     }
@@ -386,14 +384,17 @@ struct Program
         MATCHA('=');
         Expr *e = parse_add();
         MATCHA(',');
-        MATCHA(VAR_ID);
+        MATCH(VAR_ID);
+        if(predef[T] != token.id) printf("Warning: parameter name should be t\n");
+        token.advance(MAX_MATCH);
         MATCHA(':');
         Interval i = parse_int();
         MATCHA(';');
         t.id->type = FUNC_ID;
-        Curve *c = new Curve;
+        Function *c = new Function;
         c->e = e;
         c->t = i;
+        c->args = curve_args;
         t.id->data = c;
         return t.id;
     }
@@ -406,19 +407,24 @@ struct Program
         MATCHA('=');
         Expr *e = parse_add();
         MATCHA(',');
-        MATCHA(VAR_ID);
+        MATCH(VAR_ID);
+        if(predef[U] != token.id) printf("Warning: parameter name should be u\n");
+        token.advance(MAX_MATCH);
         MATCHA(':');
         Interval u = parse_int();
         MATCHA(',');
-        MATCHA(VAR_ID);
+        MATCH(VAR_ID);
+        if(predef[V] != token.id) printf("Warning: parameter name should be v\n");
+        token.advance(MAX_MATCH);
         MATCHA(':');
         Interval v = parse_int();
         MATCHA(';');
         t.id->type = FUNC_ID;
-        Surface *s = new Surface;
+        Function *s = new Function;
         s->e = e;
         s->u = u;
         s->v = v;
+        s->args = surface_args;
         t.id->data = s;
         return t.id;
     }
@@ -655,6 +661,7 @@ struct Program
 
         func->op = FUNC;
         func->func = t.id;
+        Node *org_func = t.id;
 
         while(true)
         {
@@ -681,8 +688,38 @@ struct Program
             {
                 e = new Expr;
                 token.advance(MAX);
+    
+                if(token.id == nullptr)
+                {
+                    printf("Syntax error: %s @ %d\n", __FILE__, __LINE__);
+                    exit(1);
+                }
+
+                Function *fp = (Function*)(org_func->data);
+
+                while(true)
+                {
+                    bool found = false;
+                    for(int i = 0; i < fp->args.size(); i++)
+                        if(fp->args[i] == token.id)
+                        {
+                            found = true;
+                            break;
+                        }
+                    if(found) break;
+
+                    if(token.id == token.table)
+                    {
+                        printf("Syntax error: %s @ %d\n", __FILE__, __LINE__);
+                        exit(1);
+                    }
+
+                    token.id = token.id->parent;
+                }
+
+                token.length = token.id->length;
+
                 Token t = token;
-                if(token.length > 0) token.length = 1; //WRONG
                 token.advance(MAX_MATCH);
 
                 e->op = PARTIAL;
@@ -818,5 +855,6 @@ int main()
     Program p(src);
 
     printf("Correct\n");
+
     return 0;
 }
