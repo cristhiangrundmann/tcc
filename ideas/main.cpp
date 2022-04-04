@@ -4,7 +4,8 @@
 
 #define WUN __attribute__((warn_unused_result))
 
-#define MATCH(x) {if(token.type != x) {printf("Syntax error: %s @ %d\n", __FILE__, __LINE__); exit(1);}}
+#define ERROR(x) {printf("%s: %s @ %d\n", x, __FILE__, __LINE__); exit(1);}
+#define MATCH(x) {if(token.type != x) ERROR("Syntax error");}
 #define MATCHA(x) {MATCH(x); token.advance(MAX_MATCH);}
 
 #define PDECL(x,y,z) predef[x] = table.insert(y); predef[x]->type = z;
@@ -42,7 +43,7 @@ struct Node
     {
         parent = nullptr;
         data = nullptr;
-        for(int i = 0; i < 62; i++) children[i] = nullptr;
+        for(Node *&node : children) node = nullptr;
         c = 0;
         type = ID;
         length = 0;
@@ -50,7 +51,7 @@ struct Node
 
     ~Node()
     {
-        for(int i = 0; i < 62; i++) if(children[i] != nullptr) children[i]->~Node(); 
+        for(Node *child : children) if(child != nullptr) child->~Node(); 
     }
 
     Node *next(char c, bool expand)
@@ -178,8 +179,8 @@ struct Token
                 }
                 else
                 {
-                    printf("Invalid character: (%c)\n", *str);
-                    exit(1);
+                    printf("%c: ", *str);
+                    ERROR("invalid character");
                 }
         }
     }
@@ -466,6 +467,7 @@ struct Program
         f->e = e;
         f->args = args;
         t.id->data = f;
+        for(Node *arg : args) arg->type = ID;
         return t.id;
     }
 
@@ -689,30 +691,21 @@ struct Program
                 e = new Expr;
                 token.advance(MAX);
     
-                if(token.id == nullptr)
-                {
-                    printf("Syntax error: %s @ %d\n", __FILE__, __LINE__);
-                    exit(1);
-                }
+                if(token.id == nullptr) ERROR("Syntax error");
 
                 Function *fp = (Function*)(org_func->data);
 
                 while(true)
                 {
                     bool found = false;
-                    for(int i = 0; i < fp->args.size(); i++)
-                        if(fp->args[i] == token.id)
-                        {
-                            found = true;
-                            break;
-                        }
+                    for(Node *arg : fp->args) if(arg == token.id)
+                    {
+                        found = true;
+                        break;
+                    }
                     if(found) break;
 
-                    if(token.id == token.table)
-                    {
-                        printf("Syntax error: %s @ %d\n", __FILE__, __LINE__);
-                        exit(1);
-                    }
+                    if(token.id == token.table) ERROR("Syntax error");
 
                     token.id = token.id->parent;
                 }
