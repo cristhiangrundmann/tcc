@@ -51,7 +51,7 @@ struct Node
 
     ~Node()
     {
-        for(Node *child : children) if(child != nullptr) child->~Node(); 
+        for(int i = 0; i < 62; i++) if(children[i]) delete children[i];
     }
 
     Node *next(char c, bool expand)
@@ -105,8 +105,11 @@ struct Token
 {
     const char *str;
     Node *table;
-    Node *id;
-    double number;
+    union
+    {
+        Node *id;
+        double number;
+    };
     int length;
     int type;
 
@@ -115,7 +118,6 @@ struct Token
         str = nullptr;
         table = nullptr;
         id = nullptr;
-        number = 0;
         length = 0;
         type = EOI;
     }
@@ -186,47 +188,9 @@ struct Token
     }
 };
 
-struct Interval
-{
-    void *a, *b;
-};
-
-struct Param
-{
-    Interval i;
-};  
-
-struct Define
-{
-    void *e;
-};
-
-struct Function
-{
-    void *e;
-    Interval t, u, v;
-    vector<Node*> args;
-};
-
-struct Grid
-{
-    Interval i;
-    void *e;
-};
-
-struct Point
-{
-    void *e;
-};
-
-struct Vector
-{
-    void *v, *p;
-};
-
 enum Operator
 {
-    PLUS, MINUS, TIMES, DIVIDE, DOT, POW, PRIME, PARTIAL, 
+    PLUS, MINUS, TIMES, DIVIDE, DOT, POW, FUNC_POW, PRIME, PARTIAL, 
     UPLUS, UMINUS, UTIMES, UDIVIDE, APP, COMP, VARCONST, NUM, TUPLE, FUNC
 };
 
@@ -236,17 +200,62 @@ struct Expr
 
     union
     {
-        Expr *two[2];
-        Expr *one;
+        Expr *binary[2];
+        Expr *unary;
         Node *func;
         struct
         {
-            Expr *p_func;
-            Node *p_id;
+            Expr *partial_func;
+            Node *partial_id;
         };
         double number;
-        Node *vc;
+        Node *varconst;
     };
+    vector<Expr*> tuple;
+};
+
+struct Interval
+{
+    Expr *a, *b;
+};
+
+struct Param
+{
+    Node *id;
+    Interval i;
+};  
+
+struct Define
+{
+    Node *id;
+    Expr *e;
+};
+
+struct Function
+{
+    Node *id;
+    Expr *e;
+    Interval t, u, v;
+    vector<Node*> args;
+};
+
+struct Grid
+{
+    Node *id;
+    Interval i;
+    Expr *e;
+};
+
+struct Point
+{
+    Node *id;
+    Expr *e;
+};
+
+struct Vector
+{
+    Node *id;
+    Expr *v, *p;
 };
 
 enum Predef
@@ -271,7 +280,7 @@ struct Program
         code = src;
         token.str = code;
         token.table = &table;
-
+        
         PDECL(U, "u", VAR_ID);
         PDECL(V, "v", VAR_ID);
         PDECL(T, "t", VAR_ID);
@@ -302,6 +311,8 @@ struct Program
         prog = parse_prog();
 
         MATCHA(EOI);
+
+        printf("Correct\n");
     }
 
     bool cmp(int type)
@@ -373,6 +384,7 @@ struct Program
         t.id->type = VAR_ID;
         Param *p = new Param;
         p->i = i;
+        p->id = t.id;
         t.id->data = p;
         return t.id;
     }
@@ -386,7 +398,7 @@ struct Program
         Expr *e = parse_add();
         MATCHA(',');
         MATCH(VAR_ID);
-        if(predef[T] != token.id) printf("Warning: parameter name should be t\n");
+        if(predef[T] != token.id) ERROR("Parameter name should be t\n");
         token.advance(MAX_MATCH);
         MATCHA(':');
         Interval i = parse_int();
@@ -396,6 +408,7 @@ struct Program
         c->e = e;
         c->t = i;
         c->args = curve_args;
+        c->id = t.id;
         t.id->data = c;
         return t.id;
     }
@@ -409,13 +422,13 @@ struct Program
         Expr *e = parse_add();
         MATCHA(',');
         MATCH(VAR_ID);
-        if(predef[U] != token.id) printf("Warning: parameter name should be u\n");
+        if(predef[U] != token.id) ERROR("Parameter name should be u");
         token.advance(MAX_MATCH);
         MATCHA(':');
         Interval u = parse_int();
         MATCHA(',');
         MATCH(VAR_ID);
-        if(predef[V] != token.id) printf("Warning: parameter name should be v\n");
+        if(predef[V] != token.id) ERROR("Parameter name should be v");
         token.advance(MAX_MATCH);
         MATCHA(':');
         Interval v = parse_int();
@@ -426,6 +439,7 @@ struct Program
         s->u = u;
         s->v = v;
         s->args = surface_args;
+        s->id = t.id;
         t.id->data = s;
         return t.id;
     }
@@ -441,6 +455,7 @@ struct Program
         t.id->type = VAR_ID;
         Define *d = new Define;
         d->e = e;
+        d->id = t.id;
         t.id->data = e;
         return t.id;
     }
@@ -466,6 +481,7 @@ struct Program
         Function *f = new Function;
         f->e = e;
         f->args = args;
+        f->id = t.id;
         t.id->data = f;
         for(Node *arg : args) arg->type = ID;
         return t.id;
@@ -485,6 +501,7 @@ struct Program
         Grid *g = new Grid;
         g->i = i;
         g->e = e;
+        g->id = t.id;
         t.id->data = g;
         return t.id;
     }
@@ -500,6 +517,7 @@ struct Program
         t.id->type = VAR_ID;
         Point *p = new Point;
         p->e = e;
+        p->id = t.id;
         t.id->data = p;
         return t.id;
     }
@@ -518,6 +536,7 @@ struct Program
         Vector *vec = new Vector;
         vec->v = v;
         vec->p = p;
+        vec->id = t.id;
         t.id->data = vec;
         return t.id;
     }
@@ -556,8 +575,8 @@ struct Program
                 e->op = MINUS;
             }
             else break;
-            e->two[0] = sum;
-            e->two[1] = b;
+            e->binary[0] = sum;
+            e->binary[1] = b;
             sum = e;
         }
 
@@ -593,8 +612,8 @@ struct Program
                 e->op = DOT;
             }
             else break;
-            e->two[0] = prod;
-            e->two[1] = b;
+            e->binary[0] = prod;
+            e->binary[1] = b;
             prod = e;
         }
 
@@ -608,28 +627,28 @@ struct Program
         {
             u = new Expr;
             token.advance(MAX_MATCH);
-            u->one = parse_unary();
+            u->unary = parse_unary();
             u->op = UPLUS;
         }
         else if(cmp('-'))
         {
             u = new Expr;
             token.advance(MAX_MATCH);
-            u->one = parse_unary();
+            u->unary = parse_unary();
             u->op = UMINUS;
         }
         else if(cmp('*'))
         {
             u = new Expr;
             token.advance(MAX_MATCH);
-            u->one = parse_unary();
+            u->unary = parse_unary();
             u->op = UTIMES;
         }
         else if(cmp('/'))
         {
             u = new Expr;
             token.advance(MAX_MATCH);
-            u->one = parse_unary();
+            u->unary = parse_unary();
             u->op = UDIVIDE;
         }
         else u = parse_app();
@@ -646,8 +665,8 @@ struct Program
             Expr *f = parse_func();
             Expr *u = parse_unary();
             app->op = APP;
-            app->two[0] = f;
-            app->two[1] = u;
+            app->binary[0] = f;
+            app->binary[1] = u;
         }
         else app = parse_pow();
 
@@ -673,7 +692,7 @@ struct Program
                 e = new Expr;
                 token.advance(MAX_MATCH);
                 e->op = PRIME;
-                e->one = func;
+                e->unary = func;
                 func = e;
             }
             else if(cmp('^'))
@@ -681,9 +700,9 @@ struct Program
                 e = new Expr;
                 token.advance(MAX_MATCH);
                 Expr *b = parse_unary();
-                e->op = POW;
-                e->two[0] = func;
-                e->two[1] = b;
+                e->op = FUNC_POW;
+                e->binary[0] = func;
+                e->binary[1] = b;
                 func = e;
             }
             else if(cmp('_'))
@@ -716,8 +735,8 @@ struct Program
                 token.advance(MAX_MATCH);
 
                 e->op = PARTIAL;
-                e->p_func = func;
-                e->p_id = t.id;
+                e->partial_func = func;
+                e->partial_id = t.id;
                 func = e;
             }
             else break;
@@ -736,8 +755,8 @@ struct Program
             Expr *b = parse_unary();
             Expr *e = new Expr;
             e->op = POW;
-            e->two[0] = pow;
-            e->two[1] = b;
+            e->binary[0] = pow;
+            e->binary[1] = b;
             pow = e;
         }
         
@@ -759,8 +778,8 @@ struct Program
             n->op = NUM;
             n->number = t.number;
             e->op = COMP;
-            e->two[0] = comp;
-            e->two[1] = n;
+            e->binary[0] = comp;
+            e->binary[1] = n;
             comp = e;
         }
 
@@ -776,7 +795,7 @@ struct Program
         {
             fact = new Expr;
             fact->op = VARCONST;
-            fact->vc = t.id;
+            fact->varconst = t.id;
             token.advance(MAX_MATCH);
         }
         else if(cmp(NUMBER))
@@ -790,7 +809,7 @@ struct Program
         {
             fact = new Expr;
             fact->op = VARCONST;
-            fact->vc = t.id;
+            fact->varconst = t.id;
             token.advance(MAX_MATCH);
         }
         else fact = parse_tuple();
@@ -802,19 +821,18 @@ struct Program
     {
         MATCHA('(');
         
-        Expr *tuple = parse_add();
+        Expr *tuple = new Expr;
+        tuple->op = TUPLE;
+        Expr *a = parse_add();
+        tuple->tuple.push_back(a);
 
         while(true)
         {
             if(cmp(','))
             {
                 token.advance(MAX_MATCH);
-                Expr *a = parse_add();
-                Expr *e = new Expr;
-                e->op = TUPLE;
-                e->two[0] = a;
-                e->two[1] = tuple;
-                tuple = e;
+                a = parse_add();
+                tuple->tuple.push_back(a);
             }
             else break;
         }
@@ -846,8 +864,6 @@ int main()
     fclose(fp);
 
     Program p(src);
-
-    printf("Correct\n");
 
     return 0;
 }
