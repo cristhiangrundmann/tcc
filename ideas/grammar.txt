@@ -1,5 +1,5 @@
 PROG    ->  DECL PROG
-PROG    ->  DECL
+PROG    ->  
 
 DECL    ->  "param"     id "=" INTS             ";"
 DECL    ->  "grid"      id "=" GRIDS            ";"
