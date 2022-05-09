@@ -46,7 +46,7 @@ struct Trie
 {
     Trie *parent = nullptr;
     std::unique_ptr<Trie> children[62];
-    int data;
+    int data = -1;
     char c = 0;
     int length = 0;
     Type type = Type::UNDEFINED;
@@ -105,6 +105,8 @@ struct Token
 
     void advance(Trie::Mode mode = Trie::Mode::MATCH)
     {
+        number = 0;
+        string = nullptr;
         text += length;
         
         while(true)
@@ -592,28 +594,38 @@ struct Highlight
             else if(compare((Type)'_'))
             {
                 advance(Trie::Mode::MAX);
-                Object &obj = objs[string->data];
                 bool ok = false;
-                while(true)
+
+                if(string->data != -1 && token.string)
                 {
-                    for(Trie *arg : obj.list)
+                    Object &obj = objs[string->data];
+                    while(true)
                     {
-                        if(arg == token.string)
+                        for(Trie *arg : obj.list)
                         {
-                            ok = true;
-                            break;
+                            if(arg == token.string)
+                            {
+                                ok = true;
+                                break;
+                            }
                         }
+                        if(ok) break;
+
+                        if(token.string->parent)
+                        {
+                            token.string = token.string->parent;
+                            if(token.length) token.length--;
+                        }
+                        else break;
                     }
-                    if(ok) break;
-                    if(token.string->length)
-                    {
-                        token.string = token.string->parent;
-                        token.length--;
-                    }
-                    else break;
+
                 }
-                if(!ok) setError();
-                token.type = Type::VARIABLE;
+                if(!ok)
+                {
+                    token.length = 1;
+                    setError();
+                }
+                token.type = Type::FUNCTION;
                 color();
                 advance();
             }
@@ -717,16 +729,16 @@ Simple::Simple(const wxString& title)
 
     #define STYLE(x,y,z) ctrl->StyleSet##x((int)Style::y, z)
 
-        STYLE(Foreground, DEFAULT, wxColor(0, 0, 0));
-        STYLE(Foreground, SYMBOL, wxColor(0, 0, 0));
-        STYLE(Foreground, COMMENT, wxColor(0, 100, 0));
-        STYLE(Foreground, DECLARE, wxColor(50, 50, 200));
+        STYLE(Foreground, DEFAULT,  wxColor(0, 0, 0));
+        STYLE(Foreground, SYMBOL,   wxColor(0, 0, 0));
+        STYLE(Foreground, COMMENT,  wxColor(0, 100, 0));
+        STYLE(Foreground, DECLARE,  wxColor(50, 50, 200));
         STYLE(Foreground, FUNCTION, wxColor(50, 50, 50));
         STYLE(Foreground, CONSTANT, wxColor(100, 120, 150));
-        STYLE(Foreground, VARIABLE, wxColor(30, 200, 30));
-        STYLE(Foreground, NUMBER, wxColor(100, 100, 255));
-        STYLE(Foreground, UNDEFINED, wxColor(30, 200, 30));
-        STYLE(Foreground, ERROR, wxColor(230, 0, 0));
+        STYLE(Foreground, VARIABLE, wxColor(242, 150, 11));
+        STYLE(Foreground, NUMBER,   wxColor(100, 100, 255));
+        STYLE(Foreground, UNDEFINED,wxColor(242, 150, 11));
+        STYLE(Foreground, ERROR,    wxColor(230, 0, 0));
 
         STYLE(Font, DEFAULT, normal);
         STYLE(Font, SYMBOL, bold);
@@ -742,7 +754,6 @@ Simple::Simple(const wxString& title)
 
     wxColor col = wxColor(255, 0, 0);
     ctrl->MarkerDefine(1, wxSTC_MARK_CIRCLE, wxNullColour, col);
-
 }
 
 
