@@ -1,8 +1,7 @@
-all: prog.out
-	./prog.out
+phony: default highlight
 
-prog.out: main.o
-	clang++ -Wall -Wextra -Wpedantic -Werror -O3 main.o -o prog.out `wx-config --libs all` -std=c++17
+default: highlight
 
-main.o: main.cpp
-	clang++ -c -O3 main.cpp -o main.o `wx-config --cppflags` -std=c++17
+highlight:
+	clang++ -Wall -Wextra -Wpedantic -O3 highlight.cpp -o highlight.out `wx-config --libs all --cppflags` -std=c++17
+	./highlight.out
