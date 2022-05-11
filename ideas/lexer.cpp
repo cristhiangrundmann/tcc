@@ -18,10 +18,11 @@ namespace tcc
                 lexeme++;
             }
             if(*lexeme != '#') break;
-            int start = lexeme-source;
-            while(*lexeme != '\n' && *lexeme != 0) lexeme++;
-            int end = lexeme-source;
-            if(commentCallback) commentCallback(start, end);
+
+            type = TokenType::COMMENT;
+            length = 0;
+            while(lexeme[length] != '\n' && lexeme[length] != 0) length++;
+            return;
         }
 
         if(*lexeme == 0)

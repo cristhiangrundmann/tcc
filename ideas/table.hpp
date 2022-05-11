@@ -11,7 +11,8 @@ namespace tcc
         CONSTANT,
         VARIABLE,
         NUMBER,
-        FUNCTION
+        FUNCTION,
+        COMMENT
     };
 
     TokenType charToken(char c);

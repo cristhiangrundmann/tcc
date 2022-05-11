@@ -8,10 +8,13 @@ namespace tcc
     struct Parser
     {
         Lexer lexer;
-        std::unique_ptr<Table> table = std::make_unique<Table>();;
+        std::unique_ptr<Table> table = std::make_unique<Table>();
         std::vector<std::vector<Table*>> argList;
+        Table *objType = nullptr;
+        Table *objName = nullptr;
+        bool multUnary;
 
-        #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
+        #define INIT(x, y) const Table *x = table->initString(#x, TokenType::y);
             INIT(param,     DECLARE)
             INIT(grid,      DECLARE)
             INIT(define,    DECLARE)
@@ -30,34 +33,29 @@ namespace tcc
             INIT(sqrt,      FUNCTION)
         #undef INIT
 
-        Parser(const char *source);
+        Parser();
         void require(TokenType type);
         bool compare(TokenType type);
         void advance(Table::Mode mode = Table::Mode::MATCH);
         void removeArgs();
-        virtual void comment(int start, int end);
-        virtual void syntaxError(TokenType type);
 
         typedef void Parse();
-        typedef void Action();
+
+        void parseProgram(const char *source);
 
         Parse 
-            parseProgram, parseInt, parseInts, parseIGrid, parseIGrids, parseTInt,
+            parseInt, parseInts, parseIGrid, parseIGrids, parseTInt,
             parseTInts, parseFDecl, parseParam, parseGrid, parseDefine, parseCurve,
             parseSurface, parseFunction, parsePoint, parseVector, parseDecl,
-            parseExpr, parseAdd, parseJux, parseUnary, parseApp, parseFunc,
+            parseExpr, parseAdd, parseJux, parseMult, parseUnary, parseApp, parseFunc,
             parsePow, parseComp, parseFact, parseTuple;
 
-        void parseMult(bool unary);
-
-        virtual Action
-            actAdvance,
-            actInt, actIGrid, actTInt,
-            actFDecl, actParam, actGrid, actDefine, actCurve, actSurface,
-            actFunction, actPoint, actVector, actPlus, actMinus, actJux, 
-            actTimes, actDivide, actUPlus, actUMinus, actUTimes, actUDivide,
-            actFunc, actTotal, actPartial, actFPow, actPow, actComp, actConst,
-            actNumber, actVar, actTuple;
+        virtual void syntaxError(TokenType type);
+        virtual void actAdvance();
+        virtual void actInt(char c);
+        virtual void actDecl();
+        virtual void actBinary(char c);
+        virtual void actUnary(char c);
     };
 
 

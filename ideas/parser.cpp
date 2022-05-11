@@ -4,10 +4,8 @@
 
 namespace tcc
 {
-    Parser::Parser(const char *source)
+    Parser::Parser()
     {
-        lexer.source = source;
-        lexer.lexeme = source;
         lexer.table = table.get();
     }
 
@@ -23,12 +21,20 @@ namespace tcc
 
     void Parser::advance(Table::Mode mode)
     {
-        actAdvance();
-        lexer.advance(mode);
+        do
+        {
+            actAdvance();
+            lexer.advance(mode);
+        } while(lexer.type == TokenType::COMMENT);
     }
     
-    void Parser::parseProgram()
+    void Parser::parseProgram(const char *source)
     {
+        lexer.source = source;
+        lexer.lexeme = source;
+        lexer.length = 0;
+        lexer.lineno = 1;
+        lexer.column = 1;
         advance();
         while(!compare(TokenType::EOI)) parseDecl();
     }
@@ -43,7 +49,7 @@ namespace tcc
         parseExpr();
         require(charToken(']'));
         advance();
-        actInt();
+        actInt('i');
     }
 
     void Parser::parseTInts()
@@ -69,7 +75,7 @@ namespace tcc
         parseExpr();
         require(charToken(']'));
         advance();
-        actIGrid();
+        actInt('g');
     }
 
     void Parser::parseIGrids()
@@ -90,7 +96,7 @@ namespace tcc
         advance();
         if(compare(charToken('+')) || compare(charToken('-'))) advance();
         parseInt();
-        actInt();
+        actInt('t');
     }
 
     void Parser::parseInts()
@@ -111,7 +117,7 @@ namespace tcc
     void Parser::parseFDecl()
     {
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         lexer.type = TokenType::FUNCTION;
         advance();
         require(charToken('('));
@@ -138,64 +144,54 @@ namespace tcc
 
         parseExpr();
 
-        node->type = TokenType::FUNCTION;
-        node->argsIndex = (int)argList.size();
+        objName->type = TokenType::FUNCTION;
+        objName->argsIndex = (int)argList.size();
         argList.push_back(args);
-        Lexer tmp = lexer;
-        lexer.node = node;
-        actFDecl();
-        lexer = tmp;
     }
 
     void Parser::parseParam()
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         advance();
         require(charToken('='));
         advance();
         parseInts();
         require(charToken(';'));
         advance();
-        node->type = TokenType::VARIABLE;
-        Lexer tmp = lexer;
-        actParam();
-        lexer = tmp;
+        objName->type = TokenType::VARIABLE;
+        actDecl();
     }
 
     void Parser::parseGrid()
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         advance();
         require(charToken('='));
         advance();
         parseIGrids();
         require(charToken(';'));
         advance();
-        node->type = TokenType::VARIABLE;
-        Lexer tmp = lexer;
-        actGrid();
-        lexer = tmp;
+        objName->type = TokenType::VARIABLE;
+        actDecl();
     }
 
     void Parser::parseDefine()
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         advance();
         require(charToken('='));
         advance();
         parseExpr();
         require(charToken(';'));
         advance();   
-        node->type = TokenType::VARIABLE; 
-        Lexer tmp = lexer;
-        actDefine();
-        lexer = tmp;    
+        objName->type = TokenType::VARIABLE; 
+        actDecl();
     }
 
     void Parser::parseCurve()
@@ -208,7 +204,7 @@ namespace tcc
         require(charToken(';'));
         advance();
         removeArgs();
-        actCurve();
+        actDecl();
     }
 
     void Parser::parseSurface()
@@ -221,7 +217,7 @@ namespace tcc
         require(charToken(';'));
         advance();
         removeArgs();
-        actSurface();
+        actDecl();
     }
 
     void Parser::parseFunction()
@@ -231,31 +227,29 @@ namespace tcc
         require(charToken(';'));
         advance();
         removeArgs();
-        actFunction();
+        actDecl();
     }
 
     void Parser::parsePoint()
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         advance();
         require(charToken('='));
         advance();
         parseExpr();
         require(charToken(';'));
         advance();   
-        node->type = TokenType::VARIABLE;
-        Lexer tmp = lexer;
-        actPoint();
-        lexer = tmp;   
+        objName->type = TokenType::VARIABLE;
+        actDecl();
     }
 
     void Parser::parseVector()
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
-        Table *node = lexer.node;
+        objName = lexer.node;
         advance();
         require(charToken('='));
         advance();
@@ -265,15 +259,15 @@ namespace tcc
         parseExpr();
         require(charToken(';'));
         advance();   
-        node->type = TokenType::VARIABLE;
-        Lexer tmp = lexer;
-        actVector();
-        lexer = tmp;   
+        objName->type = TokenType::VARIABLE;
+        actDecl();
     }
 
     void Parser::parseDecl()
     {
         require(TokenType::DECLARE);
+        
+        objType = lexer.node;
         
         if(lexer.node == param)           parseParam();
         else if(lexer.node == grid)       parseGrid();
@@ -300,13 +294,13 @@ namespace tcc
             {
                 advance();
                 parseJux();
-                actPlus();
+                actBinary('+');
             }
             else if(compare(charToken('-')))
             {
                 advance();
                 parseJux();
-                actMinus();
+                actBinary('-');
             }
             else break;
         }
@@ -314,19 +308,21 @@ namespace tcc
 
     void Parser::parseJux()
     {
-        parseMult(true);
+        multUnary = true;
+        parseMult();
 
         while(compare(TokenType::FUNCTION) || compare(TokenType::CONSTANT)
         || compare(TokenType::NUMBER) || compare(TokenType::VARIABLE) || compare(charToken('(')))
         {
-            parseMult(false);
-            actJux();
+            multUnary = false;
+            parseMult();
+            actBinary(' ');
         }
     }
 
-    void Parser::parseMult(bool unary)
+    void Parser::parseMult()
     {
-        if(unary) parseUnary();
+        if(multUnary) parseUnary();
         else parseApp();
 
         while(true)
@@ -335,13 +331,13 @@ namespace tcc
             {
                 advance();
                 parseUnary();
-                actTimes();
+                actBinary('*');
             }
             else if(compare(charToken('/')))
             {
                 advance();
                 parseUnary();
-                actDivide();
+                actBinary('/');
             }
             else break;            
         }
@@ -353,25 +349,25 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actUPlus();
+            actBinary('+');
         }
         else if(compare(charToken('-')))
         {
             advance();
             parseUnary();
-            actUMinus();
+            actBinary('-');
         }
         else if(compare(charToken('*')))
         {
             advance();
             parseUnary();
-            actUTimes();
+            actBinary('*');
         }
         else if(compare(charToken('/')))
         {
             advance();
             parseUnary();
-            actUDivide();
+            actBinary('/');
         }
         else parseApp();
     }
@@ -382,7 +378,7 @@ namespace tcc
         {
             parseFunc();
             parseUnary();
-            actFunc();
+            actBinary('f');
         }
         else parsePow();
     }
@@ -391,6 +387,9 @@ namespace tcc
     {
         require(TokenType::FUNCTION);
         Table *node = lexer.node;
+
+        actUnary('f');
+
         advance();
 
         while(true)
@@ -398,7 +397,7 @@ namespace tcc
             if(compare(charToken('\'')))
             {
                 advance();
-                actTotal();
+                actUnary('\'');
             }
             else if(compare(charToken('_')))
             {
@@ -434,17 +433,17 @@ namespace tcc
                     syntaxError(TokenType::VARIABLE);
                 }
                 lexer.type = TokenType::FUNCTION;
-                actPartial();
+                actBinary('d');
                 advance();
             }
             else break;
         }
 
-        if(compare(charToken('^')))
+        if(compare(charToken('e')))
         {
             advance();
             parseUnary();
-            actFPow();
+            actBinary('e');
         }
     }
 
@@ -456,7 +455,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actPow();
+            actBinary('^');
         }
     }
 
@@ -468,7 +467,7 @@ namespace tcc
         {
             advance();
             require(TokenType::NUMBER);
-            actComp();
+            actBinary('_');
             advance();
         }
     }
@@ -477,17 +476,17 @@ namespace tcc
     {
         if(compare(TokenType::CONSTANT))
         {
-            actConst();
+            actUnary('c');
             advance();
         }
         else if(compare(TokenType::NUMBER))
         {
-            actNumber();
+            actUnary('n');
             advance();
         }
         else if(compare(TokenType::VARIABLE))
         {
-            actVar();
+            actUnary('v');
             advance();
         }
         else parseTuple();
@@ -502,49 +501,24 @@ namespace tcc
         {
             advance();
             parseAdd();
-            actTuple();
+            actBinary(',');
         }
         require(charToken(')'));
         advance();
     }
 
-    #define DUMMY(x) void Parser::x() {}
-        DUMMY(actAdvance) 
-        DUMMY(actInt) DUMMY(actIGrid) DUMMY(actTInt)
-        DUMMY(actFDecl) DUMMY(actParam) DUMMY(actGrid) 
-        DUMMY(actDefine) DUMMY(actCurve) DUMMY(actSurface)
-        DUMMY(actFunction) DUMMY(actPoint) DUMMY(actVector)
-        DUMMY(actPlus) DUMMY(actMinus) DUMMY(actJux) 
-        DUMMY(actTimes) DUMMY(actDivide) DUMMY(actUPlus) 
-        DUMMY(actUMinus) DUMMY(actUTimes) DUMMY(actUDivide)
-        DUMMY(actFunc) DUMMY(actTotal) DUMMY(actPartial) 
-        DUMMY(actFPow) DUMMY(actPow) DUMMY(actComp) DUMMY(actConst)
-        DUMMY(actNumber) DUMMY(actVar) DUMMY(actTuple)
-    #undef DUMMY
-
-    void Parser::comment(int start, int end) {}
+    void Parser::actAdvance() {}
+    void Parser::actDecl() {}
+    void Parser::actInt(char c) {}
+    void Parser::actBinary(char c) {}
+    void Parser::actUnary(char c) {}
 
     void Parser::syntaxError(TokenType type) 
     {
-        printf("Syntax error: expected %s instead of %s\n", 
+        static char msg[128];
+        sprintf(msg, "Syntax error: expected %s instead of %s\n", 
                 getTypeString(type), getTypeString(lexer.type));
-        throw 0;
+
+        throw msg;
     }
-}
-
-using namespace tcc;
-
-struct Tester : public Parser
-{
-    Tester(const char *source) : Parser(source) {}
-    void actParam()
-    {
-        printf("Param defined!\n");
-    }
-};
-
-int main()
-{
-    Tester t("param R = [0, 10];");
-    t.parseProgram();
 }

@@ -14,7 +14,6 @@ namespace tcc
         double number;
         Table *node = nullptr;
         Table *table = nullptr;
-        void (*commentCallback)(int start, int end) = nullptr;
 
         void advance(Table::Mode mode = Table::Mode::MATCH);
     };
