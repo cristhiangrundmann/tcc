@@ -95,7 +95,7 @@ namespace tcc
         ctrl->Bind(wxEVT_STC_UPDATEUI, &SourceEditor::UpdateUI, this);
 
         wxFont italic;
-        italic.SetFaceName("C059");
+        italic.SetFaceName("FreeMono");
         italic.SetStyle(wxFONTSTYLE_ITALIC);
 
         wxFont bold;
@@ -163,7 +163,8 @@ namespace tcc
             {
                 hl.parseProgram(text.c_str());
                 pairs = hl.pairs;
-            } catch(const char *msg)
+            }
+            catch(const char *msg)
             {
                 ctrl->StartStyling(hl.lexer.lexeme - hl.lexer.source);
                 ctrl->SetStyling(hl.lexer.length, (int)StyleText::Style::ERROR);

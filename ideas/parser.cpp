@@ -153,6 +153,7 @@ namespace tcc
     {
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
+        lexer.type = TokenType::CONSTANT;
         objName = lexer.node;
         advance();
         require(charToken(':'));
@@ -160,7 +161,7 @@ namespace tcc
         parseInts();
         require(charToken(';'));
         advance();
-        objName->type = TokenType::VARIABLE;
+        objName->type = TokenType::CONSTANT;
         actDecl();
     }
 
@@ -169,13 +170,14 @@ namespace tcc
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
         objName = lexer.node;
+        lexer.type = TokenType::CONSTANT;
         advance();
         require(charToken(':'));
         advance();
         parseIGrids();
         require(charToken(';'));
         advance();
-        objName->type = TokenType::VARIABLE;
+        objName->type = TokenType::CONSTANT;
         actDecl();
     }
 
@@ -184,13 +186,14 @@ namespace tcc
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
         objName = lexer.node;
+        lexer.type = TokenType::CONSTANT;
         advance();
         require(charToken('='));
         advance();
         parseExpr();
         require(charToken(';'));
         advance();   
-        objName->type = TokenType::VARIABLE; 
+        objName->type = TokenType::CONSTANT; 
         actDecl();
     }
 
@@ -235,13 +238,14 @@ namespace tcc
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
         objName = lexer.node;
+        lexer.type = TokenType::CONSTANT;
         advance();
         require(charToken('='));
         advance();
         parseExpr();
         require(charToken(';'));
         advance();   
-        objName->type = TokenType::VARIABLE;
+        objName->type = TokenType::CONSTANT;
         actDecl();
     }
 
@@ -250,6 +254,7 @@ namespace tcc
         advance(Table::Mode::INSERT);
         require(TokenType::UNDEFINED);
         objName = lexer.node;
+        lexer.type = TokenType::CONSTANT;
         advance();
         require(charToken('='));
         advance();
@@ -259,7 +264,7 @@ namespace tcc
         parseExpr();
         require(charToken(';'));
         advance();   
-        objName->type = TokenType::VARIABLE;
+        objName->type = TokenType::CONSTANT;
         actDecl();
     }
 
