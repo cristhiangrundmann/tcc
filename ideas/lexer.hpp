@@ -8,8 +8,8 @@ namespace tcc
         const char *source = nullptr;
         const char *lexeme = nullptr;
         int length = 0;
-        int lineno = 1;
-        int column = 1;
+        int lineno = 0;
+        int column = 0;
         TokenType type;
         double number;
         Table *node = nullptr;

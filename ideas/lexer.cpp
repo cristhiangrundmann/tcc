@@ -13,7 +13,7 @@ namespace tcc
         {
             while(*lexeme == ' ' || *lexeme == '\n' || *lexeme == '\t')
             {
-                if(*lexeme == '\n') lineno++, column=1;
+                if(*lexeme == '\n') lineno++, column = 0;
                 else column++;
                 lexeme++;
             }
