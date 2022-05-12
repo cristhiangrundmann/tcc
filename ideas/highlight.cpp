@@ -1,5 +1,4 @@
 #include "parser.hpp"
-
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
 
@@ -10,27 +9,52 @@ namespace tcc
         enum class Style
         {
             DEFAULT = 0, COMMENT = 4, DECLARE, FUNCTION, CONSTANT, 
-            VARIABLE, NUMBER, UNDEFINED, SYMBOL, ERROR
+            VARIABLE, NUMBER, UNDEFINED, SYMBOL, ERROR, BRACKETS
         };
 
         int start = 0;
         int length = 0;
-        int line = 1;
         Style style = Style::DEFAULT;
     };
 
     struct Highlight : public Parser
     {
         std::vector<StyleText> styles;
+        std::vector<int> stack;
+
+        struct Pair
+        {
+            int a, b;
+        };
+        std::vector<Pair> pairs;
 
         void actAdvance()
         {
             StyleText s;
             s.start = lexer.lexeme - lexer.source;
             s.length = lexer.length;
-            s.line = lexer.lineno;
 
-            if((int)lexer.type < 256) s.style = StyleText::Style::SYMBOL;
+            if((int)lexer.type < 256)
+            {
+                int pos = (int)(lexer.lexeme - lexer.source);
+                s.style = StyleText::Style::SYMBOL;
+                switch((int)lexer.type)
+                {
+                    case '(':
+                    case '[':
+                        stack.push_back(pairs.size());
+                        pairs.push_back({pos, 0});
+                        break;
+                    case ')':
+                    case ']':
+                        if(stack.size())
+                        {
+                            pairs[stack.back()].b = pos;
+                            stack.pop_back();
+                        }
+                        break;
+                }
+            }
             else switch(lexer.type)
             {
                 case TokenType::UNDEFINED: s.style = StyleText::Style::UNDEFINED; break;
@@ -46,13 +70,14 @@ namespace tcc
         }
     };
 
-    class Simple : public wxFrame
+    class SourceEditor : public wxFrame
     {
     public:
-        Simple(const wxString& title);
+        SourceEditor(const wxString& title);
         wxStyledTextCtrl *ctrl;
+        std::vector<Highlight::Pair> pairs;
 
-        void OnStyleNeeded(wxStyledTextEvent& event);
+        void UpdateUI(wxStyledTextEvent& event);
     };
 
     class MyApp : public wxApp
@@ -61,13 +86,13 @@ namespace tcc
         virtual bool OnInit();
     };
 
-    Simple::Simple(const wxString& title)
+    SourceEditor::SourceEditor(const wxString& title)
         : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(512, 512))
     {
         Centre();
         ctrl = new wxStyledTextCtrl(this);
-        ctrl->SetLexer(wxSTC_LEX_CONTAINER);
-        ctrl->Bind(wxEVT_STC_STYLENEEDED, &Simple::OnStyleNeeded, this);
+        //ctrl->SetLexer(wxSTC_LEX_CONTAINER);
+        ctrl->Bind(wxEVT_STC_UPDATEUI, &SourceEditor::UpdateUI, this);
 
         wxFont italic;
         italic.SetFaceName("C059");
@@ -96,7 +121,8 @@ namespace tcc
             STYLE(Foreground, VARIABLE, wxColor(242, 150, 11));
             STYLE(Foreground, NUMBER,   wxColor(100, 100, 255));
             STYLE(Foreground, UNDEFINED,wxColor(242, 150, 11));
-            STYLE(Foreground, ERROR,    wxColor(230, 0, 0));
+            STYLE(Background, ERROR,    wxColor(255, 0, 0));
+            STYLE(Background, BRACKETS, wxColor(200, 200, 255));
 
             STYLE(Font, DEFAULT, normal);
             STYLE(Font, SYMBOL, bold);
@@ -107,6 +133,7 @@ namespace tcc
             STYLE(Font, VARIABLE, italic);
             STYLE(Font, UNDEFINED, italic);
             STYLE(Font, ERROR, bold);
+            STYLE(Font, BRACKETS, bold);
 
         #undef STYLE
 
@@ -114,41 +141,76 @@ namespace tcc
         ctrl->MarkerDefine(1, wxSTC_MARK_CIRCLE, wxNullColour, col);
     }
 
-
-    void Simple::OnStyleNeeded(wxStyledTextEvent& event)
+    void SourceEditor::UpdateUI(wxStyledTextEvent& event)
     {
         wxString text = ctrl->GetText();
         size_t length = text.length();
 
-        ctrl->MarkerDeleteAll(1);
-        ctrl->StartStyling(0);
-        ctrl->SetStyling(length, 0);
+        if(length == 0) return;
 
-        Highlight hl;
+        bool updated = false;
+        bool error = false;
 
-        try
+        if(event.GetUpdated() & wxSTC_UPDATE_CONTENT)
         {
-            hl.parseProgram(text.c_str());
-            printf("Correct\n");
-        } catch(const char *msg)
-        {
-            printf("Error: %s\n", msg);
-        }
+            ctrl->MarkerDeleteAll(1);
+            ctrl->StartStyling(0);
+            ctrl->SetStyling(length, 0);
 
-        for(StyleText &s : hl.styles)
-        {
-            ctrl->StartStyling(s.start);
-            ctrl->SetStyling(s.length, (int)s.style);
-            if(s.style == StyleText::Style::ERROR)
+            Highlight hl;
+
+            try
             {
-                ctrl->MarkerAdd(s.line, 1);
+                hl.parseProgram(text.c_str());
+                pairs = hl.pairs;
+            } catch(const char *msg)
+            {
+                ctrl->StartStyling(hl.lexer.lexeme - hl.lexer.source);
+                ctrl->SetStyling(hl.lexer.length, (int)StyleText::Style::ERROR);
+                ctrl->MarkerAdd(hl.lexer.lineno, 1);
+                pairs.clear();
+                error = true;
+            }
+
+            for(StyleText &s : hl.styles)
+            {
+                ctrl->StartStyling(s.start);
+                ctrl->SetStyling(s.length, (int)s.style);
+            }
+
+            if(error) return;
+
+            updated = true;
+        }
+        
+        if(updated || (event.GetUpdated() & wxSTC_UPDATE_SELECTION))
+        {
+            if(pairs.size())
+            {
+                int pos = ctrl->GetCurrentPos();
+                int p = -1;
+
+                for(int i = 0; i < (int)pairs.size(); i++)
+                    if(pairs[i].a <= pos && pairs[i].b >= pos) 
+                        p = i;
+
+                for(int i = 0; i < (int)pairs.size(); i++)
+                {
+                    int style = i == p
+                        ? (int)StyleText::Style::BRACKETS 
+                        : (int)StyleText::Style::SYMBOL;
+                    ctrl->StartStyling(pairs[i].a);
+                    ctrl->SetStyling(1, style);
+                    ctrl->StartStyling(pairs[i].b);
+                    ctrl->SetStyling(1, style);
+                }
             }
         }
     }
 
     bool MyApp::OnInit()
     {
-        Simple *simple = new Simple(wxT("Simple"));
+        SourceEditor *simple = new SourceEditor(wxT("Syntax Highlight"));
         simple->Show(true);
         return true;
     }
