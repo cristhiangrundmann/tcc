@@ -354,25 +354,25 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actBinary('+');
+            actUnary('+');
         }
         else if(compare(charToken('-')))
         {
             advance();
             parseUnary();
-            actBinary('-');
+            actUnary('-');
         }
         else if(compare(charToken('*')))
         {
             advance();
             parseUnary();
-            actBinary('*');
+            actUnary('*');
         }
         else if(compare(charToken('/')))
         {
             advance();
             parseUnary();
-            actBinary('/');
+            actUnary('/');
         }
         else parseApp();
     }
