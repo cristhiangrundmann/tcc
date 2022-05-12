@@ -1,8 +1,8 @@
 PROG    ->  DECL PROG
 PROG    ->  
 
-DECL    ->  "param"     id "=" INTS             ";"
-DECL    ->  "grid"      id "=" GRIDS            ";"
+DECL    ->  "param"     id ":" INTS             ";"
+DECL    ->  "grid"      id ":" GRIDS            ";"
 DECL    ->  "define"    id "=" EXPR             ";"
 DECL    ->  "curve"     FDECL "," TINTS         ";"
 DECL    ->  "surface"   FDECL "," TINTS         ";"

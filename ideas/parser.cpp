@@ -33,7 +33,7 @@ namespace tcc
         lexer.source = source;
         lexer.lexeme = source;
         lexer.length = 0;
-        lexer.lineno = 1;
+        lexer.lineno = 0;
         lexer.column = 1;
         advance();
         while(!compare(TokenType::EOI)) parseDecl();
@@ -155,7 +155,7 @@ namespace tcc
         require(TokenType::UNDEFINED);
         objName = lexer.node;
         advance();
-        require(charToken('='));
+        require(charToken(':'));
         advance();
         parseInts();
         require(charToken(';'));
@@ -170,7 +170,7 @@ namespace tcc
         require(TokenType::UNDEFINED);
         objName = lexer.node;
         advance();
-        require(charToken('='));
+        require(charToken(':'));
         advance();
         parseIGrids();
         require(charToken(';'));
