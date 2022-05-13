@@ -51,6 +51,7 @@ namespace tcc
             parsePow, parseComp, parseFact, parseTuple;
 
         virtual void syntaxError(TokenType type);
+        virtual void actStart();
         virtual void actAdvance();
         virtual void actInt(char c);
         virtual void actDecl();

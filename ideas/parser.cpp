@@ -35,6 +35,7 @@ namespace tcc
         lexer.length = 0;
         lexer.lineno = 0;
         lexer.column = 1;
+        actStart();
         advance();
         while(!compare(TokenType::EOI)) parseDecl();
     }
@@ -94,7 +95,7 @@ namespace tcc
         advance();
         require(charToken(':'));
         advance();
-        if(compare(charToken('+')) || compare(charToken('-'))) advance();
+        if(compare(charToken('+')) || compare(charToken('-'))) advance(); //???
         parseInt();
         actInt('t');
     }
@@ -444,7 +445,7 @@ namespace tcc
             else break;
         }
 
-        if(compare(charToken('e')))
+        if(compare(charToken('^')))
         {
             advance();
             parseUnary();
