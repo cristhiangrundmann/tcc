@@ -12,7 +12,8 @@ namespace tcc
         std::vector<std::vector<Table*>> argList;
         Table *objType = nullptr;
         Table *objName = nullptr;
-        bool multUnary;
+        Table *tag = nullptr;
+        char wrap = 0;
 
         #define INIT(x, y) const Table *x = table->initString(#x, TokenType::y);
             INIT(param,     DECLARE)
@@ -34,8 +35,6 @@ namespace tcc
         #undef INIT
 
         Parser();
-        void require(TokenType type);
-        bool compare(TokenType type);
         void advance(Table::Mode mode = Table::Mode::MATCH);
         void removeArgs();
 
@@ -44,19 +43,22 @@ namespace tcc
         void parseProgram(const char *source);
 
         Parse 
-            parseInt, parseInts, parseIGrid, parseIGrids, parseTInt,
-            parseTInts, parseFDecl, parseParam, parseGrid, parseDefine, parseCurve,
+            parseFDecl, parseParam, parseGrid, parseDefine, parseCurve,
             parseSurface, parseFunction, parsePoint, parseVector, parseDecl,
-            parseExpr, parseAdd, parseJux, parseMult, parseUnary, parseApp, parseFunc,
+            parseExpr, parseAdd, parseJux, parseUnary, parseApp, parseFunc,
             parsePow, parseComp, parseFact, parseTuple;
 
+        void parseInt(char type);
+        void parseInts(char type);
+
+        void parseMult(bool unary);
+
         virtual void syntaxError(TokenType type);
-        virtual void actStart();
         virtual void actAdvance();
-        virtual void actInt(char c);
+        virtual void actInt(char type);
         virtual void actDecl();
-        virtual void actBinary(char c);
-        virtual void actUnary(char c);
+        virtual void actBinary(char type);
+        virtual void actUnary(char type);
     };
 
 

@@ -1,4 +1,4 @@
-CPPFLAGS=-Wall -Wextra -Wpedantic -std=c++17 -O3
+CPPFLAGS=-Wall -Wextra -Wpedantic -Werror -std=c++17 -O3
 
 .phony: default clean
 
