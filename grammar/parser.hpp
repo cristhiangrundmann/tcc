@@ -35,7 +35,7 @@ namespace tcc
         #undef INIT
 
         Parser();
-        void advance(Table::Mode mode = Table::Mode::MATCH);
+        void advance(bool match = true);
         void removeArgs();
 
         typedef void Parse();

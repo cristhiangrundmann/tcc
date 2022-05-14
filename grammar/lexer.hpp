@@ -15,6 +15,6 @@ namespace tcc
         Table *node = nullptr;
         Table *table = nullptr;
 
-        void advance(Table::Mode mode = Table::Mode::MATCH);
+        void advance(bool match = true);
     };
 }

@@ -36,12 +36,11 @@ namespace tcc
         #undef CASE
     }
 
-    Table *Table::next(char c, bool expand)
+    Table *Table::next(char c)
     {
         int index = alphIndex(c);
         if(!children[index].get())
         {
-            if(!expand) return nullptr;
             children[index] = std::make_unique<Table>();
             Table *t = children[index].get();
             t->parent = this;
@@ -51,21 +50,30 @@ namespace tcc
         return children[index].get();
     }
 
-    Table *Table::procString(const char *text, Mode mode)
+    Table *Table::procString(const char *text, bool match)
     {
-        int index = alphIndex(*text);
-        if(index == -1) return this;
-        Table *a = next(*text, mode == Mode::INSERT);
-        if(!a) return this;
-        Table *b = a->procString(text+1, mode);
-        if(mode != Mode::MATCH) return b;
-        if(b->type != TokenType::UNDEFINED) return b;
-        return this;
+        if(length) throw "Must call procString from root";
+
+        Table *node = this;
+        Table *lastMatch = nullptr;
+
+        while(true)
+        {
+            int index = alphIndex(*text);
+            if(index == -1) break;
+
+            node = node->next(*text);
+            if(match && node->type != TokenType::UNDEFINED) lastMatch = node;
+            text++;
+        }
+
+        if(match && lastMatch) return lastMatch;
+        return node;
     }
 
     Table *Table::initString(const char *text, TokenType type)
     {
-        Table *t = procString(text, Mode::INSERT);
+        Table *t = procString(text, false);
         t->type = type;
         return t;
     }

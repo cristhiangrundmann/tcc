@@ -3,7 +3,7 @@
 namespace tcc
 {
 
-    void Lexer::advance(Table::Mode mode)
+    void Lexer::advance(bool match)
     {
         number = 0;
         node = nullptr;
@@ -48,11 +48,9 @@ namespace tcc
                 return;
             }
 
-            node = table->procString(lexeme, mode);
+            node = table->procString(lexeme, match);
             length = node->length;
             type = node->type;
-
-            if(length == 0) length = 1; //???
         }
     }
 }

@@ -31,13 +31,8 @@ namespace tcc
         TokenType type = TokenType::UNDEFINED;
         char character = 0;
 
-        enum class Mode
-        {
-            MATCH, INSERT, MAX
-        };
-
-        Table *next(char c, bool expand);
-        Table *procString(const char *str, Mode mode);
+        Table *next(char c);
+        Table *procString(const char *str, bool match);
         Table *initString(const char *str, TokenType type);
     };
 

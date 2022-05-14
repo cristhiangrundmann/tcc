@@ -13,12 +13,12 @@ namespace tcc
         lexer.table = table.get();
     }
 
-    void Parser::advance(Table::Mode mode)
+    void Parser::advance(bool match)
     {
         do
         {
             actAdvance();
-            lexer.advance(mode);
+            lexer.advance(match);
         } while(lexer.type == TokenType::COMMENT);
     }
     
@@ -92,7 +92,7 @@ namespace tcc
         objName->type = TokenType::FUNCTION;
         advance();
         require(charToken('('));
-        advance(Table::Mode::INSERT);
+        advance(false);
         std::vector<Table*> args;
 
         while(true)
@@ -103,7 +103,7 @@ namespace tcc
             args.push_back(arg);
             advance();
             if(!compare(charToken(','))) break;
-            advance(Table::Mode::INSERT);
+            advance(false);
         }
 
         skip(')');
@@ -187,7 +187,7 @@ namespace tcc
     {
         require(TokenType::DECLARE);
         objType = lexer.node;
-        advance(Table::Mode::INSERT);
+        advance(false);
         require(TokenType::UNDEFINED);
         objName = lexer.node;
 
@@ -322,35 +322,29 @@ namespace tcc
             }
             else if(compare(charToken('_')))
             {
-                advance(Table::Mode::MAX);
+                advance(false);
+                int l = lexer.length;
                 bool ok = false;
 
-                if(node->argsIndex != -1 && lexer.node)
+                if(node->argsIndex != -1 && lexer.node) while(true)
                 {
-                    while(true)
+                    for(Table *arg : argList[node->argsIndex]) if(arg == lexer.node)
                     {
-                        for(Table *arg : argList[node->argsIndex])
-                        {
-                            if(arg == lexer.node)
-                            {
-                                ok = true;
-                                break;
-                            }
-                        }
-                        if(ok) break;
-
-                        if(lexer.node->parent)
-                        {
-                            lexer.node = lexer.node->parent;
-                            if(lexer.length) lexer.length--;
-                        }
-                        else break;
+                        ok = true;
+                        break;
                     }
-
+                    if(ok) break;
+                    if(lexer.node->parent)
+                    {
+                        lexer.node = lexer.node->parent;
+                        if(lexer.length) lexer.length--;
+                    }
+                    else break;
                 }
+
                 if(!ok)
                 {
-                    lexer.length = 1;
+                    lexer.length = l;
                     syntaxError(TokenType::VARIABLE);
                 }
                 lexer.type = TokenType::FUNCTION;
