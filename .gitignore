@@ -1,4 +1,4 @@
-#Texmaker
+# Texmaker
 *.log
 *.aux
 *.synctex.gz
@@ -7,6 +7,9 @@
 *.lol
 *.lot
 *.lof
+
+# Minted
+_minted-text/
 
 # Prerequisites
 *.d

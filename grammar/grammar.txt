@@ -1,59 +1,39 @@
-PROG    ->  DECL PROG
-PROG    ->  
+PROG    = DECL PROG | ;
 
-DECL    ->  param     id : INTS             ;
-DECL    ->  grid      id : GRIDS            ;
-DECL    ->  define    id = EXPR             ;
-DECL    ->  curve     FDECL , TINTS         ;
-DECL    ->  surface   FDECL , TINTS         ;
-DECL    ->  function  FDECL                 ;
-DECL    ->  point     id = EXPR             ;
-DECL    ->  vector    id = EXPR @ EXPR      ;
+DECL    = "param"     id ":" INTS ";" ;
+DECL    = "grid"      id ":" GRIDS ";" ;
+DECL    = "define"    id "=" EXPR ";" ;
+DECL    = "curve"     FDECL "," TINTS ";" ;
+DECL    = "surface"   FDECL "," TINTS ";" ;
+DECL    = "function"  FDECL ";" ;
+DECL    = "point"     id "=" EXPR ";" ;
+DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
 
-FDECL   ->  id ( IDS ) = EXPR
-IDS     ->  IDS , id    |   IDS -> id
+FDECL   = id "(" IDS ")" "=" EXPR ;
+IDS     = IDS "," id | id ;
+TAG     = "+" | "-" | ;
+INT     = [ EXPR "," EXPR ] ;
+GRID    = [ EXPR "," EXPR "," EXPR ] ;
+TINT    = var ":" TAG INT ;
+INTS    = INTS "," INT | INT ;
+TINTS   = TINTS "," TINT | TINT ;
+GRIDS   = GRIDS "," GRID | GRID ;
 
-INT     ->  [ EXPR , EXPR ]
-GRID    ->  [ EXPR , EXPR , EXPR ]
-TINT    ->  var : TAG INT
+EXPR    = ADD;
+ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
+JUX     = JUX MULT2 | MULT ;
+MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
+MULT2   = MULT2 "*" UNARY | MULT2 "/" UNARY | APP ;
+UNARY   = "+" UNARY ;
+UNARY   = "-" UNARY ;
+UNARY   = "*" UNARY ;
+UNARY   = "/" UNARY ;
+UNARY   = APP ;
+APP     = FUNC UNARY | POW ;
+FUNC    = FUNC2 "^" UNARY | FUNC2 ;
+FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
 
-TAG     ->  +   |   TAG -> -
-TAG     ->
-
-INTS    ->  INTS  , INT     |   INTS    -> INT
-TINTS   ->  TINTS , TINT    |   TINTS   -> TINT
-GRIDS   ->  GRIDS , GRID    |   GRIDS   -> GRID
-
-EXPR    ->  ADD
-
-ADD     ->  ADD + JUX
-ADD     ->  ADD - JUX
-ADD     ->  JUX
-
-JUX     ->  JUX MULT2   |   JUX -> MULT
-
-MULT    ->  MULT * UNARY
-MULT    ->  MULT / UNARY
-MULT    ->  UNARY
-MULT2   ->  MULT2 * UNARY
-MULT2   ->  MULT2 / UNARY
-MULT2   ->  APP
-
-UNARY   ->  + UNARY
-UNARY   ->  - UNARY
-UNARY   ->  * UNARY
-UNARY   ->  / UNARY
-UNARY   ->  APP
-
-APP     ->  FUNC UNARY  |   APP -> POW
-
-FUNC    ->  FUNC2 ^ UNARY
-FUNC    ->  FUNC2
-FUNC2   ->  FUNC2 _ var
-FUNC2   ->  FUNC2 '
-FUNC2   ->  func
-
-POW     ->  COMP ^ UNARY    |   POW ->  COMP
-COMP    ->  COMP _ num  |   COMP -> FACT
-FACT    ->  const | FACT -> num | FACT -> var | FACT -> ( TUPLE )
-TUPLE   ->  ADD , TUPLE     |   TUPLE -> ADD
+POW     = COMP "^" UNARY | COMP ;
+COMP    = COMP "_" num | FACT ;
+FACT    = const | num | var | "(" TUPLE ")" ;
+TUPLE   = ADD "," TUPLE | ADD ;
