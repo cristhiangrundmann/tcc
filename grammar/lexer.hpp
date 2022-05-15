@@ -10,8 +10,8 @@ namespace tcc
         int length = 0;
         int lineno = 0;
         int column = 0;
-        TokenType type;
-        double number;
+        TokenType type = TokenType::UNDEFINED;
+        double number = 0;
         Table *node = nullptr;
         Table *table = nullptr;
 

@@ -89,7 +89,6 @@ namespace tcc
     void Parser::parseFDecl()
     {
         lexer.type = TokenType::FUNCTION;
-        objName->type = TokenType::FUNCTION;
         advance();
         require(charToken('('));
         advance(false);
@@ -112,33 +111,34 @@ namespace tcc
 
         objName->argsIndex = (int)argList.size();
         argList.push_back(args);
+        objName->type = TokenType::FUNCTION;
     }
 
     void Parser::parseParam()
     {
         lexer.type = TokenType::CONSTANT;
-        objName->type = TokenType::CONSTANT;
         advance();
         skip(':');
         parseInts('i');
+        objName->type = TokenType::CONSTANT;
     }
 
     void Parser::parseGrid()
     {
         lexer.type = TokenType::CONSTANT;
-        objName->type = TokenType::CONSTANT;
         advance();
         skip(':');
         parseInts('g');
+        objName->type = TokenType::CONSTANT;
     }
 
     void Parser::parseDefine()
     {
         lexer.type = TokenType::CONSTANT;
-        objName->type = TokenType::CONSTANT;
         advance();
         skip('=');
         parseExpr();
+        objName->type = TokenType::CONSTANT;
     }
 
     void Parser::parseCurve()
@@ -166,21 +166,21 @@ namespace tcc
     void Parser::parsePoint()
     {
         lexer.type = TokenType::CONSTANT;
-        objName->type = TokenType::CONSTANT;
         advance();
         skip('=');
         parseExpr();
+        objName->type = TokenType::CONSTANT;
     }
 
     void Parser::parseVector()
     {
         lexer.type = TokenType::CONSTANT;
-        objName->type = TokenType::CONSTANT;
         advance();
         skip('=');
         parseExpr();
         skip('@');
         parseExpr();
+        objName->type = TokenType::CONSTANT;
     }
 
     void Parser::parseDecl()
