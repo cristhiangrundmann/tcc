@@ -1,0 +1,306 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+
+\renewcommand{\lstlistlistingname}{Listagens}
+\renewcommand{\lstlistingname}{Listagem}
+
+\title{Descrição textual}
+\date{}
+\author{}
+
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,       
+    breaklines=true,       
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Descrição Textual}
+A descrição textual é a primeira etapa da aplicação.
+Nela, todos os objetos de interesse são definidos.
+O texto então é processado em 3 estágios: análise léxica, ou lexer, análise sintática, ou parser, e a tradução.
+O lexer é responsável pela separação do texto em palavras, ou lexemas. O parser é responsável pela identificação das estruturas sintáticas, reconhecendo expressões, definições, etc. O tradutor processa as estruturas reconhecidas pelo parser e produz uma outra estrutura de interesse, definindo a semântica dos objetos.
+Na prática, a distinção entre esses estágios não é muito clara, sendo que eles são executados ao mesmo tempo.
+
+Um programa é uma sequência de declarações de objetos, que podem se referir uns aos outros. O programa pode declarar objetos de vários tipos:
+\begin{itemize}
+\item \texttt{param}: parâmetro limitado num intervalo.
+\item \texttt{grid}: parâmetro limitado num intervalo dividido em partes iguais. Instancia pontos, vetores e definições.
+\item \texttt{define}: define uma constante.
+\item \texttt{curve}: curva parametrizada, com limite no parâmetro.
+\item \texttt{surface}: superfície parametrizada, com limites nos parâmetros.
+\item \texttt{function}: define uma função.
+\item \texttt{point}: define um ponto.
+\item \texttt{vector}: define um vetor a partir de um ponto.
+\end{itemize}
+
+Por exemplo, considere o seguinte programa:
+
+\begin{verbatim}
+# 8 pontos sobre um círculo
+param r : [1, 10];
+curve C(t) = (r*cos(t), r*sin(t)), t : [0, 2*pi];
+grid g : [0, 2*pi, 8];
+point P = C(g);
+\end{verbatim}
+
+O parâmetro \texttt{r} deve estar no intervalo $[1, 10]$, e é o raio do círculo $C$. O parâmetro $t$ do círculo está no intervalo $[0, 2\pi]$.
+A grade $g$ é tratada como um parâmetro, porém instanciado em $8$ valores no intervalo $[0, 2\pi]$.
+O ponto \texttt{P} cria 8 pontos sobre a curva $C$.
+
+Para exibir vetores tangentes sobre os 8 pontos, basta definir:\\ \texttt{vector V = C'(g) @ P;}
+
+Para indicar que a curva é fechada, que o ponto em $0$ está identificado com o ponto em $2\pi$,
+basta escrever \texttt{t : +[0, 2*pi];}
+
+Para superfícies, um intervalo \texttt{+[a,b]} significa que a curva em \texttt{a}
+está identificada com a curva em \texttt{b}.
+Um intervalo \texttt{-[a,b]} significa que as curvas estão identificadas de forma reversa.
+Isso possibilita a definição de um cilindro, de uma faixa de Möbius, e de uma garrafa de Klein.
+
+\section{Análise léxica}
+A análise léxica, ou lexer, é o estágio mais simples do processamento, pois precisa apenas reconhecer lexemas
+e obter seus atributos. Seu dever é fornecer ao parser as informações releventes do texto, enquanto as informações inúteis, como espaços em branco, são absorvidas pelo lexer.
+
+O lexer deve reconhecer um lexema e obter seus atributos.
+Um atributo importante é a classe gramatical do lexema.
+Por exemplo, o parser não precisa saber qual número específico um lexema descreve para tomar decisões sintáticas, 
+precisa apenas saber que se trata de um número.
+O parser, no entanto, deve obter todos os atributos presentes para serem usados na tradução.
+Dependendo da classe gramatical de um lexema, outros atributos podem existir.
+No caso de um número, o próprio número em forma de float é um atributo relevante.
+No caso de uma função, seus argumentos são relevantes. Um outro atributo sempre presente é o tamanho do lexema.
+
+Um lexema, sua classe gramatical e seus atributos juntos formam um token. A classe gramatical é chamada de tipo do token. O lexer, portanto, extrai tokens do texto e os passa para o parser.
+
+\subsection{Tipos de token}
+Os tipos de token são
+\begin{itemize}
+\item \texttt{COMMENT}: um texto livre começando com \texttt{\#} e terminando em uma nova linha ou no fim do texto.
+O comentário tradicionalmente é ignorado pelo lexer assim como espaços em branco.
+Nesse caso, o comentário é uma excessão que será explicada em outra seção.
+\item \texttt{FUNCTION}: um identificador associado a uma função.
+\item \texttt{NUMBER}: um número de ponto flutuante.
+\item \texttt{VARIABLE}: um identificador associado a uma variável que é argumento de uma função.
+\item \texttt{CONSTANT}: um identificador associado a uma constante.
+\item \texttt{DECLARE}: um identificador associado a um dos tipos de objeto: \texttt{curve}, \texttt{surface}, etc.
+\item \texttt{UNDEFINED}: um identificador não definido, ou a ser definido.
+\item \texttt{EOI}: um marcador para o fim do texto. Seu tamanho é considerado 0, travando o avanço do lexer.
+\item Caso contrário, se trata de um símbolo e seu tipo é o seu próprio código ASCII, por exemplo: \texttt{;}, \texttt{+}, \texttt{@}.
+\end{itemize}
+
+Um identificador é uma sequência de letras minúsculas ou maiúsculas e dígitos, desde que não começe com um dígito.
+
+Os estágios compartilham uma tabela de símbolos, que associa identificadores ao seus tipos de token
+e possivelmente outros atributos. A tabela de símbolos é mutável, pois um identificador pode ser
+definido e redefinido pelo parser. Isso impossibilita a execução do lexer de forma independente do parser.
+Por exemplo, em uma declaração de objeto, o nome é reconhecido pelo lexer como um identificador não definido.
+Porém, após a declaração, esse nome é definido pelo parser, fazendo o lexer reconhecer o mesmo nome como algo definido. 
+Isso faz a léxica do programa ser sensível ao contexto, e esse problema pode ser resolvido fazendo o parser controlar o 
+avanço do lexer token a token.
+
+\subsection{Tabela de símbolos}
+A tabela de símbolos deve ser capaz de associar identificadores a um tipo de token e possivelmente outros atributos.
+Ao invés de uma lista de strings ou uma hash table, a estrutura de dados escolhida é a trie, uma árvore de prefixos.
+Numa trie, cada filho de um nó corresponde a um caractere de um alfabeto, em ordem.
+Os 26 primeiros filhos correspondem às letras minúsculas de \texttt{a} a \texttt{z},
+em seguida as 26 letras maiúsculas de \texttt{A} a \texttt{Z}, e por último os 10 dígitos,
+de \texttt{0} a \texttt{9}. Um nó possui um único caminho a partir da raíz, 
+e as letras correspondentes a esse caminho formam um identificador, na mesma ordem do caminho.
+Por exemplo, o identificador \texttt{abc} corresponde ao seguinte caminho a partir da raíz:
+primeiro filho, segundo filho, terceiro filho. Um nó representa uma identificador,
+então os nós devem indicar os atributos desejados, como o tipo de token.
+
+Para o lexer ler um identificador, ele faz uma travessia na trie, onde os caracteres indicam o próximo filho.
+Caso o filho seja nulo, um novo filho é criado no lugar, com tipo de token \texttt{UNDEFINED}.
+A travessia acaba quando se chega num caractere fora do alfabeto dos identificadores.
+
+Para facilitar outros processos, cada nó indica o último caractere correspondente ao seu caminho,
+e também o comprimento da string associada. A raíz tem caractere nulo e comprimento 0.
+
+Palavras chave, como \texttt{surface} e \texttt{sqrt}, são automaticamente inseridas na tabela com o tipo apropriado.
+
+A tabela de símbolos é uma árvore, cada nó representa um identificador e possui a seguinte estrutura:
+\begin{verbatim}
+	Table *parent = nullptr;
+	std::unique_ptr<Table> children[62];
+	int argsIndex = -1;
+	int length = 0;
+	TokenType type = TokenType::UNDEFINED;
+	char character = 0;
+\end{verbatim}
+
+O membro \texttt{parent} representa o pai do nó, \texttt{children} são os $26+26+10$ filhos do nó,
+\texttt{argsIndex} é um atributo sobre os argumentos de uma função,
+\texttt{length} é o tamanho do identificador, \texttt{type} é seu tipo, e \texttt{character} é seu último caractere.
+
+Há 3 operações de nó:
+\begin{verbatim}
+	Table *next(char c);
+	Table *procString(const char *str, bool match);
+	Table *initString(const char *str, TokenType type);
+\end{verbatim}
+
+O método \texttt{next} obtém o filho de um nó correspondente ao caractere \texttt{c}, criando um novo filho se necessário.
+O método \texttt{procString} percorre o caminho descrito em \texttt{str}
+ e acha o nó correspondente ao modo escolhido em \texttt{match}.
+Se \texttt{match=true}, o último nó definido é encontrado, e caso não haja nenhum, o último nó é encontrado.
+Caso \texttt{match=false}, o último nó é encontrado.
+O modo com \texttt{match=true} possibilita a omissão de espaços em branco, por exemplo, em \texttt{sinx}.
+Essa sentença descreve dois lexemas, \texttt{sin} e \texttt{x}, justapostos.
+Caso haja um objeto definido com o nome \texttt{sinx}, então a sentença passa a representar
+apenas um lexema após a declaração do objeto.
+
+O último método \texttt{initString} apenas cria um identificador e inicia seu tipo para \texttt{type}.
+É útil na inicialização do parser.
+
+\subsection{O método advance}
+O lexer possui a seguinte estrutura:
+\begin{verbatim}
+	const char *source = nullptr;
+	const char *lexeme = nullptr;
+	int length = 0;
+	int lineno = 0;
+	int column = 0;
+	TokenType type = TokenType::UNDEFINED;
+	double number = 0;
+	Table *node = nullptr;
+	Table *table = nullptr;
+\end{verbatim}
+Onde \texttt{source} é o código fonte sendo processado,
+\texttt{lexeme} é a posição do lexema atual dentro do código fonte.
+Note que as strings são ponteiros de caractere, sendo que a string acaba no caractere nulo (0).
+Essa forma é mais conveniente pois não é necessário criar novas strings para armazenar o lexema atual.
+Como pode haver outros caracteres após o lexema, é necessário o atributo \texttt{length},
+que indica quantos caracteres o lexema possui.
+Os membros \texttt{lineno} e \texttt{column} indicam o número da linha e coluna do lexema atual.
+O membro \texttt{type} indica o tipo do token.
+Os membros \texttt{number} e \texttt{node} são os atributos do token,
+e são úteis quando o tipo é \texttt{NUMBER} e quando o tipo é de identificador, respectivamente.
+O membro \texttt{table} é a raíz da tabela, que é compartilhada entre os estágios.
+
+O lexer possui apenas um método: \texttt{void advance(bool match = true);}.
+Esse método faz o lexer avançar para o próximo token.
+O argumento \texttt{match} é usado para a busca de identificadores na tabela de símbolos.
+Para avançar, o ponteiro avança \texttt{length} caracteres e pula qualquer espaço em branco.
+Se o caractere apontado por \texttt{lexeme} for \texttt{\#}, então se trata de um comentário,
+ se o caractere for nulo, então o tipo é \texttt{EOI}, com \texttt{length=0}.
+ Se for um dígito, então é \texttt{NUMBER}. Se for uma letra, então é um identificador,
+ e o tipo está descrito na tabela. Caso contrário(nenhum caso acima),
+ então se trata de um símbolo de tamanho 1 e seu tipo é o próprio caractere.
+ Note que o avanço do texto para indefinidamente quando \texttt{EOI} é encontrado.
+
+Esse método também é usado para inicializar o primeiro token, basta `avançar' com \texttt{lexeme=source} e
+\texttt{length=0}.
+
+Exemplo: \texttt{define R = 1 + sinpi;}
+
+\begin{scriptsize}
+\texttt{
+\begin{tabular}{c c c c c c c c c}
+lexemas:& define & R & = & 1 & + & sin & pi & ;\\
+tokens:& DECLARE & UNDEFINED & = & NUMBER & + & FUNCTION & CONSTANT & ;
+\end{tabular}
+}
+\end{scriptsize}
+
+\section{Análise sintática}
+A análise sintática, ou parser, é o estágio mais complexo do processamento.
+Seu dever é identificar as estruturas sintáticas presentes na sequência de tokens dados pelo lexer,
+conforme a gramática livre de contexto \ref{grammar}.
+Os símbolos que aparecem no lado esquerdo de alguma seta são não-terminais.
+Os outros símbolos são terminais, e correspondem aos tipos de token.
+Um seta especifica uma produção, que significa que
+o não-terminal à esquerda pode tomar a forma sentencial(sequência de terminais e não-terminais) à direita. 
+Isso significa que é válido substituir um não-terminal K pelo lado direito de uma produção de K.
+Por exemplo, é válido substituir \texttt{ADD} por \texttt{ADD + JUX}.
+Nesse caso, \texttt{ADD} deriva \texttt{ADD + JUX}.
+Pode-se substituir não-terminais sucessivamente, até restar apenas terminais.
+Para gerar uma sentença gramaticalmente válida,
+basta derivar o não-terminal inicial \texttt{PROG} sucessivamente até restar apenas terminais.
+A gramática não é ambígua, ou seja, uma sentença válida pode ser derivada de apenas uma maneira.
+
+\newpage
+\lstinputlisting[frame=single,style=mystyle,label=grammar,caption=Gramática completa]{grammar.txt}
+
+Uma produção pode ser vazia, nesse caso, se trata de uma produção-$\epsilon$.
+
+Os não-terminais \texttt{param}, \texttt{grid}, \texttt{define}, etc. são do tipo \texttt{DECLARE},
+mas as produções exigem os lexemas específicos.
+Desse modo, só há um tipo de token para as declarações, e a distinção é feita pelo lexema.
+O símbolo \texttt{id} é do tipo \texttt{UNDEFINED}, e \texttt{var},
+\texttt{const} e \texttt{func} são dos tipos \texttt{VARIABLE}, \texttt{CONSTANT} e \texttt{FUNCTION}.
+
+Para fazer o parsing, há uma subrotina para cada não-terminal.
+Cada subrotina simula a substituição do não-terminal por uma de suas formas sentenciais.
+Para isso, deve-se escolher a produção correta. Isso pode ser feito verificando o token atual.
+Dado o token atual, sempre uma única produção pode ser escolhida, caso a sentença esteja correta.
+Após escolher uma produção, a simulação da substituição começa.
+Os símbolos da forma sentencial são tratados da esquerda para a direita.
+Para os terminais, o parser apenas verifica se o token coincide com o terminal.
+Para os não-terminais, o parser decide fazer sua substituição imediatamente,
+ou seja, sua subrotina correspondente é chamada. Toda subrotina simula uma produção e avança o token para o primeiro imediatamente à direita de sua sentença derivada, ou seja, a simulação de uma produção não precisa se preocupar com a quantidade de terminais que um não-terminal derivou.
+
+A gramática \ref{grammar} não é ambígua, mas ainda não está adequada para fazer esse tipo de parsing.
+Problemas como recursão à esquerda e fatoração à esquerda impedem o procedimento.
+Porém, essa gramática pode ser convertida para uma gramática LL(1),
+que significa ser adequada para o método de parsing descrito.
+
+A tabela de símbolos é mutável, pois o parser deve poder definir e redefinir os identificadores,
+para que possam ser usados nas declarações seguintes.
+Por exemplo, ao realizar a produção \texttt{param} de \texttt{DECL},
+o nome do parâmetro será obtido num token de tipo \texttt{UNDEFINED}.
+Após a realização da produção, o parser altera o tipo de seu token para \texttt{CONSTANT}.
+Para a produção de \texttt{FDECL}, os nomes dados em \texttt{IDS} são \texttt{UNDEFINED},
+mas são mudados para \texttt{VARIABLE} imediatamente, fazendo com que
+os outros parâmetros não possam ser iguais aos definidos anteriormente.
+Após a produção, o parser os redefine para \texttt{UNDEFINED}, pois o escopo das variáveis é apenas o corpo da função.
+
+A gramática do símbolo \texttt{EXPR} define as expressões matemáticas.
+Essa gramática é uma extensão das gramáticas usuais em linguagens de programação. A gramática inclui:
+
+\begin{itemize}
+\item Justaposição: \texttt{AB}
+\item Recíproco unário: \texttt{/A}
+\item Aplicação sem parênteses: \texttt{sin x}, \texttt{f -/2}
+\item Potenciação de funções: \texttt{sin\textasciicircum 2 x}
+\item Derivação: \texttt{f'}, \texttt{f\_x}
+\item Tupla: \texttt{(A,B)}
+\item Componente: \texttt{(A,B)\_1}
+\end{itemize}
+
+Deve-se tomar cuidado com a aplicação sem parênteses, pois \texttt{sin 3x} é equivalente a
+\texttt{(sin 3)x}, e \texttt{sin(x)\textasciicircum 2} é equivalente a \texttt{sin(x\textasciicircum 2)}
+
+\section{Tradução}
+
+
+\end{document}
