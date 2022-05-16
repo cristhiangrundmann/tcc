@@ -25,10 +25,21 @@
 
 \maketitle
 
-%\newpage
+\newpage
 \section{Linguagem de descrição}
+Para definir curvas, superfícies e outros objetos, usa-se uma linguagem específica. Nessa linguagem há vários tipos de objetos que podem ser declarados. Os tipos de objetos são:
+\begin{itemize}
+\item \texttt{param}: parâmetro limitado num intervalo.
+\item \texttt{grid}: parâmetro de grade, limitado num intervalo.
+\item \texttt{define}: definição de constante.
+\item \texttt{curve}: curva parametrizada num intervalo.
+\item \texttt{surface}: superfície parametrizada num retângulo.
+\item \texttt{function}: função qualquer.
+\item \texttt{point}: ponto qualquer.
+\item \texttt{vector}: vetor a partir de um ponto.
+\end{itemize}
 
-%\newpage
+\newpage
 \section{Análise léxica}
 A análise léxica tem a função de ler o código-fonte que descreve um programa e abstrair as palavras e símbolos presentes.
 Dessa forma, os estágios seguintes se beneficiam dessa abstração. O analisador léxico é chamado de lexer.
@@ -114,7 +125,7 @@ então o lexer o procura na tabela de símbolos obtendo o \texttt{node}.
 Com esse valor, o tipo de token e comprimento são obtidos.
 
 Caso contrário, o token é um símbolo, seu tipo é o próprio símbolo e seu comprimento é 1.
-%\newpage
+\newpage
 \section{Tabela de símbolos}
 Os estágios da compilação compartilham uma tabela de símbolos, que é inicializada com palavras-chave,
 funções e constantes pré-definidas.
@@ -155,7 +166,7 @@ Com a excessão das funções pré-definidas, o atributo \texttt{argsIndex} repr
 enquanto \texttt{type} sempre indica o tipo do token.
 
 O método \texttt{next} encontra o filho correspondente ao caractere \texttt{c}, e caso seja nulo,
-um novo filho é criado, com valores padrões indicados no código.
+um novo filho é criado.
 
 O método \texttt{procString} busca o identificador em \texttt{str} na árvore,
 usando \texttt{next} para traçar o caminho correto.
@@ -175,7 +186,7 @@ inicializando seu tipo de token com \texttt{type}.
 
 %FIGURA
 
-%\newpage
+\newpage
 \section{Análise sintática}
 A análise sintática tem a função de identificar as estruturas sintáticas presentes nos tokens gerados pelo lexer.
 Um gerador, no estágio seguinte, atribui um significado para as estruturas sintáticas reconhecidas,
@@ -239,7 +250,7 @@ Os termos \texttt{"param"}, \texttt{"grid"}, \texttt{"define"}, etc.
 representam os tokens do tipo \texttt{DECLARE}, que são os tipos de objeto.
 
 Uma igualdade na gramática é dita uma produção para o não-terminal à esquerda.
-O símbolo \texttt{"|"} abrevia uma produção alternativa.
+O símbolo \texttt{"\textbar"}  abrevia uma produção alternativa. 
 Por exemplo: \texttt{ADD = ADD + JUX | ADD - JUX | JUX}
 é uma abreviação de \texttt{ADD = ADD + JUX}, \texttt{ADD = ADD - JUX} e \texttt{ADD = JUX}.
 Uma produção pode ser a string vazia, por exemplo: \texttt{TAG = ;}
@@ -250,7 +261,7 @@ Uma forma sentencial é uma sequência de terminais e não-terminais.
 Por exemplo, \texttt{ADD} pode ser substituído por \texttt{ADD + JUX}.
 Nesse caso, \texttt{ADD} deriva \texttt{ADD + JUX}.
 Para se obter uma sentença gramaticalmente válida,
-deve ser possível obtê-la derivando iterativamente o não-terminal inicial \texttt{PROG}.
+o não-terminal inicial \texttt{PROG} deve ser derivado até se obter somente terminais.
 Uma gramática é dita ambígua quando existe uma sentença com mais de uma forma de
 obtê-la a partir do não-terminal inicial. A gramática (\ref{grammar}) não é ambígua.
 
@@ -277,23 +288,25 @@ Por exemplo, considere a produção \texttt{FUNC = FUNC2 \textasciicircum UNARY}
 Para simulá-la, deve-se derivar \texttt{FUNC2}, chamando sua subrotina.
 Após a subrotina terminar, o token atual é comparado com \texttt{\textasciicircum},
 e caso seja igual, o lexer avança para o próximo token. Em seguida, a subrotina \texttt{UNARY} é chamada.
+Note que todos os terminais são avançados por alguma subrotina,
+fazendo com que o token no início de uma subrotina seja o primeiro token da sub-sentença.
 
 A estrutura da gramática (\ref{grammar}) é cíclica, fazendo o parser ter uma recursão cíclica.
 Isso garante que o tamanho das sentenças válidas seja ilimitado.
-Por exemplo, a derivação de \texttt{ADD} pode descer não produções triviais até
-se introduzir uma par de parênteses, com o não-terminal \texttt{ADD} no meio.
+Por exemplo, a derivação de \texttt{ADD} pode descer nas produções triviais até
+se introduzir um par de parênteses, com o não-terminal \texttt{ADD} no meio.
 
 Essa gramática, apesar de ser não ambígua, não é LL(1), pois é possui recursão à esquerda,
 por exemplo: \texttt{ADD = ADD + JUX | ADD - JUX | JUX ;}, e fatoração à esquerda,
 por exemplo: \texttt{POW = COMP \textasciicircum UNARY | COMP ;}.
 A eliminação dessas propriedades pode ser feita modificando a gramática mas mantendo sua estrutura.
 A gramática final é muito parecida com a original, e as diferenças não são difíceis de entender.
-Porém, a nova gramática é LL(1), ou seja, o método de parsing LL(1) pode ser aplicado e
+A gramática modificada finalmente é LL(1), ou seja, o método de parsing LL(1) pode ser aplicado e
 a gramática é necessariamente não ambígua.
 
 A estrutura \texttt{Parser} (\ref{parser}) define o parser.
 
-%\newpage
+\newpage
 \begin{code}
 \begin{minted}[linenos,frame=single]{cpp}
 struct Parser
@@ -343,7 +356,7 @@ struct Parser
 \end{code}
 
 O membro \texttt{lexer} é o analisador léxico. O parser controla o avanço dos tokens diretamente.
-O membro \texttt{table} é a tabela de símbolo compartilhada pelos estágios da compilação.
+O membro \texttt{table} é a tabela de símbolos compartilhada pelos estágios da compilação.
 O membro \texttt{argList} é uma lista de listas de argumentos de função.
 O atributo \texttt{argsIndex} de um token é o índice da lista de seus parâmetros nesse membro.
 O membro \texttt{objType} e \texttt{objName} auxiliam o estágio da geração, e correspondem ao tipo de objeto e seu nome.
@@ -353,12 +366,32 @@ Os membros \texttt{param}, \texttt{sqrt}, etc. são as palavras-chave, funções
 
 Os métodos com prefixo \texttt{parse} são as subrotinas dos não-terminais.
 A lógica do código foi simplificada, então não há uma correspondência exata.
-Os métodos marcados com \texttt{virtual} são implementados pelos geradores.
-Eles são chamados pelo parser quando uma estrutura sintática é detectada.
-O método \texttt{advance} apenas avança o token, ignora os comentários e chama \texttt{actAdvance}.
-O método \texttt{removeArgs} apenas redefine os argumentos de uma função para \texttt{UNDEFINED}, quando sua declaração termina.
-%\newpage
+Os métodos com prefixo \texttt{act}, marcados com \texttt{virtual}, são implementados pelos geradores.
+Esses métodos são chamados de ações semânticas, e são invocados pelo parser quando uma estrutura sintática é detectada.
+O método \texttt{advance} chama \texttt{actAdvance}, e avança o token.
+Se um comentário é encontrado, o método repete as duas operações.
+Isso faz com que os geradores possam enxergar os comentários, mas eles não são considerados nos métodos \texttt{parse}.
+O método \texttt{removeArgs} apenas redefine os argumentos de uma função para \texttt{UNDEFINED},
+quando sua declaração termina.
+
+\subsection{Gramática das expressões}
+
+\newpage
 \section{Geradores}
+
+
+\begin{code}
+\begin{minted}[linenos,frame=single]{cpp}
+void syntaxError(TokenType type);
+void actAdvance();
+void actInt(char type);
+void actDecl();
+void actBinary(char type);
+void actUnary(char type);
+\end{minted}
+\caption{Ações semânticas dos geradores}
+\label{actions}
+\end{code}
 
 
 \end{document}
