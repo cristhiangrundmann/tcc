@@ -11,6 +11,7 @@
 \usepackage{listing}
 \usepackage{minted} 
 \usepackage{caption}
+\usepackage{hyperref}
 
 \renewcommand{\listlistingname}{Códigos}
 \renewcommand{\listingscaption}{Código}
@@ -27,7 +28,8 @@
 
 \newpage
 \section{Linguagem de descrição}
-Para definir curvas, superfícies e outros objetos, usa-se uma linguagem específica. Nessa linguagem há vários tipos de objetos que podem ser declarados. Os tipos de objetos são:
+Para definir curvas, superfícies e outros objetos, usa-se uma linguagem específica.
+Nessa linguagem há vários tipos de objetos que podem ser declarados. Os tipos de objetos são:
 \begin{itemize}
 \item \texttt{param}: parâmetro limitado num intervalo.
 \item \texttt{grid}: parâmetro de grade, limitado num intervalo.
@@ -38,6 +40,71 @@ Para definir curvas, superfícies e outros objetos, usa-se uma linguagem especí
 \item \texttt{point}: ponto qualquer.
 \item \texttt{vector}: vetor a partir de um ponto.
 \end{itemize}
+
+O objeto \texttt{param} é uma constante que pode ser usada em outros objetos,
+desde que sejam definidos após o parâmetro.
+Por exemplo: \texttt{param r : [0, 2pi];} declara o parâmetro \texttt{r},
+que pode ser usado nos próximos objetos, como \texttt{function f(x) = xr;}.
+Um parâmetro pode ser multidimensional, por exemplo: \texttt{param p : [0, 1], [0, 1];}
+declaram o parâmetro \texttt{p} no quadrado unitário.	Um parâmetro deve ser controlado por um controle deslizante.
+
+O objeto \texttt{grid} é semelhante ao \texttt{param}, porém seus intervalos são particionados em partes iguais.
+Por exemplo: \texttt{grid k : [0, 2pi, 8];} declara uma grade \texttt{k} entre $0$ e $2\pi$,
+mas somente nos 8 pontos $0$, $2\pi/8$, $4\pi/8$, etc.
+A grade é tratada como uma constante, assim como um parâmetro,
+porém os objetos que usam uma grade são instanciados múltiplas vezes.
+Por exemplo: \texttt{point P = (k, 0);} declara um ponto no eixo $x$.
+Como esse ponto se refere a uma grade, 8 pontos são exibidos, um para cada possibilidade de \texttt{k}.
+Uma grade pode ser multidimensional, assim como um parâmetro, fazendo as instâncias serem multidimensionais também.
+Uma grade pode ser útil para desenhar um campo vetorial, uma classe de curvas, superfícies, etc.
+
+O objeto \texttt{define} apenas define uma constante.
+Pode ajudar a deixar a notação mais compacta. Por exemplo: \texttt{define L = sqrt(1+pi\textasciicircum 2);}.
+
+O objeto \texttt{function} define uma função, por exemplo: \texttt{function f(x) = x\textasciicircum 2;}.
+
+Os objetos \texttt{curve} e \texttt{surface} definem as curvas e superfícies de estudo.
+São tratadas como funções paramétricas, mas com domínio num intervalo ou retângulo fechado.
+Exemplos são: \\ \texttt{curve C(t) = (rcost, rsint), t : [0, 2pi];} e
+\\ \texttt{surface S(u,v) = \\ (rcosu, rsinucosv, rsinusinv), u : [0, 2pi], v : [0, 2pi];}.
+
+Os objetos \texttt{point} e \texttt{vector} definem pontos e vetores.
+Por exemplo: \texttt{point p = (0, 0, 0);} declara um ponto na origem.
+O vetor \texttt{vector v = (1, 2, 3) @ (1, 1, 1);} declara o vetor $(1,2,3)$ desenhado a partir do ponto $(1,1,1)$.
+Pontos e vetores podem ser usados como constantes.
+
+
+\newpage
+O programa \ref{program1} declara objetos de todos os tipos.
+
+\begin{listing}
+param vscale : [1, 4];\\
+grid r : [1, 13, 4];\\
+curve C(t) = (rcost, rsint), t : [0, 2pi];\\
+grid t : [0, 2pi, 8];\\
+surface S(u,v) = (rcosu, rsinucosv, rsinusinv), u : [0, 2pi], v : [0, 2pi];\\
+function Tangent(x) = C'(x);\\
+point P = C(t);\\
+vector V = Tangent(t) * vscale @ P;\\
+define P2 = P;
+\caption{Um programa elaborado}
+\label{program1}
+\end{listing}
+
+O programa começa com o parâmetro \texttt{vscale}, entre $1$ e $4$.
+A grade \texttt{r} faz $r \in \{1, 4, 7, 10\}$.
+A curva \texttt{C} é um círculo de raio \texttt{r}.
+Como se trata de uma grade, círculos concêntricos são gerados.
+A grade \texttt{t} divide o parâmetro ângulo em 8 pontos.
+A superfície \texttt{S} é uma esfera. Como \texttt{r} é usado, 4 esféricas concêntricas são geradas.
+A função \texttt{Tangent} calcula o vetor tangente do círculo no parâmetro \texttt{x}.
+O parâmetro dessa função não poderia ser \texttt{t}, pois um objeto desse nome já está definido.
+O ponto \texttt{P} é um ponto do círculo.
+Indiretamente, \texttt{P} depende das duas grades, então se trata de 32 pontos, 8 para cada um dos círculos.
+O vetor \texttt{V} gera vetores tangentes sobre os círculos nos pontos \texttt{P}, escalado por \texttt{vscale}.
+A definição \texttt{P2} é idêntica ao ponto \texttt{P}, porém não gera pontos, pois não foi declarado como \texttt{point}.
+
+%FIGURA
 
 \newpage
 \section{Análise léxica}
