@@ -1,6 +1,7 @@
 #include "parser.hpp"
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
+#include <stdio.h>
 
 namespace tcc
 {
@@ -67,6 +68,45 @@ namespace tcc
                 case TokenType::COMMENT: s.style = StyleText::Style::COMMENT; break;
             }
             styles.push_back(s);
+        }
+
+        void actBinary(char type)
+        {
+            switch(type)
+            {
+                case '+':
+                case '-':
+                case '*':
+                case 'j':
+                case '/':
+                case 'f':
+                case 'd':
+                case 'e':
+                case '^':
+                case '_':
+                    printf("%c\n", type);
+                    break;
+            }
+        }
+
+        void actUnary(char type)
+        {
+            switch(type)
+            {
+                case 'n':
+                    printf("%g\n", lexer.number);
+                    break;
+                case '+':
+                case '-':
+                case '*':
+                case '/':
+                case '\'':
+                case 'f':
+                case 'c':
+                case 'v':
+                    printf("%c UNARY\n", type);
+                    break;
+            }
         }
     };
 
@@ -161,6 +201,7 @@ namespace tcc
 
             try
             {
+                printf("\n*******\n");
                 hl.parseProgram(text.c_str());
                 pairs = hl.pairs;
             }
