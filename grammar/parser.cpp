@@ -238,7 +238,7 @@ namespace tcc
         || compare(TokenType::NUMBER) || compare(TokenType::VARIABLE) || compare(charToken('(')))
         {
             parseMult(false);
-            actBinary(' ');
+            actBinary('j');
         }
     }
 
