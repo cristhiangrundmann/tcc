@@ -1,0 +1,37 @@
+Compilador
+    Linguagem de descrição
+        objetivo: declarar objetos
+        tipos de objetos
+        detalhes
+        exemplo
+    Tabela de símbolos
+        objetivo: definir identificadores
+        compartilhada pelos estágios
+        struct Table; (trie)
+    Análise léxica
+        objetivo: identificar os lexemas
+        classe gramatical(tipo) e atributos
+        lexema + tipo + atributos = token
+        tipos de token
+        struct Lexer;
+        exemplo
+    Análise sintática
+        objetivo: identificar a sintaxe
+        Gramática completa (livre de contexto)
+            gramáticas
+            produções
+            sentenças
+            parsing
+            LL(1)
+            interpretação das expressões matemáticas
+        struct Parser;
+        exemplo
+    Geradores
+        objetivo: gerar a estrutura de dados final
+        ações semânticas
+        stack machine
+        Syntax Highlight
+        Compiler - parte 1
+        exemplo LaTeX
+        exemplo
+    Compiler - parte 2
