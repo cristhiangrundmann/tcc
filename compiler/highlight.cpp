@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "style.hpp"
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
 #include <stdio.h>
@@ -7,15 +8,9 @@ namespace tcc
 {
     struct StyleText
     {
-        enum class Style
-        {
-            DEFAULT = 0, COMMENT = 4, DECLARE, FUNCTION, CONSTANT, 
-            VARIABLE, NUMBER, UNDEFINED, SYMBOL, ERROR, BRACKETS
-        };
-
         int start = 0;
         int length = 0;
-        Style style = Style::DEFAULT;
+        Style style = Style::SYMBOL;
     };
 
     struct Highlight : public Parser
@@ -38,7 +33,7 @@ namespace tcc
             if((int)lexer.type < 256)
             {
                 int pos = (int)(lexer.lexeme - lexer.source);
-                s.style = StyleText::Style::SYMBOL;
+                s.style = Style::SYMBOL;
                 switch((int)lexer.type)
                 {
                     case '(':
@@ -58,14 +53,14 @@ namespace tcc
             }
             else switch(lexer.type)
             {
-                case TokenType::UNDEFINED: s.style = StyleText::Style::UNDEFINED; break;
-                case TokenType::EOI: s.style = StyleText::Style::SYMBOL; break;
-                case TokenType::DECLARE: s.style = StyleText::Style::DECLARE; break;
-                case TokenType::CONSTANT: s.style = StyleText::Style::CONSTANT; break;
-                case TokenType::VARIABLE: s.style = StyleText::Style::VARIABLE; break;
-                case TokenType::NUMBER: s.style = StyleText::Style::NUMBER; break;
-                case TokenType::FUNCTION: s.style = StyleText::Style::FUNCTION; break;
-                case TokenType::COMMENT: s.style = StyleText::Style::COMMENT; break;
+                case TokenType::UNDEFINED: s.style = Style::UNDEFINED; break;
+                case TokenType::EOI: s.style = Style::SYMBOL; break;
+                case TokenType::DECLARE: s.style = Style::DECLARE; break;
+                case TokenType::CONSTANT: s.style = Style::CONSTANT; break;
+                case TokenType::VARIABLE: s.style = Style::VARIABLE; break;
+                case TokenType::NUMBER: s.style = Style::NUMBER; break;
+                case TokenType::FUNCTION: s.style = Style::FUNCTION; break;
+                case TokenType::COMMENT: s.style = Style::COMMENT; break;
             }
             styles.push_back(s);
         }
@@ -150,21 +145,20 @@ namespace tcc
         wxFont normal;
         normal.SetFaceName("FreeMono");
 
-        #define STYLE(x,y,z) ctrl->StyleSet##x((int)StyleText::Style::y, z)
+        #define STYLE(x,y,z) ctrl->StyleSet##x((int)Style::y, z)
+        
 
-            STYLE(Foreground, DEFAULT,  wxColor(0, 0, 0));
             STYLE(Foreground, SYMBOL,   wxColor(0, 0, 0));
             STYLE(Foreground, COMMENT,  wxColor(0, 100, 0));
             STYLE(Foreground, DECLARE,  wxColor(50, 50, 200));
-            STYLE(Foreground, FUNCTION, wxColor(50, 50, 50));
+            STYLE(Foreground, FUNCTION, wxColor(0, 0, 0));
             STYLE(Foreground, CONSTANT, wxColor(100, 120, 150));
             STYLE(Foreground, VARIABLE, wxColor(242, 150, 11));
             STYLE(Foreground, NUMBER,   wxColor(100, 100, 255));
             STYLE(Foreground, UNDEFINED,wxColor(242, 150, 11));
             STYLE(Background, ERROR,    wxColor(255, 0, 0));
-            STYLE(Background, BRACKETS, wxColor(200, 200, 255));
+            STYLE(Background, BRACKETS, wxColor(150, 255, 150));
 
-            STYLE(Font, DEFAULT, normal);
             STYLE(Font, SYMBOL, bold);
             STYLE(Font, COMMENT, bolditalic);
             STYLE(Font, DECLARE, bold);
@@ -208,7 +202,7 @@ namespace tcc
             catch(const char *msg)
             {
                 ctrl->StartStyling(hl.lexer.lexeme - hl.lexer.source);
-                ctrl->SetStyling(hl.lexer.length, (int)StyleText::Style::ERROR);
+                ctrl->SetStyling(hl.lexer.length, (int)Style::ERROR);
                 ctrl->MarkerAdd(hl.lexer.lineno, 1);
                 pairs.clear();
                 error = true;
@@ -231,16 +225,17 @@ namespace tcc
             {
                 int pos = ctrl->GetCurrentPos();
                 int p = -1;
+                int extra = ctrl->GetOvertype() ? 0 : 1;
 
                 for(int i = 0; i < (int)pairs.size(); i++)
-                    if(pairs[i].a <= pos && pairs[i].b >= pos) 
+                    if(pairs[i].a <= pos && pairs[i].b+extra >= pos) 
                         p = i;
 
                 for(int i = 0; i < (int)pairs.size(); i++)
                 {
                     int style = i == p
-                        ? (int)StyleText::Style::BRACKETS 
-                        : (int)StyleText::Style::SYMBOL;
+                        ? (int)Style::BRACKETS 
+                        : (int)Style::SYMBOL;
                     ctrl->StartStyling(pairs[i].a);
                     ctrl->SetStyling(1, style);
                     ctrl->StartStyling(pairs[i].b);

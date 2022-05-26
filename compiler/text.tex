@@ -9,9 +9,12 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{listing}
+\usepackage{listings}
 \usepackage{minted} 
 \usepackage{caption}
 \usepackage{hyperref}
+\usepackage[dvipsnames]{xcolor}
+
 
 \renewcommand{\listlistingname}{Códigos}
 \renewcommand{\listingscaption}{Código}
@@ -22,8 +25,11 @@
 \date{}
 \author{}
 
+
+
 \begin{document}
 
+\input{styles.tex}
 \maketitle
 
 \newpage
@@ -77,19 +83,11 @@ Pontos e vetores podem ser usados como constantes.
 \newpage
 O programa \ref{program1} declara objetos de todos os tipos.
 
-\begin{listing}
-param vscale : [1, 4];\\
-grid r : [1, 13, 4];\\
-curve C(t) = (rcost, rsint), t : [0, 2pi];\\
-grid t : [0, 2pi, 8];\\
-surface S(u,v) = (rcosu, rsinucosv, rsinusinv), u : [0, 2pi], v : [0, 2pi];\\
-function Tangent(x) = C'(x);\\
-point P = C(t);\\
-vector V = Tangent(t) * vscale @ P;\\
-define P2 = P;
+\begin{code}
+\inputminted[linenos,frame=single,escapeinside=||]{text}{program1.tex}
 \caption{Um programa elaborado}
 \label{program1}
-\end{listing}
+\end{code}
 
 O programa começa com o parâmetro \texttt{vscale}, entre $1$ e $4$.
 A grade \texttt{r} faz $r \in \{1, 4, 7, 10\}$.
@@ -241,7 +239,7 @@ A string \texttt{str} indica o início do identificador, mas não termina necess
 O método para de avançar no primeiro caractere fora do alfabeto dos identificadores.
 Se o indicador \texttt{match} estiver ativo, o método buscará o maior identificador definido,
 se existir, ou o identificador todo, caso contrário.
-Por exemplo(\texttt{match=true)} para \texttt{"sinx"}, o método encontra o identificador \texttt{"sin"},
+Por exemplo(\texttt{match=true}) para \texttt{"sinx"}, o método encontra o identificador \texttt{"sin"},
 que é uma função. Ou seja, os identificadores não precisam estar separados por um espaço em branco,
 caso não haja ambiguidade.
 Caso um objeto de nome \texttt{"sinx"} estivesse definido,
