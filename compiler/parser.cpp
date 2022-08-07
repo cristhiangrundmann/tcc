@@ -271,25 +271,25 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actUnary('+');
+            actUnary('P');
         }
         else if(compare(charToken('-')))
         {
             advance();
             parseUnary();
-            actUnary('-');
+            actUnary('M');
         }
         else if(compare(charToken('*')))
         {
             advance();
             parseUnary();
-            actUnary('*');
+            actUnary('T');
         }
         else if(compare(charToken('/')))
         {
             advance();
             parseUnary();
-            actUnary('/');
+            actUnary('D');
         }
         else parseApp();
     }
@@ -300,7 +300,7 @@ namespace tcc
         {
             parseFunc();
             parseUnary();
-            actBinary('f');
+            actBinary('A');
         }
         else parsePow();
     }
@@ -310,7 +310,7 @@ namespace tcc
         require(TokenType::FUNCTION);
         Table *node = lexer.node;
 
-        actUnary('f');
+        actUnary('F');
         advance();
 
         while(true)
@@ -348,7 +348,7 @@ namespace tcc
                     syntaxError(TokenType::VARIABLE);
                 }
                 lexer.type = TokenType::FUNCTION;
-                actBinary('d');
+                actBinary('_');
                 advance();
             }
             else break;
@@ -358,7 +358,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actBinary('e');
+            actBinary('E');
         }
     }
 
@@ -380,7 +380,7 @@ namespace tcc
         {
             advance();
             require(TokenType::NUMBER);
-            actBinary('_');
+            actBinary('.');
             advance();
         }
     }
@@ -389,17 +389,17 @@ namespace tcc
     {
         if(compare(TokenType::CONSTANT))
         {
-            actUnary('c');
+            actUnary('C');
             advance();
         }
         else if(compare(TokenType::NUMBER))
         {
-            actUnary('n');
+            actUnary('N');
             advance();
         }
         else if(compare(TokenType::VARIABLE))
         {
-            actUnary('v');
+            actUnary('V');
             advance();
         }
         else parseTuple();
@@ -429,9 +429,9 @@ namespace tcc
     void Parser::syntaxError(TokenType type) 
     {
         static char msg[128];
-        sprintf(msg, "Syntax error: expected %s instead of %s\n", 
-                getTypeString(type), getTypeString(lexer.type));
-
+        std::string s1 = getTypeString(type);
+        std::string s2 = getTypeString(lexer.type);
+        sprintf(msg, "Syntax error: expected %s instead of %s\n", s1.c_str(), s2.c_str());
         throw msg;
     }
 

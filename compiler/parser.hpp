@@ -10,9 +10,9 @@ namespace tcc
         Lexer lexer;
         std::unique_ptr<Table> table = std::make_unique<Table>();
         std::vector<std::vector<Table*>> argList;
-        Table *objType = nullptr;
-        Table *objName = nullptr;
-        Table *tag = nullptr;
+        Table *objType{};
+        Table *objName{};
+        Table *tag{};
         char wrap = 0;
 
         #define INIT(x, y) const Table *x = table->initString(#x, TokenType::y);

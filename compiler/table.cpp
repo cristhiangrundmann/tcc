@@ -12,13 +12,12 @@ namespace tcc
         return -1;
     }
 
-    const char *getTypeString(TokenType type)
+    std::string getTypeString(TokenType type)
     {
-        static char c[4] = {'(', 0, ')', 0};
         if(static_cast<int>(type) < 256)
         {
-            c[1] = static_cast<char>(type);
-            return &c[0];
+            char c = static_cast<char>(type);
+            return std::string("(") + c + ")";
         }
 
         #define CASE(x) case TokenType::x: return #x;

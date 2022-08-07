@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 
 namespace tcc
 {
@@ -19,16 +20,16 @@ namespace tcc
 
     int alphIndex(char c);
 
-    const char *getTypeString(TokenType type);
+    std::string getTypeString(TokenType type);
 
     struct Table
     {
-        Table *parent = nullptr;
+        Table *parent{};
         std::unique_ptr<Table> children[62];
         int argsIndex = -1;
         int length = 0;
         TokenType type = TokenType::UNDEFINED;
-        char character = 0;
+        char character{};
 
         Table *next(char c);
         Table *procString(const char *str, bool match);
