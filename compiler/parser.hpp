@@ -36,7 +36,6 @@ namespace tcc
 
         Parser();
         void advance(bool match = true);
-        void removeArgs();
 
         typedef void Parse();
 

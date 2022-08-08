@@ -17,7 +17,7 @@ namespace tcc
         if(static_cast<int>(type) < 256)
         {
             char c = static_cast<char>(type);
-            return std::string("(") + c + ")";
+            return std::string("`") + c + "`";
         }
 
         #define CASE(x) case TokenType::x: return #x;

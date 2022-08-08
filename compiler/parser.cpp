@@ -38,8 +38,10 @@ namespace tcc
     {
         switch(type)
         {
+            wrap = 0;
+            tag = {};
             case 't':
-                require(TokenType::VARIABLE);
+                require(TokenType::UNDEFINED);
                 tag = lexer.node;
                 advance();
                 skip(':');
@@ -48,9 +50,6 @@ namespace tcc
                     wrap = (char)lexer.type;
                     advance();
                 }
-                else wrap = 0;
-                parseInt('i');
-                break;
             case 'i':
                 skip('[');
                 parseExpr();
@@ -73,17 +72,30 @@ namespace tcc
 
     void Parser::parseInts(char type)
     {
-        parseInt(type);
-        if(compare(charToken(',')))
+        if(type == 't')
         {
-            advance();
-            parseInt(type);
+            size_t size = argList.back().size();
+            for(size_t i = 0; i < size; i++)
+            {
+                parseInt(type);
+                if(tag != argList.back()[i])
+                    throw std::string("Inconsistent argument list");
+                if(i != size-1)
+                {
+                    require(charToken(','));
+                    advance(false);
+                }
+            }
         }
-    }
-
-    void Parser::removeArgs()
-    {
-        if(argList.size()) for(Table *t : argList.back()) t->type = TokenType::UNDEFINED;
+        else
+        {
+            parseInt(type);
+            if(compare(charToken(',')))
+            {
+                advance();
+                parseInt(type);
+            }
+        }
     }
 
     void Parser::parseFDecl()
@@ -112,6 +124,7 @@ namespace tcc
         objName->argsIndex = (int)argList.size();
         argList.push_back(args);
         objName->type = TokenType::FUNCTION;
+        if(argList.size()) for(Table *t : argList.back()) t->type = TokenType::UNDEFINED;
     }
 
     void Parser::parseParam()
@@ -144,23 +157,22 @@ namespace tcc
     void Parser::parseCurve()
     {
         parseFDecl();
-        skip(',');
+        require(charToken(','));
+        advance(false);
         parseInts('t');
-        removeArgs();
     }
 
     void Parser::parseSurface()
     {
         parseFDecl();
-        skip(',');
+        require(charToken(','));
+        advance(false);
         parseInts('t');
-        removeArgs();
     }
 
     void Parser::parseFunction()
     {
         parseFDecl();
-        removeArgs();
     }
 
     void Parser::parsePoint()
@@ -428,11 +440,9 @@ namespace tcc
 
     void Parser::syntaxError(TokenType type) 
     {
-        static char msg[128];
         std::string s1 = getTypeString(type);
         std::string s2 = getTypeString(lexer.type);
-        sprintf(msg, "Syntax error: expected %s instead of %s\n", s1.c_str(), s2.c_str());
-        throw msg;
+        throw std::string("Syntax error: expected " + s1 + " instead of " + s2);
     }
 
     #undef skip
