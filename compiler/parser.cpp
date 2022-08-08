@@ -357,7 +357,7 @@ namespace tcc
                 if(!ok)
                 {
                     lexer.length = l;
-                    syntaxError(TokenType::VARIABLE);
+                    throw std::string("Expected a function variable");
                 }
                 lexer.type = TokenType::FUNCTION;
                 actBinary('_');
