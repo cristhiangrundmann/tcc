@@ -14,6 +14,7 @@ namespace tcc
         Table *objName{};
         Table *tag{};
         char wrap = 0;
+        int tupleSize = 0;
 
         #define INIT(x, y) const Table *x = table->initString(#x, TokenType::y);
             INIT(param,     DECLARE)

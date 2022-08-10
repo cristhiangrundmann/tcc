@@ -421,13 +421,16 @@ namespace tcc
     {
         skip('(');
         parseAdd();
+        int lTupleSize = 1;
         while(compare(charToken(',')))
         {
             advance();
             parseAdd();
-            actBinary(',');
+            lTupleSize++;
         }
         skip(')');
+        tupleSize = lTupleSize;
+        actBinary(')');
     }
 
     #define UNUSED __attribute__((unused))

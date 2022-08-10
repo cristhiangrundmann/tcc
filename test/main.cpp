@@ -19,12 +19,12 @@ using std::make_unique;
 struct Expr
 {
     char type{};
-    union
-    {
+    //union
+    //{
         Expr *child[2]{};
         Table *name;
         double number;
-    };
+    //};
 };
 
 struct Int
@@ -119,22 +119,50 @@ struct Compiler : public Parser
         exp.type = type;
         switch(type)
         {
+            case '_':
+                exp.child[0] = es.top();
+                es.pop();
+                exp.name = lexer.node;
+                break;
+            case '.':
+                exp.child[0] = es.top();
+                es.pop();
+                exp.number = lexer.number;
+                if((int)exp.number != exp.number || (int)exp.number < 1) throw std::string("Component must be a positive integer");
+                break;
             case '+':
             case '-':
             case '*':
             case '/':
             case 'j':
             case 'A':
-            case '_':
             case 'E':
             case '^':
-            case '.':
-            case ',':
                 exp.child[0] = es.top();
                 es.pop();
                 exp.child[1] = es.top();
                 es.pop();
                 break;
+            case ')':
+                {
+                    Expr *right = nullptr;
+                    Expr *exp = es.top();
+                    es.pop();
+                    printf("TUPLESIZE = %d\n", tupleSize);
+                    while(--tupleSize)
+                    {
+                        Expr e;
+                        e.type = ',';
+                        e.child[0] = exp;
+                        e.child[1] = right;
+                        expr.push_back(make_unique<Expr>(e));
+                        right = expr.back().get();
+                        exp = es.top();
+                        es.pop();
+                    }
+                    es.push(exp);
+                }
+                return;
         }
 
         expr.push_back(make_unique<Expr>(exp));
@@ -238,12 +266,18 @@ int main(int, char**)
             
             if(ImGui::Button("Compile"))
             {
-                Compiler cmp;
+                static Compiler cmp;
+                cmp = Compiler();
                 try
                 {
                     cmp.parseProgram(text);
                     msg = "OK";
-                    fflush(stdout);
+
+                    Table *t = cmp.table->procString("f", true);
+                    if(t->length != 1 || t->type != TokenType::FUNCTION) throw std::string("`f` is not defined");
+                    //if(t->argsIndex == -1) throw std::string("Error ?");
+                    if(cmp.argList[t->argsIndex].size() != 1) throw std::string("`f` must be a single variable function");
+
                 }
                 catch(std::string err)
                 {
