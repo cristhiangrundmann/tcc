@@ -5,6 +5,16 @@
 
 namespace tcc
 {
+    enum class ExprType
+    {
+        TAGGED, INTERVAL, GRID, //for intervals
+        PLUS, MINUS, JUX, TIMES, DIVIDE,
+        UPLUS, UMINUS, UTIMES, UDIVIDE,
+        APP, FUNCTION, TOTAL, PARTIAL,
+        FUNCEXP, EXP, COMPONENT,
+        CONSTANT, NUMBER, VARIABLE, TUPLE
+    };
+
     struct Parser
     {
         Lexer lexer;
@@ -48,17 +58,16 @@ namespace tcc
             parseExpr, parseAdd, parseJux, parseUnary, parseApp, parseFunc,
             parsePow, parseComp, parseFact, parseTuple;
 
-        void parseInt(char type);
-        void parseInts(char type);
+        void parseInt(ExprType type);
+        void parseInts(ExprType type);
 
         void parseMult(bool unary);
 
-        virtual void syntaxError(TokenType type);
+        virtual void actSyntaxError(TokenType type);
         virtual void actAdvance();
-        virtual void actInt(char type);
+        virtual void actInt(ExprType type);
+        virtual void actOp(ExprType type);
         virtual void actDecl();
-        virtual void actBinary(char type);
-        virtual void actUnary(char type);
     };
 
 

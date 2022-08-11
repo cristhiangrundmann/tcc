@@ -5,7 +5,7 @@
 namespace tcc
 {
     #define compare(x) (lexer.type == x)
-    #define require(x) {if(!compare(x)) syntaxError(x);}
+    #define require(x) {if(!compare(x)) actSyntaxError(x);}
     #define skip(x) {require(charToken(x)); advance();}
 
     Parser::Parser()
@@ -34,13 +34,13 @@ namespace tcc
         while(!compare(TokenType::EOI)) parseDecl();
     }
 
-    void Parser::parseInt(char type)
+    void Parser::parseInt(ExprType type)
     {
         switch(type)
         {
             wrap = 0;
             tag = {};
-            case 't':
+            case ExprType::TAGGED:
                 require(TokenType::UNDEFINED);
                 tag = lexer.node;
                 advance();
@@ -50,14 +50,14 @@ namespace tcc
                     wrap = (char)lexer.type;
                     advance();
                 }
-            case 'i':
+            case ExprType::INTERVAL:
                 skip('[');
                 parseExpr();
                 skip(',');
                 parseExpr();
                 skip(']');
                 break;
-            case 'g':
+            case ExprType::GRID:
                 skip('[');
                 parseExpr();
                 skip(',');
@@ -66,13 +66,14 @@ namespace tcc
                 parseExpr();
                 skip(']');
                 break;
+            default: throw std::string("Invalid interval type");
         }
         actInt(type);
     }
 
-    void Parser::parseInts(char type)
+    void Parser::parseInts(ExprType type)
     {
-        if(type == 't')
+        if(type == ExprType::TAGGED)
         {
             size_t size = argList.back().size();
             for(size_t i = 0; i < size; i++)
@@ -132,7 +133,7 @@ namespace tcc
         lexer.type = TokenType::CONSTANT;
         advance();
         skip(':');
-        parseInts('i');
+        parseInts(ExprType::INTERVAL);
         objName->type = TokenType::CONSTANT;
     }
 
@@ -141,7 +142,7 @@ namespace tcc
         lexer.type = TokenType::CONSTANT;
         advance();
         skip(':');
-        parseInts('g');
+        parseInts(ExprType::GRID);
         objName->type = TokenType::CONSTANT;
     }
 
@@ -159,7 +160,7 @@ namespace tcc
         parseFDecl();
         require(charToken(','));
         advance(false);
-        parseInts('t');
+        parseInts(ExprType::TAGGED);
     }
 
     void Parser::parseSurface()
@@ -167,7 +168,7 @@ namespace tcc
         parseFDecl();
         require(charToken(','));
         advance(false);
-        parseInts('t');
+        parseInts(ExprType::TAGGED);
     }
 
     void Parser::parseFunction()
@@ -231,13 +232,13 @@ namespace tcc
             {
                 advance();
                 parseJux();
-                actBinary('+');
+                actOp(ExprType::PLUS);
             }
             else if(compare(charToken('-')))
             {
                 advance();
                 parseJux();
-                actBinary('-');
+                actOp(ExprType::MINUS);
             }
             else break;
         }
@@ -250,7 +251,7 @@ namespace tcc
         || compare(TokenType::NUMBER) || compare(TokenType::VARIABLE) || compare(charToken('(')))
         {
             parseMult(false);
-            actBinary('j');
+            actOp(ExprType::JUX);
         }
     }
 
@@ -265,13 +266,13 @@ namespace tcc
             {
                 advance();
                 parseUnary();
-                actBinary('*');
+                actOp(ExprType::TIMES);
             }
             else if(compare(charToken('/')))
             {
                 advance();
                 parseUnary();
-                actBinary('/');
+                actOp(ExprType::DIVIDE);
             }
             else break;            
         }
@@ -283,25 +284,25 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actUnary('P');
+            actOp(ExprType::UPLUS);
         }
         else if(compare(charToken('-')))
         {
             advance();
             parseUnary();
-            actUnary('M');
+            actOp(ExprType::UMINUS);
         }
         else if(compare(charToken('*')))
         {
             advance();
             parseUnary();
-            actUnary('T');
+            actOp(ExprType::UTIMES);
         }
         else if(compare(charToken('/')))
         {
             advance();
             parseUnary();
-            actUnary('D');
+            actOp(ExprType::UDIVIDE);
         }
         else parseApp();
     }
@@ -312,7 +313,7 @@ namespace tcc
         {
             parseFunc();
             parseUnary();
-            actBinary('A');
+            actOp(ExprType::APP);
         }
         else parsePow();
     }
@@ -322,7 +323,7 @@ namespace tcc
         require(TokenType::FUNCTION);
         Table *node = lexer.node;
 
-        actUnary('F');
+        actOp(ExprType::FUNCTION);
         advance();
 
         while(true)
@@ -330,7 +331,7 @@ namespace tcc
             if(compare(charToken('\'')))
             {
                 advance();
-                actUnary('\'');
+                actOp(ExprType::TOTAL);
             }
             else if(compare(charToken('_')))
             {
@@ -360,7 +361,7 @@ namespace tcc
                     throw std::string("Expected a function variable");
                 }
                 lexer.type = TokenType::FUNCTION;
-                actBinary('_');
+                actOp(ExprType::PARTIAL);
                 advance();
             }
             else break;
@@ -370,7 +371,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actBinary('E');
+            actOp(ExprType::FUNCEXP);
         }
     }
 
@@ -381,7 +382,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actBinary('^');
+            actOp(ExprType::EXP);
         }
     }
 
@@ -392,7 +393,7 @@ namespace tcc
         {
             advance();
             require(TokenType::NUMBER);
-            actBinary('.');
+            actOp(ExprType::COMPONENT);
             advance();
         }
     }
@@ -401,17 +402,17 @@ namespace tcc
     {
         if(compare(TokenType::CONSTANT))
         {
-            actUnary('C');
+            actOp(ExprType::CONSTANT);
             advance();
         }
         else if(compare(TokenType::NUMBER))
         {
-            actUnary('N');
+            actOp(ExprType::NUMBER);
             advance();
         }
         else if(compare(TokenType::VARIABLE))
         {
-            actUnary('V');
+            actOp(ExprType::VARIABLE);
             advance();
         }
         else parseTuple();
@@ -430,18 +431,17 @@ namespace tcc
         }
         skip(')');
         tupleSize = lTupleSize;
-        actBinary(')');
+        actOp(ExprType::TUPLE);
     }
 
     #define UNUSED __attribute__((unused))
         void Parser::actAdvance() {}
         void Parser::actDecl() {}
-        void Parser::actInt(UNUSED char type) {}
-        void Parser::actBinary(UNUSED char type) {}
-        void Parser::actUnary(UNUSED char type) {}
+        void Parser::actInt(UNUSED ExprType type) {}
+        void Parser::actOp(UNUSED ExprType type) {}
     #undef UNUSED
 
-    void Parser::syntaxError(TokenType type) 
+    void Parser::actSyntaxError(TokenType type) 
     {
         std::string s1 = getTypeString(type);
         std::string s2 = getTypeString(lexer.type);

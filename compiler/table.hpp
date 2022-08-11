@@ -4,7 +4,7 @@
 
 namespace tcc
 {
-    enum class TokenType : int
+    enum class TokenType
     {
         EOI = 256,
         UNDEFINED,

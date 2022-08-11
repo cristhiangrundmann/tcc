@@ -2,11 +2,11 @@ CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -O3
 
 .phony: clean
 
-compiler.a: lexer.o parser.o table.o
+compiler.a: table.o lexer.o parser.o compiler.o
 	-rm compiler.a
-	ar -crv compiler.a lexer.o parser.o table.o
+	ar -crv compiler.a table.o lexer.o parser.o compiler.o
 
-headers: table.hpp lexer.hpp parser.hpp
+headers: table.hpp lexer.hpp parser.hpp compiler.hpp
 	touch headers
 
 %.o: %.cpp headers

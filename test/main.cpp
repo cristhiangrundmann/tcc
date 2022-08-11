@@ -2,9 +2,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#include <parser.hpp>
-#include <stack>
-#include <vector>
+#include "compiler.hpp"
 
 #include <stdio.h>
 #include <GL/glew.h>
@@ -15,188 +13,6 @@ using std::vector;
 using std::stack;
 using std::unique_ptr;
 using std::make_unique;
-
-struct Expr
-{
-    char type{};
-    //union
-    //{
-        Expr *child[2]{};
-        Table *name;
-        double number;
-    //};
-};
-
-struct Int
-{
-    char type{};
-    Table *tag{};
-    char wrap{};
-    Expr *e[3]{};
-};
-
-struct Obj
-{
-    Table *type{};
-    Table *name{};
-    Expr *e[2]{};
-    std::vector<Int*> ints;
-};
-
-struct Compiler : public Parser
-{
-    std::vector<unique_ptr<Expr>> expr;
-    std::vector<unique_ptr<Int>> ints;
-    std::vector<unique_ptr<Obj>> objs;
-    stack<Expr*> es;
-    stack<Int*> is;
-
-    void actAdvance()
-    {
-        
-    }
-
-    void actInt(char type)
-    {
-        Expr *e[3]{};
-        e[0] = es.top(); es.pop();
-        e[1] = es.top(); es.pop();
-        if(type == 'g')
-        {
-            e[2] = es.top();
-            es.pop();
-        }
-        Int i = {type, tag, wrap, {e[0], e[1], e[2]}};
-        ints.push_back(make_unique<Int>(i));
-        is.push(ints.back().get());
-    }
-
-    void actDecl()
-    {
-        Obj obj;
-        obj.type = objType;
-        obj.name = objName;
-
-        if(objType == param || objType == grid)
-        {
-            while(!is.empty())
-            {
-                obj.ints.push_back(is.top());
-                is.pop();
-            }
-        }
-        else if(objType == define)
-        {
-            obj.e[0] = es.top();
-            es.pop();
-        }
-        else if(objType == curve || objType == surface || objType == function)
-        {
-            obj.e[0] = es.top();
-            es.pop();
-            if(objType != function)
-            while(!is.empty())
-            {
-                obj.ints.push_back(is.top());
-                is.pop();
-            }
-        }
-        else if(objType == point || objType == vector)
-        {
-            obj.e[0] = es.top();
-            es.pop();
-            if(objType == vector)
-            {
-                obj.e[1] = es.top();
-                es.pop();
-            }
-        }
-    }
-
-    void actBinary(char type)
-    {
-        Expr exp;
-        exp.type = type;
-        switch(type)
-        {
-            case '_':
-                exp.child[0] = es.top();
-                es.pop();
-                exp.name = lexer.node;
-                break;
-            case '.':
-                exp.child[0] = es.top();
-                es.pop();
-                exp.number = lexer.number;
-                if((int)exp.number != exp.number || (int)exp.number < 1) throw std::string("Component must be a positive integer");
-                break;
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-            case 'j':
-            case 'A':
-            case 'E':
-            case '^':
-                exp.child[0] = es.top();
-                es.pop();
-                exp.child[1] = es.top();
-                es.pop();
-                break;
-            case ')':
-                {
-                    Expr *right = nullptr;
-                    Expr *exp = es.top();
-                    es.pop();
-                    printf("TUPLESIZE = %d\n", tupleSize);
-                    while(--tupleSize)
-                    {
-                        Expr e;
-                        e.type = ',';
-                        e.child[0] = exp;
-                        e.child[1] = right;
-                        expr.push_back(make_unique<Expr>(e));
-                        right = expr.back().get();
-                        exp = es.top();
-                        es.pop();
-                    }
-                    es.push(exp);
-                }
-                return;
-        }
-
-        expr.push_back(make_unique<Expr>(exp));
-        es.push(expr.back().get());
-    }
-
-    void actUnary(char type)
-    {
-        Expr exp;
-        exp.type = type;
-        switch(type)
-        {
-            case 'P':
-            case 'M':
-            case 'T':
-            case 'D':
-            case '\'':
-                exp.child[0] = es.top();
-                es.pop();
-                break;
-            case 'N':
-                exp.number = lexer.number;
-                break;
-            case 'C':
-            case 'V':
-            case 'F':
-                exp.name = lexer.node;
-                break;
-        }
-        expr.push_back(make_unique<Expr>(exp));
-        es.push(expr.back().get());
-    }
-};
-
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -276,7 +92,7 @@ int main(int, char**)
                     Table *t = cmp.table->procString("f", true);
                     if(t->length != 1 || t->type != TokenType::FUNCTION) throw std::string("`f` is not defined");
                     //if(t->argsIndex == -1) throw std::string("Error ?");
-                    if(cmp.argList[t->argsIndex].size() != 1) throw std::string("`f` must be a single variable function");
+                    if(cmp.argList[t->argsIndex].size() != 1) throw std::string("`f` must be a single nameiable function");
 
                 }
                 catch(std::string err)
