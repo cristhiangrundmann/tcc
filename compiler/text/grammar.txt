@@ -35,5 +35,5 @@ FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
 
 POW     = COMP "^" UNARY | COMP ;
 COMP    = COMP "_" num | FACT ;
-FACT    = const | num | var | "(" TUPLE ")" ;
+FACT    = const | num | var | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
 TUPLE   = ADD "," TUPLE | ADD ;

@@ -420,7 +420,14 @@ namespace tcc
 
     void Parser::parseTuple()
     {
-        skip('(');
+        char b0 = *lexer.lexeme;
+        char b1;
+        if(b0 == '(') b1 = ')';
+        else if(b0 == '[') b1 = ']';
+        else if(b0 == '{') b1 = '}';
+        else require(charToken('('));
+
+        skip(b0);
         parseAdd();
         int lTupleSize = 1;
         while(compare(charToken(',')))
@@ -429,7 +436,7 @@ namespace tcc
             parseAdd();
             lTupleSize++;
         }
-        skip(')');
+        skip(b1);
         tupleSize = lTupleSize;
         actOp(ExprType::TUPLE);
     }
