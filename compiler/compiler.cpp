@@ -6,12 +6,6 @@ using std::unique_ptr;
 namespace tcc
 {
 
-    Expr *Compiler::newExpr(Expr &e)
-    {
-        expressions.push_back(std::make_unique<Expr>(e));
-        return expressions.back().get();
-    }
-
     void Compiler::actInt(ExprType type)
     {
         Expr *e[3]{};
@@ -102,6 +96,7 @@ namespace tcc
         Obj obj;
         obj.type = objType;
         obj.name = objName;
+        obj.name->objIndex = (int)objects.size();
 
         if(objType == param || objType == grid)
         {
@@ -139,6 +134,28 @@ namespace tcc
         else throw std::string("Invalid declaration type");
 
         objects.push_back(obj);
+    }
+
+    Expr *Compiler::newExpr(Expr &e)
+    {
+        expressions.push_back(std::make_unique<Expr>(e));
+        return expressions.back().get();
+    }
+
+    Expr *Compiler::op(ExprType type, Expr *a, Expr *b, Table *name, double number)
+    {
+        Expr e;
+        e.type = type;
+        e.sub[0] = a;
+        e.sub[1] = b;
+        e.name = name;
+        e.number = number;
+        return newExpr(e);
+    }
+    
+    Expr *Compiler::derivative(Expr *e, Table *var)
+    {
+        
     }
 
 };

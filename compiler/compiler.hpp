@@ -37,10 +37,11 @@ namespace tcc
         std::stack<Expr*> expStack;
         std::stack<Interval> intStack;
 
-        Expr *newExpr(Expr &e);
         void actInt(ExprType type);
         void actOp(ExprType type);
         void actDecl();
+        Expr *newExpr(Expr &e);
+        Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, double number = 0);
         Expr *derivative(Expr *e, Table *var);
     };
 

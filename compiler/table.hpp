@@ -27,6 +27,7 @@ namespace tcc
         Table *parent{};
         std::unique_ptr<Table> children[62];
         int argsIndex = -1;
+        int objIndex = -1;
         int length = 0;
         TokenType type = TokenType::UNDEFINED;
         char character{};
