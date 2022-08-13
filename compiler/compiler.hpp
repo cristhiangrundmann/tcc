@@ -1,7 +1,6 @@
 #pragma once
 
 #include "parser.hpp"
-#include <stack>
 
 namespace tcc
 {
@@ -9,9 +8,10 @@ namespace tcc
     struct Expr
     {
         ExprType type;
-        Expr *sub[2]{};
+        std::vector<Expr*> sub;
         Table *name{};
         double number{};
+        int tupleSize{};
     };
 
     struct Interval
@@ -30,19 +30,27 @@ namespace tcc
         std::vector<Interval> intervals;
     };
 
+    struct Subst
+    {
+        Table *var{};
+        Expr *exp{};
+    };
+
     struct Compiler : public Parser
     {
         std::vector<std::unique_ptr<Expr>> expressions;
         std::vector<Obj> objects;
-        std::stack<Expr*> expStack;
-        std::stack<Interval> intStack;
+        std::vector<Expr*> expStack;
+        std::vector<Interval> intStack;
 
         void actInt(ExprType type);
         void actOp(ExprType type);
         void actDecl();
         Expr *newExpr(Expr &e);
         Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, double number = 0);
+        Expr *compute(Expr *e, int argsIndex);
         Expr *derivative(Expr *e, Table *var);
+        Expr *substitute(Expr *e, std::vector<Subst> &substs);
     };
 
 };

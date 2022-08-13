@@ -3,21 +3,23 @@
 using std::make_unique;
 using std::unique_ptr;
 
+#define E(x) ExprType::x
+
 namespace tcc
 {
 
     void Compiler::actInt(ExprType type)
     {
         Expr *e[3]{};
-        e[0] = expStack.top(); expStack.pop();
-        e[1] = expStack.top(); expStack.pop();
-        if(type == ExprType::GRID)
+        e[0] = expStack.back(); expStack.pop_back();
+        e[1] = expStack.back(); expStack.pop_back();
+        if(type == E(GRID))
         {
-            e[2] = expStack.top();
-            expStack.pop();
+            e[2] = expStack.back();
+            expStack.pop_back();
         }
         Interval i = {type, tag, wrap, {e[0], e[1], e[2]}};
-        intStack.push(i);
+        intStack.push_back(i);
     }
 
     void Compiler::actOp(ExprType type)
@@ -26,69 +28,60 @@ namespace tcc
         exp.type = type;
         switch(type)
         {
-            case ExprType::PARTIAL:
-                exp.sub[0] = expStack.top();
-                expStack.pop();
+            case E(PARTIAL):
+                exp.sub.push_back(expStack.back());
+                expStack.pop_back();
                 exp.name = lexer.node;
                 break;
-            case ExprType::COMPONENT:
-                exp.sub[0] = expStack.top();
-                expStack.pop();
+            case E(COMPONENT):
+                exp.sub.push_back(expStack.back());
+                expStack.pop_back();
                 exp.number = lexer.number;
                 if((int)exp.number != exp.number || (int)exp.number < 1)
                     throw std::string("Component must be a positive integer");
                 break;
-            case ExprType::PLUS:
-            case ExprType::MINUS:
-            case ExprType::TIMES:
-            case ExprType::DIVIDE:
-            case ExprType::JUX:
-            case ExprType::APP:
-            case ExprType::FUNCEXP:
-            case ExprType::EXP:
-                exp.sub[0] = expStack.top();
-                expStack.pop();
-                exp.sub[1] = expStack.top();
-                expStack.pop();
+            case E(PLUS):
+            case E(MINUS):
+            case E(TIMES):
+            case E(DIVIDE):
+            case E(JUX):
+            case E(APP):
+            case E(FUNCEXP):
+            case E(EXP):
+                exp.sub.push_back(expStack.back());
+                expStack.pop_back();
+                exp.sub.push_back(expStack.back());
+                expStack.pop_back();
                 break;
-            case ExprType::TUPLE:
+            case E(TUPLE):
             {
-                Expr *right = nullptr;
-                Expr *exp = expStack.top();
-                expStack.pop();
-                while(--tupleSize)
-                {
-                    Expr e;
-                    e.type = ExprType::TUPLE;
-                    e.sub[0] = exp;
-                    e.sub[1] = right;
-                    right = newExpr(e);
-                    exp = expStack.top();
-                    expStack.pop();
-                }
-                expStack.push(exp);
-                return;
-            }
-            case ExprType::UPLUS:
-            case ExprType::UMINUS:
-            case ExprType::UTIMES:
-            case ExprType::UDIVIDE:
-            case ExprType::TOTAL:
-                exp.sub[0] = expStack.top();
-                expStack.pop();
+                if(tupleSize < 2) return;
+                for(int i = 0; i < tupleSize; i++)
+                    exp.sub.push_back(expStack[expStack.size()-tupleSize+i]);
+                for(int i = 0; i < tupleSize; i++)
+                    exp.sub.pop_back();
                 break;
-            case ExprType::NUMBER:
+            }
+            case E(UPLUS):
+            case E(UMINUS):
+            case E(UTIMES):
+            case E(UDIVIDE):
+            case E(TOTAL):
+                exp.sub.push_back(expStack.back());
+                expStack.pop_back();
+                break;
+            case E(NUMBER):
                 exp.number = lexer.number;
                 break;
-            case ExprType::CONSTANT:
-            case ExprType::VARIABLE:
-            case ExprType::FUNCTION:
+            case E(CONSTANT):
+            case E(VARIABLE):
+            case E(FUNCTION):
                 exp.name = lexer.node;
                 break;
             default:
                 throw std::string("Invalid expression type");
         }
-        expStack.push(newExpr(exp));
+        expStack.push_back(newExpr(exp));
     }
 
     void Compiler::actDecl()
@@ -102,33 +95,33 @@ namespace tcc
         {
             while(!intStack.empty())
             {
-                obj.intervals.push_back(intStack.top());
-                intStack.pop();
+                obj.intervals.push_back(intStack.back());
+                intStack.pop_back();
             }
         }
         else if(objType == define)
         {
-            obj.sub[0] = expStack.top();
-            expStack.pop();
+            obj.sub[0] = expStack.back();
+            expStack.pop_back();
         }
         else if(objType == curve || objType == surface || objType == function)
         {
-            obj.sub[0] = expStack.top();
-            expStack.pop();
+            obj.sub[0] = expStack.back();
+            expStack.pop_back();
             if(objType != function) while(!intStack.empty())
             {
-                obj.intervals.push_back(intStack.top());
-                intStack.pop();
+                obj.intervals.push_back(intStack.back());
+                intStack.pop_back();
             }
         }
         else if(objType == point || objType == vector)
         {
-            obj.sub[0] = expStack.top();
-            expStack.pop();
+            obj.sub[0] = expStack.back();
+            expStack.pop_back();
             if(objType == vector)
             {
-                obj.sub[1] = expStack.top();
-                expStack.pop();
+                obj.sub[1] = expStack.back();
+                expStack.pop_back();
             }
         }
         else throw std::string("Invalid declaration type");
@@ -146,16 +139,230 @@ namespace tcc
     {
         Expr e;
         e.type = type;
-        e.sub[0] = a;
-        e.sub[1] = b;
+        e.sub.push_back(a);
+        e.sub.push_back(b);
         e.name = name;
         e.number = number;
         return newExpr(e);
     }
-    
-    Expr *Compiler::derivative(Expr *e, Table *var)
+
+    Expr *Compiler::compute(Expr *e, int argsIndex)
     {
-        
+        switch(e->type)
+        {
+            case E(NUMBER):
+                e->tupleSize = 1;
+                return e;
+            case E(CONSTANT):
+            {
+                if(e->name->objIndex == -1)
+                {
+                    e->tupleSize = 1;
+                    return e;
+                }
+                Obj obj = objects[e->name->objIndex];
+                if(obj.type == define) return compute(obj.sub[0], argsIndex);
+                if(obj.type == param || obj.type == grid)
+                {
+                    e->tupleSize = obj.intervals.size();
+                    return e;
+                }
+                if(obj.type == point || obj.type == vector)
+                    return compute(obj.sub[0], argsIndex);
+            }
+            case E(VARIABLE):
+            {
+                e->tupleSize = 0;
+                if(argsIndex != -1)
+                {
+                    for(int i = 0; i < (int)argList[argsIndex].size(); i++)
+                        if(argList[argsIndex][i] == e->name)
+                        {
+                            e->tupleSize = 1;
+                            break;
+                        }
+                }
+                return e;
+            }
+            case E(FUNCTION):
+            {
+                if(e->name->objIndex == -1)
+                {
+                    e->tupleSize = 1;
+                    return e;
+                }
+                return compute(objects[e->name->objIndex].sub[0], -1);
+            }
+            case E(COMPONENT):
+            {
+                Expr *a = compute(e->sub[0], argsIndex);
+                if(a->tupleSize)
+                {
+                    if(e->number > a->tupleSize)
+                        throw std::string("Invalid tuple index");
+                    return compute(a->sub[e->number], argsIndex);
+                }
+                return op(E(COMPONENT), a, nullptr, nullptr, e->number);
+            }
+            case E(PLUS):
+            case E(MINUS):
+            {
+                /////
+                return nullptr;
+            }
+            case E(TIMES):
+            {
+                /////
+                return nullptr;
+            }
+            case E(DIVIDE):
+            {
+                /////
+                return nullptr;
+            }
+            case E(JUX):
+            {
+                /////
+                return nullptr;
+            }
+            case E(UPLUS):
+            case E(UMINUS):
+            {
+                /////
+                return nullptr;
+            }
+            case E(UTIMES):
+            {
+                Expr *e0 = compute(e->sub[0], argsIndex);
+                if(!e0->tupleSize) return op(e->type, e0);
+                /////compute quadrance
+                return nullptr;
+            }
+            case E(UDIVIDE):
+            {
+                Expr *e0 = compute(e->sub[0], argsIndex);
+                if(e0->tupleSize && e0->tupleSize != 1)
+                    throw std::string("Cannot invert tuples");
+                Expr *r = op(e->type, e0);
+                r->tupleSize = e0->tupleSize;
+                return r;
+            }
+            case E(APP):
+            {
+                Expr *f = e->sub[0];
+                while(f->type != E(FUNCTION)) f = f->sub[0];
+                int argCount = 1;
+                if(f->name->argsIndex != -1)
+                    argCount = argList[f->name->argsIndex].size();
+                std::vector<Subst> substs;
+                if(argCount == 1)
+                    substs.push_back({nullptr, e->sub[1]});
+                else
+                {
+                    if(e->sub[1]->type != E(TUPLE))
+                        throw std::string("Expected a tuple of arguments");
+                    if(e->sub[1]->sub.size() != (unsigned int)argCount)
+                        throw std::string("Wrong number of arguments");
+                    for(int i = 0; i < argCount; i++)
+                        substs.push_back({
+                            argList[f->name->argsIndex][i],
+                            e->sub[1]->sub[i] /* <- compute? */ });
+                }
+                Expr *e0 = compute(e->sub[0], -1);
+                return compute(substitute(e0, substs), argsIndex);
+            }
+            case E(TOTAL):
+            case E(PARTIAL):
+            {
+                Expr *e0 = compute(e->sub[0], argsIndex);
+                Expr *r = derivative(e0, e->name);
+                r->tupleSize = e0->tupleSize;
+                return r;
+            }
+            case E(FUNCEXP):
+            case E(EXP):
+            {
+                Expr *e0 = compute(e->sub[0], argsIndex);
+                Expr *e1 = compute(e->sub[1], argsIndex);
+                if(e0->tupleSize)
+                {
+                    if(e0->tupleSize != 1 || e1->tupleSize != 1)
+                        throw std::string("Cannot exponenciate tuples");
+                }
+                Expr *r = op(E(EXP), e0, e1);
+                r->tupleSize = e0->tupleSize;
+                return r;
+            }
+            case E(TUPLE):
+            {
+                Expr *t = op(E(TUPLE));
+                t->tupleSize = e->sub.size();
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                    t->sub.push_back(compute(e->sub[i], argsIndex));
+                return t;
+            }
+            default:
+                throw std::string("Invalid expression type");
+        }
+    }
+
+    Expr *Compiler::derivative(Expr *, Table *)
+    {
+        return nullptr;
+    }
+
+    Expr *Compiler::substitute(Expr *e, std::vector<Subst> &substs)
+    {
+        switch(e->type)
+        {
+            case E(NUMBER):
+            case E(CONSTANT):
+                return e;
+            case E(FUNCTION):
+                if(substs.size() != 1)
+                    throw std::string("Must have 1 argument");
+                return op(E(APP), e, substs[0].exp);
+            case E(VARIABLE):
+                for(Subst s : substs)
+                    if(s.var == e->name) return s.exp;
+                return e;
+            case E(COMPONENT):
+                return op(e->type, substitute(e->sub[0], substs),
+                nullptr, nullptr, e->number);
+            case E(PLUS):
+            case E(MINUS):
+            case E(TIMES):
+            case E(DIVIDE):
+            case E(JUX):
+            case E(FUNCEXP):
+            case E(EXP):
+                return op(e->type,
+                    substitute(e->sub[0], substs),
+                    substitute(e->sub[1], substs));
+            case E(APP):
+                if(e->sub[0]->type != E(FUNCTION))
+                    throw std::string("Must be a FUNCTION");
+                return op(e->type, e->sub[0], substitute(e->sub[1], substs));
+            case E(UPLUS):
+            case E(UMINUS):
+            case E(UTIMES):
+            case E(UDIVIDE):
+                return op(e->type, substitute(e->sub[0], substs));
+            case E(TOTAL):
+            case E(PARTIAL):
+                throw std::string("Derivatives should be gone");
+            case E(TUPLE):
+            {
+                Expr *t = op(E(TUPLE));
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                    t->sub.push_back(substitute(e->sub[i], substs));
+                return t;
+            }
+            default:
+                throw std::string("Invalid expression type");
+        }
     }
 
 };
+
+#undef E

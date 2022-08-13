@@ -441,12 +441,10 @@ namespace tcc
         actOp(ExprType::TUPLE);
     }
 
-    #define UNUSED __attribute__((unused))
-        void Parser::actAdvance() {}
-        void Parser::actDecl() {}
-        void Parser::actInt(UNUSED ExprType type) {}
-        void Parser::actOp(UNUSED ExprType type) {}
-    #undef UNUSED
+    void Parser::actAdvance() {}
+    void Parser::actDecl() {}
+    void Parser::actInt(ExprType) {}
+    void Parser::actOp(ExprType) {}
 
     void Parser::actSyntaxError(TokenType type) 
     {
