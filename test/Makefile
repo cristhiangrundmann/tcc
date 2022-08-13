@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -O3 -I../imgui -I../compiler
+CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -g -I../imgui -I../compiler
 LIBS = -lglfw -ldl -lGL -lGLEW
 COMPILER = ../compiler/compiler.a
 IMGUI = ../imgui/imgui.a
