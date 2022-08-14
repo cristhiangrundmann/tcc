@@ -193,11 +193,13 @@ namespace tcc
             case E(COMPONENT):
             {
                 Expr *a = compute(e->sub[0]);
-                if(a->type != E(VARIABLE) && (e->number > a->tupleSize)) //variable errors occur later
+                if((a->type != E(VARIABLE)) && (e->number > a->tupleSize)) //variable errors occur later
                     throw std::string("Invalid tuple index");
                 if(a->type == E(TUPLE))
                     return compute(a->sub[e->number-1]);
-                return op(E(COMPONENT), a, nullptr, nullptr, e->number);
+                Expr *r = op(E(COMPONENT), a, nullptr, nullptr, e->number);
+                r->tupleSize = 1;
+                return r;
             }
             case E(PLUS):
             case E(MINUS):
