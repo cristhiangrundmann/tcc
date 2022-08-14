@@ -154,42 +154,43 @@ namespace tcc
 
     Expr *Compiler::compute(Expr *e)
     {
+        if(e->compute) return e->compute;
         static int fdepth = 0;
         switch(e->type)
         {
             case E(NUMBER):
                 e->tupleSize = 1;
-                return e;
+                return e->compute = e;
             case E(CONSTANT):
             {
                 if(e->name->objIndex == -1)
                 {
                     e->tupleSize = 1;
-                    return e;
+                    return e->compute = e;
                 }
                 Obj obj = objects[e->name->objIndex];
-                if(obj.type == define) return compute(obj.sub[0]);
+                if(obj.type == define) return e->compute = compute(obj.sub[0]);
                 if(obj.type == param || obj.type == grid)
                 {
                     e->tupleSize = obj.intervals.size();
-                    return e;
+                    return e->compute = e;
                 }
                 if(obj.type == point || obj.type == vector)
-                    return compute(obj.sub[0]);
+                    return e->compute = compute(obj.sub[0]);
             }
             case E(VARIABLE):
             {
                 e->tupleSize = 1;
-                return e;
+                return e->compute = e;
             }
             case E(FUNCTION):
             {
                 if(e->name->objIndex == -1)
                 {
                     e->tupleSize = 1;
-                    return e;
+                    return e->compute = e;
                 }
-                return compute(objects[e->name->objIndex].sub[0]);
+                return e->compute = compute(objects[e->name->objIndex].sub[0]);
             }
             case E(COMPONENT):
             {
@@ -197,10 +198,10 @@ namespace tcc
                 if((e->number > a->tupleSize) && (a->type != E(VARIABLE) || fdepth == 0))
                     throw std::string("Invalid tuple index");
                 if(a->type == E(TUPLE))
-                    return compute(a->sub[e->number-1]);
+                    return e->compute = compute(a->sub[e->number-1]);
                 Expr *r = op(E(COMPONENT), a, nullptr, nullptr, e->number);
                 r->tupleSize = 1;
-                return r;
+                return e->compute = r->compute = r;
             }
             case E(PLUS):
             case E(MINUS):
@@ -213,13 +214,13 @@ namespace tcc
                 {
                     Expr *r = op(e->type, e0, e1);
                     r->tupleSize = 1;
-                    return r;
+                    return e->compute = r->compute = r;
                 }
                 Expr *t = op(E(TUPLE));
                 t->tupleSize = e0->tupleSize;
                 for(int i = 0; i < t->tupleSize; i++)
                     t->sub.push_back(compute(op(e->type, COMP(e0, i+1), COMP(e1, i+1))));
-                return t;
+                return e->compute = t->compute = t;
             }
             case E(TIMES):
             {
@@ -229,7 +230,7 @@ namespace tcc
                 {
                     Expr *r = op(e->type, e0, e1);
                     r->tupleSize = 1;
-                    return r;
+                    return e->compute = r->compute = r;
                 }
                 if(e0->tupleSize == 1 || e1->tupleSize == 1)
                 {
@@ -242,7 +243,7 @@ namespace tcc
                     t->tupleSize = b->tupleSize;
                     for(int i = 0; i < t->tupleSize; i++)
                         t->sub.push_back(compute(op(e->type, a, COMP(b, i+1))));
-                    return t;
+                    return e->compute = t->compute = t;
                 }
                 if(e0->tupleSize != 3 || e1->tupleSize != 3)
                     throw std::string("Invalid cross-product");
@@ -259,7 +260,7 @@ namespace tcc
                 t->sub.push_back(z1);
                 t->sub.push_back(z2);
                 t->sub.push_back(z3);
-                return compute(t);
+                return e->compute = compute(t);
             }
             case E(DIVIDE):
             {
@@ -271,13 +272,13 @@ namespace tcc
                 {
                     Expr *r = op(e->type, e0, e1);
                     r->tupleSize = e0->tupleSize;
-                    return r;
+                    return e->compute = r->compute = r;
                 }
                 Expr *t = op(E(TUPLE));
                 t->tupleSize = e0->tupleSize;
                 for(int i = 0; i < e0->tupleSize; i++)
                     t->sub.push_back(compute(op(e->type, COMP(e0, i+1), e1)));
-                return t;
+                return e->compute = t->compute = t;
             }
             case E(JUX):
             {
@@ -287,7 +288,7 @@ namespace tcc
                 {
                     Expr *r = op(e->type, e0, e1);
                     r->tupleSize = 1;
-                    return r;
+                    return e->compute = r->compute = r;
                 }
                 if(e0->tupleSize == 1 || e1->tupleSize == 1)
                 {
@@ -306,7 +307,7 @@ namespace tcc
                     t->tupleSize = b->tupleSize;
                     for(int i = 0; i < t->tupleSize; i++)
                         t->sub.push_back(compute(op(e->type, a, COMP(b, i+1))));
-                    return t;
+                    return e->compute = t->compute = t;
                 }
                 if(e0->tupleSize != e1->tupleSize)
                     throw std::string("Inconsistent tuple size");
@@ -325,23 +326,29 @@ namespace tcc
                     Expr *nSum = op(e->type, sum, terms[1]);
                     sum = nSum;
                 }
-                return compute(sum);
+                sum->tupleSize = sum->sub.size();
+                return e->compute = compute(sum);
             }
             case E(UPLUS):
             case E(UMINUS):
             {
                 Expr *e0 = compute(e->sub[0]);
-                if(e0->tupleSize < 2) return op(e->type, e0);
+                if(e0->tupleSize == 1)
+                {
+                    Expr *r = op(e->type, e0);
+                    r->tupleSize = 1;
+                    return e->compute = r->compute = r;
+                }
                 Expr *t = op(E(TUPLE));
                 t->tupleSize = e0->tupleSize;
                 for(int i = 0; i < e0->tupleSize; i++)
                     t->sub.push_back(compute(op(e->type, COMP(e0, i+1))));
-                return t;
+                return e->compute = t->compute = t;
             }
             case E(UTIMES):
             {
                 Expr *e0 = compute(e->sub[0]);
-                return compute(op(E(JUX), e0, e0));
+                return e->compute = compute(op(E(JUX), e0, e0));
             }
             case E(UDIVIDE):
             {
@@ -350,7 +357,7 @@ namespace tcc
                     throw std::string("Cannot invert tuples");
                 Expr *r = op(e->type, e0);
                 r->tupleSize = e0->tupleSize;
-                return r;
+                return e->compute = r->compute = r;
             }
             case E(APP):
             {
@@ -387,7 +394,7 @@ namespace tcc
                     r = compute(r);
                 else
                     r->tupleSize = 1;
-                return r;
+                return e->compute = r->compute = r;
             }
             case E(TOTAL):
             case E(PARTIAL):
@@ -395,7 +402,7 @@ namespace tcc
                 Expr *e0 = compute(e->sub[0]);
                 Expr *r = compute(derivative(e0, e->name));
                 r->tupleSize = e0->tupleSize;
-                return r;
+                return e->compute = r->compute = r;
             }
             case E(EXP):
             {
@@ -405,7 +412,7 @@ namespace tcc
                     throw std::string("Cannot exponentiate tuples");
                 Expr *r = op(E(EXP), e0, e1);
                 r->tupleSize = e0->tupleSize;
-                return r;
+                return e->compute = r->compute = r;
             }
             case E(TUPLE):
             {
@@ -413,7 +420,7 @@ namespace tcc
                 t->tupleSize = e->sub.size();
                 for(int i = 0; i < t->tupleSize; i++)
                     t->sub.push_back(compute(e->sub[i]));
-                return t;
+                return e->compute = t->compute = t;
             }
             default:
                 throw std::string("Invalid expression type");

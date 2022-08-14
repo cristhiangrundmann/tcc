@@ -12,6 +12,7 @@ namespace tcc
         Table *name{};
         double number{};
         int tupleSize{};
+        Expr *compute{};
 
         void print();
     };
