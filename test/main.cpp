@@ -10,7 +10,6 @@
 
 using namespace tcc;
 using std::vector;
-using std::stack;
 using std::unique_ptr;
 using std::make_unique;
 
