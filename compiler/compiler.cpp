@@ -154,6 +154,7 @@ namespace tcc
 
     Expr *Compiler::compute(Expr *e)
     {
+        static int fdepth = 0;
         switch(e->type)
         {
             case E(NUMBER):
@@ -193,7 +194,7 @@ namespace tcc
             case E(COMPONENT):
             {
                 Expr *a = compute(e->sub[0]);
-                if((a->type != E(VARIABLE)) && (e->number > a->tupleSize)) //variable errors occur later
+                if((e->number > a->tupleSize) && (a->type != E(VARIABLE) || fdepth == 0))
                     throw std::string("Invalid tuple index");
                 if(a->type == E(TUPLE))
                     return compute(a->sub[e->number-1]);
@@ -234,15 +235,9 @@ namespace tcc
                 {
                     Expr *a, *b;
                     if(e0->tupleSize == 1)
-                    {
-                        a = e0;
-                        b = e1;
-                    }
+                        a = e0, b = e1;
                     else
-                    {
-                        a = e1;
-                        b = e0;
-                    }
+                        a = e1, b = e0;
                     Expr *t = op(E(TUPLE));
                     t->tupleSize = b->tupleSize;
                     for(int i = 0; i < t->tupleSize; i++)
@@ -384,7 +379,9 @@ namespace tcc
                             argList[f->name->argsIndex][i],
                             compute(e->sub[1]->sub[i])});
                 }
+                fdepth++;
                 Expr *e0 = compute(e->sub[0]);
+                fdepth--;
                 Expr *r = substitute(e0, substs);
                 if(f->name->argsIndex != -1)
                     r = compute(r);
@@ -481,7 +478,8 @@ namespace tcc
                 Expr *d0 = derivative(e->sub[0], var);
                 Expr *d1 = derivative(e->sub[1], var);
                 Expr *t = op(E(MINUS), op(e->type, d0, e->sub[1]), op(E(TIMES), e->sub[0], d1));
-                return op(E(DIVIDE), t, op(E(EXP), e->sub[1], op(E(NUMBER), nullptr, nullptr, nullptr, 2)));
+                return op(E(DIVIDE), t, op(E(EXP), e->sub[1],
+                op(E(NUMBER), nullptr, nullptr, nullptr, 2)));
             }
             case E(UPLUS):
             case E(UMINUS):
