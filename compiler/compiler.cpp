@@ -11,11 +11,11 @@ namespace tcc
     void Compiler::actInt(ExprType type)
     {
         Expr *e[3]{};
-        e[0] = expStack.back(); expStack.pop_back();
-        e[1] = expStack.back(); expStack.pop_back();
+        e[0] = compute(expStack.back(), -1); expStack.pop_back();
+        e[1] = compute(expStack.back(), -1); expStack.pop_back();
         if(type == E(GRID))
         {
-            e[2] = expStack.back();
+            e[2] = compute(expStack.back(), -1);
             expStack.pop_back();
         }
         Interval i = {type, tag, wrap, {e[0], e[1], e[2]}};
@@ -46,7 +46,6 @@ namespace tcc
             case E(DIVIDE):
             case E(JUX):
             case E(APP):
-            case E(FUNCEXP):
             case E(EXP):
             {
                 Expr *e0 = expStack.back();
@@ -134,6 +133,8 @@ namespace tcc
 
     Expr *Compiler::newExpr(Expr &e)
     {
+        printf("%ld expressions\n", expressions.size());
+        fflush(stdout);
         expressions.push_back(std::make_unique<Expr>(e));
         return expressions.back().get();
     }
@@ -221,7 +222,11 @@ namespace tcc
                 if(e0->tupleSize != e1->tupleSize)
                     throw std::string("Tuple size mismatch");
                 if(e0->tupleSize == 1)
-                    return op(e->type, e0, e1);
+                {
+                    Expr *r = op(e->type, e0, e1);
+                    r->tupleSize = 1;
+                    return r;
+                }
                 Expr *t = op(E(TUPLE));
                 t->tupleSize = e0->tupleSize;
                 for(int i = 0; i < t->tupleSize; i++)
@@ -235,7 +240,11 @@ namespace tcc
                 if(!e0->tupleSize || !e1->tupleSize)
                     return op(e->type, e0, e1);
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
-                    return op(e->type, e0, e1);
+                {
+                    Expr *r = op(e->type, e0, e1);
+                    r->tupleSize = 1;
+                    return r;
+                }
                 if(e0->tupleSize == 1 || e1->tupleSize == 1)
                 {
                     Expr *a, *b;
@@ -257,9 +266,21 @@ namespace tcc
                 }
                 if(e0->tupleSize != 3 || e1->tupleSize != 3)
                     throw std::string("Invalid cross-product");
-                /////IMPLEMENT CROSS PRODUCT
-                throw std::string("Cross-product is not implemented");
-                return nullptr;
+                Expr *a1 = COMP(e0, 1);
+                Expr *a2 = COMP(e0, 2);
+                Expr *a3 = COMP(e0, 3);
+                Expr *b1 = COMP(e1, 1);
+                Expr *b2 = COMP(e1, 2);
+                Expr *b3 = COMP(e1, 3);
+                Expr *z1 = op(E(MINUS), op(E(TIMES), a2, b3), op(E(TIMES), a3, b2));
+                Expr *z2 = op(E(MINUS), op(E(TIMES), a3, b1), op(E(TIMES), a1, b3));
+                Expr *z3 = op(E(MINUS), op(E(TIMES), a1, b2), op(E(TIMES), a2, b1));
+                Expr *t = op(E(TUPLE));
+                t->sub.push_back(z1);
+                t->sub.push_back(z2);
+                t->sub.push_back(z3);
+                t = compute(t, argsIndex);
+                return t;
             }
             case E(DIVIDE):
             {
@@ -288,7 +309,11 @@ namespace tcc
                 if(!e0->tupleSize || !e1->tupleSize)
                     return op(e->type, e0, e1);
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
-                    return op(e->type, e0, e1);
+                {
+                    Expr *r = op(e->type, e0, e1);
+                    r->tupleSize = 1;
+                    return r;
+                }
                 if(e0->tupleSize == 1 || e1->tupleSize == 1)
                 {
                     Expr *a, *b;
@@ -331,7 +356,7 @@ namespace tcc
             case E(UMINUS):
             {
                 Expr *e0 = compute(e->sub[0], argsIndex);
-                if(!e0->tupleSize) return op(e->type, e0);
+                if(e0->tupleSize < 2) return op(e->type, e0);
                 Expr *t = op(E(TUPLE));
                 t->tupleSize = e0->tupleSize;
                 for(int i = 0; i < e0->tupleSize; i++)
@@ -360,13 +385,14 @@ namespace tcc
                 int argCount = 1;
                 if(f->name->argsIndex != -1)
                     argCount = argList[f->name->argsIndex].size();
+                
                 std::vector<Subst> substs;
                 if(argCount == 1)
                 {
                     Table *name = nullptr;
                     if(f->name->argsIndex != -1)
                         name = argList[f->name->argsIndex][0];
-                    substs.push_back({name, e->sub[1]});
+                    substs.push_back({name, compute(e->sub[1], argsIndex)});
                 }
                 else
                 {
@@ -377,23 +403,24 @@ namespace tcc
                     for(int i = 0; i < argCount; i++)
                         substs.push_back({
                             argList[f->name->argsIndex][i],
-                            e->sub[1]->sub[i]});
+                            compute(e->sub[1]->sub[i], argsIndex)});
                 }
                 Expr *e0 = compute(e->sub[0], -1);
                 Expr *r = substitute(e0, substs);
                 if(f->name->argsIndex != -1)
                     r = compute(r, argsIndex);
+                else
+                    r->tupleSize = 1;
                 return r;
             }
             case E(TOTAL):
             case E(PARTIAL):
             {
                 Expr *e0 = compute(e->sub[0], argsIndex);
-                Expr *r = derivative(e0, e->name);
+                Expr *r = compute(derivative(e0, e->name), argsIndex);
                 r->tupleSize = e0->tupleSize;
                 return r;
             }
-            case E(FUNCEXP):
             case E(EXP):
             {
                 Expr *e0 = compute(e->sub[0], argsIndex);
@@ -419,9 +446,91 @@ namespace tcc
 
     #undef COMP
 
-    Expr *Compiler::derivative(Expr *, Table *)
+    void Expr::print()
     {
-        throw std::string("Derivation is not implemented");
+    }
+
+    Expr *Compiler::derivative(Expr *e, Table *var)
+    {
+        if(!e->tupleSize)
+            throw std::string("Cannot derive unknown type");
+
+        switch(e->type)
+        {
+            case E(NUMBER):
+            case E(COMPONENT):
+                return op(E(NUMBER), nullptr, nullptr, nullptr, 0);
+            case E(CONSTANT):
+            {
+                if(e->tupleSize == 1)
+                    return op(E(NUMBER), nullptr, nullptr, nullptr, 0);
+                Expr *t = op(E(TUPLE));
+                for(int i = 0; i < e->tupleSize; i++)
+                    t->sub.push_back(op(E(NUMBER), nullptr, nullptr, nullptr, 0));
+                return t;
+            }
+            case E(VARIABLE):
+                return op(E(NUMBER), nullptr, nullptr, nullptr, var == e->name ? 1 : 0);
+            case E(FUNCTION):
+            {
+                
+            }
+            case E(PLUS):
+            case E(MINUS):
+            {
+
+            }
+            case E(TIMES):
+            case E(JUX):
+            {
+
+            }
+            case E(DIVIDE):
+            {
+
+            }
+            case E(UPLUS):
+            case E(UMINUS):
+                return op(e->type, derivative(e->sub[0], var));
+            case E(UTIMES):
+                throw std::string("Invalid expression type");
+            case E(UDIVIDE):
+            {
+                Expr *a = op(E(EXP), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, -2));
+                return op(E(UMINUS), op(E(UDIVIDE), a));
+            }
+            case E(APP):
+            {
+                Expr *d = derivative(e->sub[0], nullptr);
+                Expr *d2 = derivative(e->sub[1], var);
+                Expr *a = op(E(TIMES), op(E(APP), d, e->sub[1]), d2);
+                return a;
+            }
+            case E(TOTAL):
+            case E(PARTIAL):
+                throw std::string("Derivatives should be gone");
+            case E(EXP):
+            {
+                if(e->sub[1]->type == E(NUMBER))
+                {
+                    ///
+                    return nullptr;
+                }
+                ///g'(t) = g(t) [h'(t)lnf(t) + h(t)f'(t)/f(t)]
+                return nullptr;
+            }
+            case E(TUPLE):
+            { 
+                Expr *t = op(E(TUPLE));
+                for(Expr *exp : e->sub)
+                    t->sub.push_back(derivative(exp, var));
+                return t;
+            }
+            case E(TAGGED):
+            case E(GRID):
+            case E(INTERVAL):
+                throw std::string("Invalid expression type");
+        }
         return nullptr;
     }
 
@@ -434,6 +543,8 @@ namespace tcc
                 return e;
             case E(FUNCTION):
                 if(substs.size() != 1)
+                    throw std::string("Must have 1 argument");
+                if(substs[0].exp->tupleSize > 1)
                     throw std::string("Must have 1 argument");
                 return op(E(APP), e, substs[0].exp);
             case E(VARIABLE):
@@ -448,7 +559,6 @@ namespace tcc
             case E(TIMES):
             case E(DIVIDE):
             case E(JUX):
-            case E(FUNCEXP):
             case E(EXP):
                 return op(e->type,
                     substitute(e->sub[0], substs),

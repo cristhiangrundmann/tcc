@@ -91,7 +91,7 @@ namespace tcc
         else
         {
             parseInt(type);
-            if(compare(charToken(',')))
+            while(compare(charToken(',')))
             {
                 advance();
                 parseInt(type);
@@ -371,7 +371,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actOp(ExprType::FUNCEXP);
+            actOp(ExprType::EXP);
         }
     }
 

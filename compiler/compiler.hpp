@@ -12,6 +12,8 @@ namespace tcc
         Table *name{};
         double number{};
         int tupleSize{};
+
+        void print();
     };
 
     struct Interval
