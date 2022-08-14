@@ -104,12 +104,12 @@ namespace tcc
         }
         else if(objType == define)
         {
-            obj.sub[0] = compute(expStack.back());
+            obj.sub[0] = expStack.back();
             expStack.pop_back();
         }
         else if(objType == curve || objType == surface || objType == function)
         {
-            obj.sub[0] = compute(expStack.back());
+            obj.sub[0] = expStack.back();
             expStack.pop_back();
             if(objType != function) while(!intStack.empty())
             {
@@ -119,11 +119,11 @@ namespace tcc
         }
         else if(objType == point || objType == vector)
         {
-            obj.sub[0] = compute(expStack.back());
+            obj.sub[0] = expStack.back();
             expStack.pop_back();
             if(objType == vector)
             {
-                obj.sub[1] = compute(expStack.back());
+                obj.sub[1] = expStack.back();
                 expStack.pop_back();
             }
         }
@@ -193,7 +193,7 @@ namespace tcc
             case E(COMPONENT):
             {
                 Expr *a = compute(e->sub[0]);
-                if(e->number > a->tupleSize)
+                if(a->type != E(VARIABLE) && (e->number > a->tupleSize)) //variable errors occur later
                     throw std::string("Invalid tuple index");
                 if(a->type == E(TUPLE))
                     return compute(a->sub[e->number-1]);
@@ -427,13 +427,16 @@ namespace tcc
     {
     }
 
+    #define FUN(x) op(E(FUNCTION), nullptr, nullptr, x)
+
     Expr *Compiler::derivative(Expr *e, Table *var)
     {
         switch(e->type)
         {
             case E(NUMBER):
-            case E(COMPONENT):
                 return op(E(NUMBER), nullptr, nullptr, nullptr, 0);
+            case E(COMPONENT):
+                return op(E(COMPONENT), derivative(e->sub[0], var), nullptr, nullptr, e->number);
             case E(CONSTANT):
             {
                 if(e->tupleSize == 1)
@@ -447,21 +450,36 @@ namespace tcc
                 return op(E(NUMBER), nullptr, nullptr, nullptr, var == e->name ? 1 : 0);
             case E(FUNCTION):
             {
-                
+                if(e->name == sin) return FUN(cos);
+                if(e->name == cos) return op(E(UMINUS), FUN(sin));
+                if(e->name == tan)
+                {
+                    Expr *sec = op(E(UDIVIDE), FUN(cos));
+                    return op(E(TIMES), sec, sec);
+                }
+                if(e->name == exp) return e;
+                if(e->name == log) return op(E(UDIVIDE), FUN(id));
+                if(e->name == sqrt)
+                    return op(E(UDIVIDE), op(E(TIMES), 
+                    op(E(NUMBER), nullptr, nullptr, nullptr, 2), e));
+                if(e->name == id) return op(E(NUMBER), nullptr, nullptr, nullptr, 1);
             }
             case E(PLUS):
             case E(MINUS):
-            {
-
-            }
+                return op(e->type, derivative(e->sub[0], var), derivative(e->sub[0], var));
             case E(TIMES):
             case E(JUX):
             {
-
+                Expr *d0 = derivative(e->sub[0], var);
+                Expr *d1 = derivative(e->sub[1], var);
+                return op(E(PLUS), op(e->type, d0, e->sub[1]), op(E(TIMES), e->sub[0], d1));
             }
             case E(DIVIDE):
             {
-
+                Expr *d0 = derivative(e->sub[0], var);
+                Expr *d1 = derivative(e->sub[1], var);
+                Expr *t = op(E(MINUS), op(e->type, d0, e->sub[1]), op(E(TIMES), e->sub[0], d1));
+                return op(E(DIVIDE), t, op(E(EXP), e->sub[1], op(E(NUMBER), nullptr, nullptr, nullptr, 2)));
             }
             case E(UPLUS):
             case E(UMINUS):
@@ -477,21 +495,21 @@ namespace tcc
             {
                 Expr *d = derivative(e->sub[0], nullptr);
                 Expr *d2 = derivative(e->sub[1], var);
-                Expr *a = op(E(TIMES), op(E(APP), d, e->sub[1]), d2);
-                return a;
+                return op(E(TIMES), op(E(APP), d, e->sub[1]), d2);
             }
             case E(TOTAL):
             case E(PARTIAL):
                 throw std::string("Derivatives should be gone");
             case E(EXP):
             {
-                if(e->sub[1]->type == E(NUMBER))
+                /*if(e->sub[1]->type == E(NUMBER))
                 {
-                    ///
+                    //////
                     return nullptr;
-                }
-                ///g'(t) = g(t) [h'(t)lnf(t) + h(t)f'(t)/f(t)]
-                return nullptr;
+                }*/
+                Expr *a = op(E(TIMES), derivative(e->sub[1], var), op(E(APP), FUN(log), e->sub[0]));
+                Expr *b = op(E(TIMES), e->sub[1], derivative(e->sub[0], var));
+                return op(E(TIMES), op(E(PLUS), a, b), e);
             }
             case E(TUPLE):
             { 
@@ -507,6 +525,8 @@ namespace tcc
         }
         return nullptr;
     }
+
+    #undef FUN
 
     Expr *Compiler::substitute(Expr *e, std::vector<Subst> &substs)
     {

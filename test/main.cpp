@@ -92,7 +92,7 @@ int main(int, char**)
                     if(t->length != 1 || t->type != TokenType::FUNCTION) throw std::string("`f` is not defined");
                     //if(t->argsIndex == -1) throw std::string("Error ?");
                     if(cmp.argList[t->argsIndex].size() != 1) throw std::string("`f` must be a single nameiable function");
-
+                    cmp.compute(cmp.objects[t->objIndex].sub[0]);
                 }
                 catch(std::string err)
                 {

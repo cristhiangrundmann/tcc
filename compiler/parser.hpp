@@ -26,7 +26,7 @@ namespace tcc
         char wrap = 0;
         int tupleSize = 0;
 
-        #define INIT(x, y) const Table *x = table->initString(#x, TokenType::y);
+        #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
             INIT(param,     DECLARE)
             INIT(grid,      DECLARE)
             INIT(define,    DECLARE)
@@ -43,6 +43,7 @@ namespace tcc
             INIT(exp,       FUNCTION)
             INIT(log,       FUNCTION)
             INIT(sqrt,      FUNCTION)
+            INIT(id,        FUNCTION)
         #undef INIT
 
         Parser();
