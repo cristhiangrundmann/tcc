@@ -7,7 +7,7 @@ namespace tcc
 
     struct Expr
     {
-        ExprType type;
+        ExprType type{};
         std::vector<Expr*> sub;
         Table *name{};
         double number{};
@@ -16,7 +16,7 @@ namespace tcc
 
     struct Interval
     {
-        ExprType type;
+        ExprType type{};
         Table *tag{};
         char wrap{};
         Expr *sub[3]{};

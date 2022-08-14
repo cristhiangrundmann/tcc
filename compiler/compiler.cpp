@@ -48,18 +48,22 @@ namespace tcc
             case E(APP):
             case E(FUNCEXP):
             case E(EXP):
-                exp.sub.push_back(expStack.back());
+            {
+                Expr *e0 = expStack.back();
                 expStack.pop_back();
-                exp.sub.push_back(expStack.back());
+                Expr *e1 = expStack.back();
                 expStack.pop_back();
+                exp.sub.push_back(e1);
+                exp.sub.push_back(e0);
                 break;
+            }
             case E(TUPLE):
             {
                 if(tupleSize < 2) return;
                 for(int i = 0; i < tupleSize; i++)
                     exp.sub.push_back(expStack[expStack.size()-tupleSize+i]);
                 for(int i = 0; i < tupleSize; i++)
-                    exp.sub.pop_back();
+                    expStack.pop_back();
                 break;
             }
             case E(UPLUS):
@@ -138,8 +142,8 @@ namespace tcc
     {
         Expr e;
         e.type = type;
-        e.sub.push_back(a);
-        e.sub.push_back(b);
+        if(a) e.sub.push_back(a);
+        if(a && b) e.sub.push_back(b);
         e.name = name;
         e.number = number;
         return newExpr(e);
@@ -203,7 +207,7 @@ namespace tcc
                     if(e->number > a->tupleSize)
                         throw std::string("Invalid tuple index");
                     if(a->type == E(TUPLE))
-                        return compute(a->sub[e->number], argsIndex);
+                        return compute(a->sub[e->number-1], argsIndex);
                 }
                 return op(E(COMPONENT), a, nullptr, nullptr, e->number);
             }
@@ -376,7 +380,10 @@ namespace tcc
                             e->sub[1]->sub[i]});
                 }
                 Expr *e0 = compute(e->sub[0], -1);
-                return compute(substitute(e0, substs), argsIndex);
+                Expr *r = substitute(e0, substs);
+                if(f->name->argsIndex != -1)
+                    r = compute(r, argsIndex);
+                return r;
             }
             case E(TOTAL):
             case E(PARTIAL):
