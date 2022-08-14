@@ -50,7 +50,7 @@ namespace tcc
         void actDecl();
         Expr *newExpr(Expr &e);
         Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, double number = 0);
-        Expr *compute(Expr *e, int argsIndex);
+        Expr *compute(Expr *e);
         Expr *derivative(Expr *e, Table *var);
         Expr *substitute(Expr *e, std::vector<Subst> &substs);
     };
