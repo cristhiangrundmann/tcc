@@ -453,6 +453,7 @@ namespace tcc
                 return t;
             }
             case E(VARIABLE):
+                if(!var) return op(E(NUMBER), nullptr, nullptr, nullptr, 1);
                 return op(E(NUMBER), nullptr, nullptr, nullptr, var == e->name ? 1 : 0);
             case E(FUNCTION):
             {
@@ -593,19 +594,25 @@ namespace tcc
         switch(e->type)
         {
             case E(NUMBER):
-                str << "float1 v" << v++ << "=" << e->number << ";\n";
+                str << "float1 v" << ++v << "=" << e->number << ";\n";
                 break;
             case E(VARIABLE):
-            case E(CONSTANT):
-                str << "float2 v" << v++ << "=" << e->name->getString() << ";\n";
+                str << "float2 v" << ++v << "=tcc" << e->name->getString() << ";\n";
                 break;
-            case E(FUNCTION):
+            case E(CONSTANT):
+                if(e->tupleSize == 1)
+                    str << "float2 v" << ++v << "=tcc" << e->name->getString() << ";\n";
+                else
+                {
+                    for(int i = 0; i < e->tupleSize; i++)
+                        str << "float3 v" << ++v << "=tcc" << e->name->getString() << "_" << i+1 << ";\n";                    
+                }
                 break;
             case E(COMPONENT):
             {
-                int a = v;
-                compile(e->sub[0], str, v);
-                str << "float3 v" << v++ << "=v" << a << "_" << e->number << ";\n";
+                if(e->sub[0]->type != E(CONSTANT))
+                    throw std::string("Wrong component type");
+                str << "float3 v" << ++v << "=tcc" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
                 break;
             }
             case E(PLUS):
@@ -620,29 +627,29 @@ namespace tcc
                 if(e->type == E(TIMES)) symb = '*';
                 if(e->type == E(DIVIDE)) symb = '/';
                 if(e->type == E(JUX)) symb = '*';
-                int a = v;
                 compile(e->sub[0], str, v);
-                int b = v;
+                int a = v;
                 compile(e->sub[1], str, v);
-                str << "float4 v" << v++ << "=v"
+                int b = v;
+                str << "float4 v" << ++v << "=v"
                     << a << symb << "v" << b << ";\n";
                 break;
             }
             case E(EXP):
             {
-                int a = v;
                 compile(e->sub[0], str, v);
-                int b = v;
+                int a = v;
                 compile(e->sub[1], str, v);
-                str << "float5 v" << v++ << "=pow(v"
+                int b = v;
+                str << "float5 v" << ++v << "=pow(v"
                     << a << ",v" << b << ");\n";
                 break;
             }
             case E(APP):
             {
-                int a = v;
                 compile(e->sub[1], str, v);
-                str << "float6 v" << v++ << "=" << e->sub[0]->name->getString() << "(v"
+                int a = v;
+                str << "float6 v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
                     << a << ");\n";
                 break;
             }
@@ -652,18 +659,34 @@ namespace tcc
                 char symb;
                 if(e->type == E(UPLUS)) symb = '+';
                 if(e->type == E(UMINUS)) symb = '-';
-                int a = v;
                 compile(e->sub[0], str, v);
-                str << "float7 v" << v++ << "=" << symb << "v" << a << ";\n";
+                int a = v;
+                str << "float7 v" << ++v << "=" << symb << "v" << a << ";\n";
                 break;
             }
             case E(UTIMES):
-            case E(UDIVIDE):
+            case E(FUNCTION):
                 break;
+            case E(UDIVIDE):
+            {
+                compile(e->sub[0], str, v);
+                int k = v;
+                str << "float7 v" << ++v << "=" << "1.0/v" << k << ";\n";
+                break;
+            }
             case E(TUPLE):
             {
-                //////
-                throw std::string("DAMN");
+                std::vector<int> indices;
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                {
+                    if(e->sub[i]->tupleSize != 1)
+                        throw std::string("Invalid tuple");
+                    compile(e->sub[i], str, v);
+                    indices.push_back(v);
+                }
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                    str << "float8 v" << ++v << "=" << "v" << indices[i] << ";\n";
+                break;
             }
             default:
                 throw std::string("Invalid expression type");
