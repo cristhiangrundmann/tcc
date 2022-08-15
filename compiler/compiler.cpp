@@ -133,7 +133,7 @@ namespace tcc
 
     Expr *Compiler::newExpr(Expr &e)
     {
-        printf("%ld expressions\n", expressions.size());
+        //printf("%ld expressions\n", expressions.size());
         fflush(stdout);
         expressions.push_back(std::make_unique<Expr>(e));
         return expressions.back().get();
@@ -582,6 +582,88 @@ namespace tcc
                 for(int i = 0; i < (int)e->sub.size(); i++)
                     t->sub.push_back(substitute(e->sub[i], substs));
                 return t;
+            }
+            default:
+                throw std::string("Invalid expression type");
+        }
+    }
+
+    void Compiler::compile(Expr *e, std::stringstream &str, int &v)
+    {
+        switch(e->type)
+        {
+            case E(NUMBER):
+                str << "float1 v" << v++ << "=" << e->number << ";\n";
+                break;
+            case E(VARIABLE):
+            case E(CONSTANT):
+                str << "float2 v" << v++ << "=" << e->name->getString() << ";\n";
+                break;
+            case E(FUNCTION):
+                break;
+            case E(COMPONENT):
+            {
+                int a = v;
+                compile(e->sub[0], str, v);
+                str << "float3 v" << v++ << "=v" << a << "_" << e->number << ";\n";
+                break;
+            }
+            case E(PLUS):
+            case E(MINUS):
+            case E(TIMES):
+            case E(DIVIDE):
+            case E(JUX):
+            {
+                char symb;
+                if(e->type == E(PLUS)) symb = '+';
+                if(e->type == E(MINUS)) symb = '-';
+                if(e->type == E(TIMES)) symb = '*';
+                if(e->type == E(DIVIDE)) symb = '/';
+                if(e->type == E(JUX)) symb = '*';
+                int a = v;
+                compile(e->sub[0], str, v);
+                int b = v;
+                compile(e->sub[1], str, v);
+                str << "float4 v" << v++ << "=v"
+                    << a << symb << "v" << b << ";\n";
+                break;
+            }
+            case E(EXP):
+            {
+                int a = v;
+                compile(e->sub[0], str, v);
+                int b = v;
+                compile(e->sub[1], str, v);
+                str << "float5 v" << v++ << "=pow(v"
+                    << a << ",v" << b << ");\n";
+                break;
+            }
+            case E(APP):
+            {
+                int a = v;
+                compile(e->sub[1], str, v);
+                str << "float6 v" << v++ << "=" << e->sub[0]->name->getString() << "(v"
+                    << a << ");\n";
+                break;
+            }
+            case E(UPLUS):
+            case E(UMINUS):
+            {
+                char symb;
+                if(e->type == E(UPLUS)) symb = '+';
+                if(e->type == E(UMINUS)) symb = '-';
+                int a = v;
+                compile(e->sub[0], str, v);
+                str << "float7 v" << v++ << "=" << symb << "v" << a << ";\n";
+                break;
+            }
+            case E(UTIMES):
+            case E(UDIVIDE):
+                break;
+            case E(TUPLE):
+            {
+                //////
+                throw std::string("DAMN");
             }
             default:
                 throw std::string("Invalid expression type");

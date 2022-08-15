@@ -35,6 +35,7 @@ namespace tcc
         Table *next(char c);
         Table *procString(const char *str, bool match);
         Table *initString(const char *str, TokenType type);
+        std::string getString();
     };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser.hpp"
+#include <sstream>
 
 namespace tcc
 {
@@ -54,6 +55,7 @@ namespace tcc
         Expr *compute(Expr *e);
         Expr *derivative(Expr *e, Table *var);
         Expr *substitute(Expr *e, std::vector<Subst> &substs);
+        void compile(Expr *e, std::stringstream &str, int &v);
     };
 
 };
