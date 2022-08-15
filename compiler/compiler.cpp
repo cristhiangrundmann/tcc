@@ -509,13 +509,14 @@ namespace tcc
                 throw std::string("Derivatives should be gone");
             case E(EXP):
             {
-                /*if(e->sub[1]->type == E(NUMBER))
+                if(e->sub[1]->type == E(NUMBER))
                 {
-                    //////
-                    return nullptr;
-                }*/
+                    double num = e->sub[1]->number;
+                    Expr *b = op(E(TIMES), e->sub[1], derivative(e->sub[0], var));
+                    return op(E(TIMES), b, op(E(EXP), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, num-1)));
+                }
                 Expr *a = op(E(TIMES), derivative(e->sub[1], var), op(E(APP), FUN(log), e->sub[0]));
-                Expr *b = op(E(TIMES), e->sub[1], derivative(e->sub[0], var));
+                Expr *b = op(E(TIMES), e->sub[1], op(E(DIVIDE), derivative(e->sub[0], var), e->sub[0]));
                 return op(E(TIMES), op(E(PLUS), a, b), e);
             }
             case E(TUPLE):
@@ -609,8 +610,12 @@ namespace tcc
                 break;
             case E(COMPONENT):
             {
-                if(e->sub[0]->type != E(CONSTANT))
-                    throw std::string("Wrong component type");
+                if(e->sub[0]->type != E(CONSTANT)) throw std::string("Invalid expression");
+                Table *name = e->sub[0]->name;
+                if(!name) throw std::string("Invalid expression");
+                if(name->objIndex == -1) throw std::string("Invalid expression");
+                Obj o = objects[name->objIndex];
+                if(o.type != grid && o.type != param) throw std::string("Invalid expression");
                 str << "float3 v" << ++v << "=tcc" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
                 break;
             }
@@ -638,6 +643,18 @@ namespace tcc
             {
                 compile(e->sub[0], str, v);
                 int a = v;
+                if(e->sub[1]->type == E(NUMBER))
+                {
+                    double num = e->sub[1]->number;
+                    if(num == (int)num && num >= 1 && num <= 10)
+                    {
+                        str << "float5 v" << ++v << "=v" << a;
+                        for(int i = 1; i < num; i++)
+                            str << "*v" << a;
+                        str << ";\n";
+                        break;   
+                    }
+                }
                 compile(e->sub[1], str, v);
                 int b = v;
                 str << "float5 v" << ++v << "=pow(v"
