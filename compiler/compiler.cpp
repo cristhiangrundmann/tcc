@@ -117,15 +117,17 @@ namespace tcc
                 intStack.pop_back();
             }
         }
-        else if(objType == point || objType == vector)
+        else if(objType == point)
         {
             obj.sub[0] = expStack.back();
             expStack.pop_back();
-            if(objType == vector)
-            {
-                obj.sub[1] = expStack.back();
-                expStack.pop_back();
-            }
+        }
+        else if(objType == vector)
+        {
+            obj.sub[1] = expStack.back();
+            expStack.pop_back();
+            obj.sub[0] = expStack.back();
+            expStack.pop_back();
         }
         else throw std::string("Invalid declaration type");
         objects.push_back(obj);
@@ -155,7 +157,6 @@ namespace tcc
     Expr *Compiler::compute(Expr *e)
     {
         if(e->compute) return e->compute;
-        static int fdepth = 0;
         switch(e->type)
         {
             case E(NUMBER):
@@ -195,7 +196,7 @@ namespace tcc
             case E(COMPONENT):
             {
                 Expr *a = compute(e->sub[0]);
-                if((e->number > a->tupleSize) && (a->type != E(VARIABLE) || fdepth == 0))
+                if((e->number > a->tupleSize) && (a->type != E(VARIABLE)))
                     throw std::string("Invalid tuple index");
                 if(a->type == E(TUPLE))
                     return e->compute = compute(a->sub[e->number-1]);
@@ -323,7 +324,7 @@ namespace tcc
                 Expr *sum = terms[0];
                 for(int i = 1; i < e0->tupleSize; i++)
                 {
-                    Expr *nSum = op(e->type, sum, terms[1]);
+                    Expr *nSum = op(E(PLUS), sum, terms[1]);
                     sum = nSum;
                 }
                 sum->tupleSize = sum->sub.size();
@@ -386,9 +387,7 @@ namespace tcc
                             argList[f->name->argsIndex][i],
                             compute(e->sub[1]->sub[i])});
                 }
-                fdepth++;
                 Expr *e0 = compute(e->sub[0]);
-                fdepth--;
                 Expr *r = substitute(e0, substs);
                 if(f->name->argsIndex != -1)
                     r = compute(r);
@@ -594,7 +593,7 @@ namespace tcc
         switch(e->type)
         {
             case E(NUMBER):
-                str << "float1 v" << ++v << "=" << e->number << ";\n";
+                str << "float1 v" << ++v << "=(float)" << e->number << ";\n";
                 break;
             case E(VARIABLE):
                 str << "float2 v" << ++v << "=tcc" << e->name->getString() << ";\n";
