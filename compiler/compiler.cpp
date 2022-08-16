@@ -467,7 +467,7 @@ namespace tcc
             }
             case E(PLUS):
             case E(MINUS):
-                return op(e->type, derivative(e->sub[0], var), derivative(e->sub[0], var));
+                return op(e->type, derivative(e->sub[0], var), derivative(e->sub[1], var));
             case E(TIMES):
             case E(JUX):
             {
