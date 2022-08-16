@@ -704,46 +704,120 @@ namespace tcc
         }
     }
 
-    #define RET2 (str << "return vec2(v" << v-1 << ", v" << v << ");\n")
-    #define RET3 (str << "return vec3(v" << v-2 << ", v" << v-1 << ", v" << v << ");\n")
-
     void Compiler::compile(std::stringstream &str)
     {
-        for(Obj o : objects) if(o.type == param || o.type == grid)
-            for(int i = 0; i < (int)o.intervals.size(); i++)
-            {
-                str << "uniform float tcc" << o.name->getString();
-                if((int)o.intervals.size() == 1)
-                    str << "_" << i+1;
-                str  << ";\n";
-            }
-
-        for(Obj o : objects) if(o.type == curve)
+        for(Obj o : objects)
         {
-            int args = argList[o.name->argsIndex].size();
-            Expr *exp = compute(o.sub[0]);
-            if(args != 1)
-                throw std::string("Curves should have 1 parameter");
-
-            int N = exp->tupleSize;
-
-            if(N != 2 && N != 3)
-                throw std::string("Curves should be in 2d or 3d space");
-
-            str << "vec" << N << " tcc" << o.name->getString() << "(";
-            for(int i = 0; i < args; i++)
+            if(o.type == param || o.type == grid)
             {
-                str << "float tcc" << argList[o.name->argsIndex][i]->getString();
-                if(i < args-1) str << ", ";
+                for(int i = 0; i < (int)o.intervals.size(); i++)
+                {
+                    str << "uniform float tcc" << o.name->getString();
+                    if((int)o.intervals.size() != 1)
+                        str << "_" << i+1;
+                    str  << ";\n";
+                }
             }
-            str << ")\n{\n";
+            if(o.type == curve)
+            {
+                int args = argList[o.name->argsIndex].size();
+                if(args != 1)
+                    throw std::string("Curves should have 1 parameter");
 
-            int v = 0;
-            compile(exp, str, v);
-            if(N == 2) RET2;
-            if(N == 3) RET3;
-            str << "}\n";
+                Expr *c = o.sub[0];
+                Expr *cc = compute(c);
+
+                int N = cc->tupleSize;
+                if(N != 2 && N != 3)
+                    throw std::string("Curves should be in 2d or 3d space");
+
+                Expr *ct = op(E(TOTAL), c);
+
+                compileFunction(cc, o.name->argsIndex, str, o.name->getString());
+                compileFunction(compute(ct), o.name->argsIndex, str, o.name->getString() + "_t");                
+            }
+            if(o.type == surface)
+            {
+                int args = argList[o.name->argsIndex].size();
+
+                if(args != 2)
+                    throw std::string("Surface should have 2 parameters");
+
+                Expr *s = o.sub[0];
+                Expr *cs = compute(s);
+
+                int N = cs->tupleSize;
+                if(N != 3)
+                    throw std::string("Surfaces should be in 3d space");
+
+                Expr *s_u = op(E(PARTIAL), s, nullptr, argList[o.name->argsIndex][0]);
+                Expr *s_v = op(E(PARTIAL), s, nullptr, argList[o.name->argsIndex][1]);
+                Expr *s_uu = op(E(PARTIAL), s_u, nullptr, argList[o.name->argsIndex][0]);
+                Expr *s_uv = op(E(PARTIAL), s_u, nullptr, argList[o.name->argsIndex][1]);
+                Expr *s_vv = op(E(PARTIAL), s_v, nullptr, argList[o.name->argsIndex][1]);
+
+                compileFunction(cs, o.name->argsIndex, str, o.name->getString());
+                compileFunction(compute(s_u), o.name->argsIndex, str, o.name->getString() + "_u");
+                compileFunction(compute(s_v), o.name->argsIndex, str, o.name->getString() + "_v");
+                compileFunction(compute(s_uu), o.name->argsIndex, str, o.name->getString() + "_uu");
+                compileFunction(compute(s_uv), o.name->argsIndex, str, o.name->getString() + "_uv");
+                compileFunction(compute(s_vv), o.name->argsIndex, str, o.name->getString() + "_vv");
+
+            }
+            if(o.type == function)
+            {
+                try
+                {
+                    int args = argList[o.name->argsIndex].size();
+                    if(args != 1 && args != 2)
+                        throw std::string("Functions should have 1 or 2 parameters");
+                    Expr *cf = compute(o.sub[0]);
+                    int N = cf->tupleSize;
+                    if(N != 1) throw std::string("Function is not plottable");
+
+                    std::stringstream buf;
+                    compileFunction(cf, o.name->argsIndex, buf, o.name->getString());
+                    str << buf.str();
+                } catch(std::string &error){}
+            }
         }
+    }
+
+    void Compiler::compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string name)
+    {
+        int N = exp->tupleSize;
+        declareFunction(N, argsIndex, str, name);
+
+        str << "\n{\n";
+        int v = 0;
+        compile(exp, str, v);
+
+        if(N == 1)
+            str << "return v" << v << ";\n";
+        else if(N == 2)
+            str << "return vec2(v" << v-1 << ", v" << v << ");\n";
+        else if(N == 3)
+            str << "return vec3(v" << v-2 << ", v" << v-1 << ", v" << v << ");\n";
+
+        str << "}\n";
+    }
+
+    void Compiler::declareFunction(int N, int argsIndex, std::stringstream &str, std::string name)
+    {
+        if(N == 1)
+            str << "float";
+        else if(N == 2 || N == 3)
+            str << "vec" << N;
+        else throw std::string("Cannot compile tuples of more than 4 components");
+
+        str << " tcc" << name << "(";
+        int args = argList[argsIndex].size();
+        for(int i = 0; i < args; i++)
+        {
+            str << "float tcc" << argList[argsIndex][i]->getString();
+            if(i < args-1) str << ", ";
+        }
+        str << ")";
     }
 
 };
