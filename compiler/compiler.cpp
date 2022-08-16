@@ -135,7 +135,6 @@ namespace tcc
 
     Expr *Compiler::newExpr(Expr &e)
     {
-        //printf("%ld expressions\n", expressions.size());
         fflush(stdout);
         expressions.push_back(std::make_unique<Expr>(e));
         return expressions.back().get();
@@ -428,10 +427,6 @@ namespace tcc
 
     #undef COMP
 
-    void Expr::print()
-    {
-    }
-
     #define FUN(x) op(E(FUNCTION), nullptr, nullptr, x)
 
     Expr *Compiler::derivative(Expr *e, Table *var)
@@ -594,18 +589,18 @@ namespace tcc
         switch(e->type)
         {
             case E(NUMBER):
-                str << "float1 v" << ++v << "=(float)" << e->number << ";\n";
+                str << "float v" << ++v << "=(float)" << e->number << ";\n";
                 break;
             case E(VARIABLE):
-                str << "float2 v" << ++v << "=tcc" << e->name->getString() << ";\n";
+                str << "float v" << ++v << "=tcc" << e->name->getString() << ";\n";
                 break;
             case E(CONSTANT):
                 if(e->tupleSize == 1)
-                    str << "float2 v" << ++v << "=tcc" << e->name->getString() << ";\n";
+                    str << "float v" << ++v << "=tcc" << e->name->getString() << ";\n";
                 else
                 {
                     for(int i = 0; i < e->tupleSize; i++)
-                        str << "float3 v" << ++v << "=tcc" << e->name->getString() << "_" << i+1 << ";\n";                    
+                        str << "float v" << ++v << "=tcc" << e->name->getString() << "_" << i+1 << ";\n";                    
                 }
                 break;
             case E(COMPONENT):
@@ -616,7 +611,7 @@ namespace tcc
                 if(name->objIndex == -1) throw std::string("Invalid expression");
                 Obj o = objects[name->objIndex];
                 if(o.type != grid && o.type != param) throw std::string("Invalid expression");
-                str << "float3 v" << ++v << "=tcc" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
+                str << "float v" << ++v << "=tcc" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
                 break;
             }
             case E(PLUS):
@@ -635,7 +630,7 @@ namespace tcc
                 int a = v;
                 compile(e->sub[1], str, v);
                 int b = v;
-                str << "float4 v" << ++v << "=v"
+                str << "float v" << ++v << "=v"
                     << a << symb << "v" << b << ";\n";
                 break;
             }
@@ -648,7 +643,7 @@ namespace tcc
                     double num = e->sub[1]->number;
                     if(num == (int)num && num >= 1 && num <= 10)
                     {
-                        str << "float5 v" << ++v << "=v" << a;
+                        str << "float v" << ++v << "=v" << a;
                         for(int i = 1; i < num; i++)
                             str << "*v" << a;
                         str << ";\n";
@@ -657,7 +652,7 @@ namespace tcc
                 }
                 compile(e->sub[1], str, v);
                 int b = v;
-                str << "float5 v" << ++v << "=pow(v"
+                str << "float v" << ++v << "=pow(v"
                     << a << ",v" << b << ");\n";
                 break;
             }
@@ -665,7 +660,7 @@ namespace tcc
             {
                 compile(e->sub[1], str, v);
                 int a = v;
-                str << "float6 v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
+                str << "float v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
                     << a << ");\n";
                 break;
             }
@@ -677,7 +672,7 @@ namespace tcc
                 if(e->type == E(UMINUS)) symb = '-';
                 compile(e->sub[0], str, v);
                 int a = v;
-                str << "float7 v" << ++v << "=" << symb << "v" << a << ";\n";
+                str << "float v" << ++v << "=" << symb << "v" << a << ";\n";
                 break;
             }
             case E(UTIMES):
@@ -687,7 +682,7 @@ namespace tcc
             {
                 compile(e->sub[0], str, v);
                 int k = v;
-                str << "float7 v" << ++v << "=" << "1.0/v" << k << ";\n";
+                str << "float v" << ++v << "=" << "1.0/v" << k << ";\n";
                 break;
             }
             case E(TUPLE):
@@ -701,11 +696,53 @@ namespace tcc
                     indices.push_back(v);
                 }
                 for(int i = 0; i < (int)e->sub.size(); i++)
-                    str << "float8 v" << ++v << "=" << "v" << indices[i] << ";\n";
+                    str << "float v" << ++v << "=" << "v" << indices[i] << ";\n";
                 break;
             }
             default:
                 throw std::string("Invalid expression type");
+        }
+    }
+
+    #define RET2 (str << "return vec2(v" << v-1 << ", v" << v << ");\n")
+    #define RET3 (str << "return vec3(v" << v-2 << ", v" << v-1 << ", v" << v << ");\n")
+
+    void Compiler::compile(std::stringstream &str)
+    {
+        for(Obj o : objects) if(o.type == param || o.type == grid)
+            for(int i = 0; i < (int)o.intervals.size(); i++)
+            {
+                str << "uniform float tcc" << o.name->getString();
+                if((int)o.intervals.size() == 1)
+                    str << "_" << i+1;
+                str  << ";\n";
+            }
+
+        for(Obj o : objects) if(o.type == curve)
+        {
+            int args = argList[o.name->argsIndex].size();
+            Expr *exp = compute(o.sub[0]);
+            if(args != 1)
+                throw std::string("Curves should have 1 parameter");
+
+            int N = exp->tupleSize;
+
+            if(N != 2 && N != 3)
+                throw std::string("Curves should be in 2d or 3d space");
+
+            str << "vec" << N << " tcc" << o.name->getString() << "(";
+            for(int i = 0; i < args; i++)
+            {
+                str << "float tcc" << argList[o.name->argsIndex][i]->getString();
+                if(i < args-1) str << ", ";
+            }
+            str << ")\n{\n";
+
+            int v = 0;
+            compile(exp, str, v);
+            if(N == 2) RET2;
+            if(N == 3) RET3;
+            str << "}\n";
         }
     }
 

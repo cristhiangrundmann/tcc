@@ -14,8 +14,6 @@ namespace tcc
         double number{};
         int tupleSize{};
         Expr *compute{};
-
-        void print();
     };
 
     struct Interval
@@ -56,6 +54,7 @@ namespace tcc
         Expr *derivative(Expr *e, Table *var);
         Expr *substitute(Expr *e, std::vector<Subst> &substs);
         void compile(Expr *e, std::stringstream &str, int &v);
+        void compile(std::stringstream &str);
     };
 
 };
