@@ -780,6 +780,26 @@ namespace tcc
                     str << buf.str();
                 } catch(std::string &error){}
             }
+            if(o.type == point)
+            {
+                Expr *cp = compute(o.sub[0]);
+                int N = cp->tupleSize;
+                if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
+
+                compileFunction(cp, -1, str, o.name->getString());
+            }
+
+            if(o.type == vector)
+            {
+                Expr *cv = compute(o.sub[0]);
+                Expr *cv2 = compute(o.sub[1]);
+                int N = cv->tupleSize;
+                if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
+                if(cv2->tupleSize != N) throw std::string("Inconsistent space dimensions");
+
+                compileFunction(cv, -1, str, o.name->getString());
+                compileFunction(cv2, -1, str, o.name->getString()+"_org");
+            }
         }
     }
 
@@ -811,11 +831,14 @@ namespace tcc
         else throw std::string("Cannot compile tuples of more than 4 components");
 
         str << " tcc" << name << "(";
-        int args = argList[argsIndex].size();
-        for(int i = 0; i < args; i++)
+        if(argsIndex != -1)
         {
-            str << "float tcc" << argList[argsIndex][i]->getString();
-            if(i < args-1) str << ", ";
+            int args = argList[argsIndex].size();
+            for(int i = 0; i < args; i++)
+            {
+                str << "float tcc" << argList[argsIndex][i]->getString();
+                if(i < args-1) str << ", ";
+            }
         }
         str << ")";
     }

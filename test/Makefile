@@ -3,15 +3,15 @@ LIBS = -lglfw -ldl -lGL -lGLEW
 COMPILER = ../compiler/compiler.a
 IMGUI = ../imgui/imgui.a
 
-.phony: clean
+.phony: compiler imgui clean
 
-prog.out: main.o $(COMPILER) $(IMGUI)
+prog.out: main.o compiler imgui
 	clang++ $(CPPFLAGS) main.o $(IMGUI) $(COMPILER) -o prog.out $(LIBS)
 
-$(COMPILER):
+compiler:
 	make -C ../compiler
 
-$(IMGUI):
+imgui:
 	make -C ../imgui
 
 %.o: %.cpp
