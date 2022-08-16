@@ -1,4 +1,5 @@
 #include "compiler.hpp"
+#include <cmath>
 
 using std::make_unique;
 using std::unique_ptr;
@@ -208,6 +209,17 @@ namespace tcc
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
+
+                if((e0->type == E(NUMBER)) && (e1->type == E(NUMBER)))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, e0->number + (e->type == E(PLUS) ? 1 : -1)*e1->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
+                if(e0->type == E(NUMBER) && e0->number == 0) return e1;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e0; 
+
                 if(e0->tupleSize != e1->tupleSize)
                     throw std::string("Tuple size mismatch");
                 if(e0->tupleSize == 1)
@@ -226,6 +238,19 @@ namespace tcc
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
+
+                if((e0->type == E(NUMBER)) && (e1->type == E(NUMBER)))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, e0->number * e1->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
+                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e1; 
+                if(e0->type == E(NUMBER) && e0->number == 1) return e1;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e0;
+
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
                 {
                     Expr *r = op(e->type, e0, e1);
@@ -266,6 +291,17 @@ namespace tcc
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
+
+                if((e0->type == E(NUMBER)) && (e1->type == E(NUMBER)))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, e0->number / e1->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
+                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e0; 
+
                 if(e1->tupleSize > 1)
                     throw std::string("Cannot divide tuples");
                 if(e0->tupleSize == 1)
@@ -284,6 +320,19 @@ namespace tcc
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
+
+                if((e0->type == E(NUMBER)) && (e1->type == E(NUMBER)))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, e0->number * e1->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
+                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e1;
+                if(e0->type == E(NUMBER) && e0->number == 1) return e1;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e0;             
+
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
                 {
                     Expr *r = op(e->type, e0, e1);
@@ -323,7 +372,7 @@ namespace tcc
                 Expr *sum = terms[0];
                 for(int i = 1; i < e0->tupleSize; i++)
                 {
-                    Expr *nSum = op(E(PLUS), sum, terms[1]);
+                    Expr *nSum = op(E(PLUS), sum, terms[i]);
                     sum = nSum;
                 }
                 sum->tupleSize = sum->sub.size();
@@ -333,6 +382,14 @@ namespace tcc
             case E(UMINUS):
             {
                 Expr *e0 = compute(e->sub[0]);
+
+                if(e0->type == E(NUMBER))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, (e->type == E(UPLUS) ? 1 : -1)*e0->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
                 if(e0->tupleSize == 1)
                 {
                     Expr *r = op(e->type, e0);
@@ -353,6 +410,14 @@ namespace tcc
             case E(UDIVIDE):
             {
                 Expr *e0 = compute(e->sub[0]);
+
+                if(e0->type == E(NUMBER))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, 1.0/e0->number);
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+
                 if(e0->tupleSize > 1)
                     throw std::string("Cannot invert tuples");
                 Expr *r = op(e->type, e0);
@@ -406,6 +471,14 @@ namespace tcc
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
+
+                if((e0->type == E(NUMBER)) && (e1->type == E(NUMBER)))
+                {
+                    Expr *t = op(E(NUMBER), nullptr, nullptr, nullptr, pow(e0->number, e1->number));
+                    t->tupleSize = 1;
+                    return e->compute = t->compute = t;
+                }
+                
                 if(e0->tupleSize > 1 || e1->tupleSize > 1)
                     throw std::string("Cannot exponentiate tuples");
                 Expr *r = op(E(EXP), e0, e1);
@@ -641,11 +714,14 @@ namespace tcc
                 if(e->sub[1]->type == E(NUMBER))
                 {
                     double num = e->sub[1]->number;
-                    if(num == (int)num && num >= 1 && num <= 10)
+                    if(num == (int)num && num >= -10 && num <= 10)
                     {
-                        str << "float v" << ++v << "=v" << a;
-                        for(int i = 1; i < num; i++)
-                            str << "*v" << a;
+                        char symb = '*';
+                        if(num < 0) symb = '/';
+
+                        str << "float v" << ++v << "=1";
+                        for(int i = 0; i < std::abs(num); i++)
+                            str << symb << "v" << a;
                         str << ";\n";
                         break;   
                     }

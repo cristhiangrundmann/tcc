@@ -1,5 +1,5 @@
 CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -g -I../imgui -I../compiler
-LIBS = -lglfw -ldl -lGL -lGLEW
+LIBS = -lglfw -ldl -lGL -lGLEW -lm
 COMPILER = ../compiler/compiler.a
 IMGUI = ../imgui/imgui.a
 
