@@ -442,14 +442,15 @@ namespace tcc
                 }
                 else
                 {
-                    if(e->sub[1]->type != E(TUPLE))
+                    Expr *t = compute(e->sub[1]);
+                    if(t->type != E(TUPLE))
                         throw std::string("Expected a tuple of arguments");
-                    if(e->sub[1]->sub.size() != (unsigned int)argCount)
+                    if(t->sub.size() != (unsigned int)argCount)
                         throw std::string("Wrong number of arguments");
                     for(int i = 0; i < argCount; i++)
                         substs.push_back({
                             argList[f->name->argsIndex][i],
-                            compute(e->sub[1]->sub[i])});
+                            t->sub[i]});
                 }
                 Expr *e0 = compute(e->sub[0]);
                 Expr *r = substitute(e0, substs);
@@ -842,12 +843,12 @@ namespace tcc
             }
             if(o.type == function)
             {
+                Expr *cf = compute(o.sub[0]);
                 try
                 {
                     int args = argList[o.name->argsIndex].size();
                     if(args != 1 && args != 2)
                         throw std::string("Functions should have 1 or 2 parameters");
-                    Expr *cf = compute(o.sub[0]);
                     int N = cf->tupleSize;
                     if(N != 1) throw std::string("Function is not plottable");
 
