@@ -795,6 +795,11 @@ namespace tcc
                     str  << ";\n";
                 }
             }
+            if(o.type == define)
+            {
+                float c = calc(compute(o.sub[0]));
+                printf("define = %f\n", c);
+            }
             if(o.type == curve)
             {
                 int args = argList[o.name->argIndex].size();
@@ -924,6 +929,68 @@ namespace tcc
             }
         }
         str << ")";
+    }
+
+    float Compiler::calc(Expr *e)
+    {
+        switch(e->type)
+        {
+            case E(NUMBER): return e->number;
+            case E(CONSTANT):
+            {
+                if(e->name == this->e) return Parser::CE;
+                if(e->name == this->pi) return Parser::CPI;
+                if(e->name->objIndex == -1)
+                    throw std::string("Invalid constant");
+                Obj o = objects[e->name->objIndex];
+                if(o.type != grid && o.type != param)
+                    throw std::string("Invalid constant");
+                if(o.intervals.size() != 1)
+                    throw std::string("Invalid constant");
+                return o.intervals[0].number;
+            }
+            case E(COMPONENT):
+            {
+                if(e->sub[0]->type != E(CONSTANT))
+                    throw std::string("Invalid component");
+                Table *name = e->sub[0]->name;
+                if(!name) throw std::string("Invalid component");
+                if(name->objIndex == -1) throw std::string("Invalid component");
+                Obj o = objects[name->objIndex];
+                if(o.type != grid && o.type != param)
+                    throw std::string("Invalid component");
+                return o.intervals[e->number].number;
+            }
+            case E(APP):
+            {
+                if(e->sub[0]->type != E(FUNCTION))
+                    throw std::string("Invalid application");
+                Table *name = e->sub[0]->name;
+                if(name->argIndex != -1)
+                    throw std::string("Invalid application");
+                if(name == sin) return std::sin(calc(e->sub[1]));
+                if(name == cos) return std::cos(calc(e->sub[1]));
+                if(name == tan) return std::tan(calc(e->sub[1]));
+                if(name == exp) return std::exp(calc(e->sub[1]));
+                if(name == log) return std::log(calc(e->sub[1]));
+                if(name == sqrt) return std::sqrt(calc(e->sub[1]));
+                if(name == id) return (calc(e->sub[1]));
+                throw std::string("Invalid function");
+            }
+            case E(PLUS): return calc(e->sub[0]) + calc(e->sub[1]);
+            case E(MINUS): return calc(e->sub[0]) - calc(e->sub[1]);
+            case E(TIMES):
+            case E(JUX):
+                return calc(e->sub[0]) * calc(e->sub[1]);
+            case E(DIVIDE): 
+                return calc(e->sub[0]) / calc(e->sub[1]);
+            case E(UPLUS): return calc(e->sub[0]);
+            case E(UMINUS): return -calc(e->sub[0]);
+            case E(UDIVIDE): return 1.0/calc(e->sub[0]);
+            case E(EXP): return std::pow(calc(e->sub[0]), calc(e->sub[1]));
+            default:
+                throw std::string("Cannot calculate expression");
+        }
     }
 
 };

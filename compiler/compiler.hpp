@@ -22,6 +22,7 @@ namespace tcc
         Table *tag{};
         char wrap{};
         Expr *sub[3]{};
+        float number{};
     };
 
     struct Obj
@@ -57,6 +58,7 @@ namespace tcc
         void compile(std::stringstream &str, bool declareOnly = false);
         void compileFunction(Expr *exp, int argIndex, std::stringstream &str, std::string suffix, bool declareOnly);
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string suffix);
+        float calc(Expr *e);
     };
 
 };

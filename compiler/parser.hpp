@@ -26,6 +26,9 @@ namespace tcc
         char wrap = 0;
         int tupleSize = 0;
 
+        static constexpr float CE = 2.718281;
+        static constexpr float CPI = 3.141592;
+
         #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
             INIT(param,     DECLARE)
             INIT(grid,      DECLARE)
