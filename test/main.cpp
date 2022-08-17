@@ -88,7 +88,7 @@ int main(int, char**)
                     cmp.parseProgram(text);
                     msg = "OK";
                     std::stringstream s;
-                    cmp.compile(s);
+                    cmp.compile(s, false);
                     printf("%s\n", s.str().c_str());
                 }
                 catch(std::string err)

@@ -11,7 +11,7 @@ namespace tcc
         int lineno = 0;
         int column = 0;
         TokenType type = TokenType::UNDEFINED;
-        double number{};
+        float number{};
         Table *node{};
         Table *table{};
 

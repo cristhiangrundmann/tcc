@@ -35,7 +35,7 @@ namespace tcc
             if((*lexeme >= '0' && *lexeme <= '9') || *lexeme == '.')
             {
                 type = TokenType::NUMBER;
-                int k = sscanf(lexeme, "%lf%n\n", &number, &length);
+                int k = sscanf(lexeme, "%f%n\n", &number, &length);
                 if(k != 1) throw "sscanf failure";
                 return;
             }

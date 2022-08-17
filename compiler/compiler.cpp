@@ -141,7 +141,7 @@ namespace tcc
         return expressions.back().get();
     }
 
-    Expr *Compiler::op(ExprType type, Expr *a, Expr *b, Table *name, double number)
+    Expr *Compiler::op(ExprType type, Expr *a, Expr *b, Table *name, float number)
     {
         Expr e;
         e.type = type;
@@ -217,8 +217,8 @@ namespace tcc
                     return e->compute = t->compute = t;
                 }
 
-                if(e0->type == E(NUMBER) && e0->number == 0) return e1;
-                if(e1->type == E(NUMBER) && e1->number == 0) return e0; 
+                if(e0->type == E(NUMBER) && e0->number == 0) return e->compute = e1;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e->compute = e0; 
 
                 if(e0->tupleSize != e1->tupleSize)
                     throw std::string("Tuple size mismatch");
@@ -246,10 +246,10 @@ namespace tcc
                     return e->compute = t->compute = t;
                 }
 
-                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
-                if(e1->type == E(NUMBER) && e1->number == 0) return e1; 
-                if(e0->type == E(NUMBER) && e0->number == 1) return e1;
-                if(e1->type == E(NUMBER) && e1->number == 1) return e0;
+                if(e0->type == E(NUMBER) && e0->number == 0) return e->compute = e0;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e->compute = e1; 
+                if(e0->type == E(NUMBER) && e0->number == 1) return e->compute = e1;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e->compute = e0;
 
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
                 {
@@ -299,8 +299,8 @@ namespace tcc
                     return e->compute = t->compute = t;
                 }
 
-                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
-                if(e1->type == E(NUMBER) && e1->number == 1) return e0; 
+                if(e0->type == E(NUMBER) && e0->number == 0) return e->compute = e0;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e->compute = e0; 
 
                 if(e1->tupleSize > 1)
                     throw std::string("Cannot divide tuples");
@@ -328,10 +328,10 @@ namespace tcc
                     return e->compute = t->compute = t;
                 }
 
-                if(e0->type == E(NUMBER) && e0->number == 0) return e0;
-                if(e1->type == E(NUMBER) && e1->number == 0) return e1;
-                if(e0->type == E(NUMBER) && e0->number == 1) return e1;
-                if(e1->type == E(NUMBER) && e1->number == 1) return e0;             
+                if(e0->type == E(NUMBER) && e0->number == 0) return e->compute = e0;
+                if(e1->type == E(NUMBER) && e1->number == 0) return e->compute = e1;
+                if(e0->type == E(NUMBER) && e0->number == 1) return e->compute = e1;
+                if(e1->type == E(NUMBER) && e1->number == 1) return e->compute = e0;             
 
                 if(e0->tupleSize == 1 && e1->tupleSize == 1)
                 {
@@ -580,7 +580,7 @@ namespace tcc
             {
                 if(e->sub[1]->type == E(NUMBER))
                 {
-                    double num = e->sub[1]->number;
+                    float num = e->sub[1]->number;
                     Expr *b = op(E(TIMES), e->sub[1], derivative(e->sub[0], var));
                     return op(E(TIMES), b, op(E(EXP), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, num-1)));
                 }
@@ -666,15 +666,15 @@ namespace tcc
                 str << "float v" << ++v << "=(float)" << e->number << ";\n";
                 break;
             case E(VARIABLE):
-                str << "float v" << ++v << "=tcc" << e->name->getString() << ";\n";
+                str << "float v" << ++v << "=V" << e->name->getString() << ";\n";
                 break;
             case E(CONSTANT):
                 if(e->tupleSize == 1)
-                    str << "float v" << ++v << "=tcc" << e->name->getString() << ";\n";
+                    str << "float v" << ++v << "=C" << e->name->getString() << ";\n";
                 else
                 {
                     for(int i = 0; i < e->tupleSize; i++)
-                        str << "float v" << ++v << "=tcc" << e->name->getString() << "_" << i+1 << ";\n";                    
+                        str << "float v" << ++v << "=C" << e->name->getString() << "_" << i+1 << ";\n";                    
                 }
                 break;
             case E(COMPONENT):
@@ -685,7 +685,7 @@ namespace tcc
                 if(name->objIndex == -1) throw std::string("Invalid expression");
                 Obj o = objects[name->objIndex];
                 if(o.type != grid && o.type != param) throw std::string("Invalid expression");
-                str << "float v" << ++v << "=tcc" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
+                str << "float v" << ++v << "=C" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
                 break;
             }
             case E(PLUS):
@@ -714,7 +714,7 @@ namespace tcc
                 int a = v;
                 if(e->sub[1]->type == E(NUMBER))
                 {
-                    double num = e->sub[1]->number;
+                    float num = e->sub[1]->number;
                     if(num == (int)num && num >= -10 && num <= 10)
                     {
                         char symb = '*';
@@ -781,7 +781,7 @@ namespace tcc
         }
     }
 
-    void Compiler::compile(std::stringstream &str)
+    void Compiler::compile(std::stringstream &str, bool declareOnly)
     {
         for(Obj o : objects)
         {
@@ -789,7 +789,7 @@ namespace tcc
             {
                 for(int i = 0; i < (int)o.intervals.size(); i++)
                 {
-                    str << "uniform float tcc" << o.name->getString();
+                    str << "uniform float C" << o.name->getString();
                     if((int)o.intervals.size() != 1)
                         str << "_" << i+1;
                     str  << ";\n";
@@ -810,8 +810,8 @@ namespace tcc
 
                 Expr *ct = op(E(TOTAL), c);
 
-                compileFunction(cc, o.name->argsIndex, str, o.name->getString());
-                compileFunction(compute(ct), o.name->argsIndex, str, o.name->getString() + "_t");                
+                compileFunction(cc, o.name->argsIndex, str, o.name->getString(), declareOnly);
+                compileFunction(compute(ct), o.name->argsIndex, str, o.name->getString() + "_t", declareOnly);                
             }
             if(o.type == surface)
             {
@@ -833,12 +833,12 @@ namespace tcc
                 Expr *s_uv = op(E(PARTIAL), s_u, nullptr, argList[o.name->argsIndex][1]);
                 Expr *s_vv = op(E(PARTIAL), s_v, nullptr, argList[o.name->argsIndex][1]);
 
-                compileFunction(cs, o.name->argsIndex, str, o.name->getString());
-                compileFunction(compute(s_u), o.name->argsIndex, str, o.name->getString() + "_u");
-                compileFunction(compute(s_v), o.name->argsIndex, str, o.name->getString() + "_v");
-                compileFunction(compute(s_uu), o.name->argsIndex, str, o.name->getString() + "_uu");
-                compileFunction(compute(s_uv), o.name->argsIndex, str, o.name->getString() + "_uv");
-                compileFunction(compute(s_vv), o.name->argsIndex, str, o.name->getString() + "_vv");
+                compileFunction(cs, o.name->argsIndex, str, o.name->getString(), declareOnly);
+                compileFunction(compute(s_u), o.name->argsIndex, str, o.name->getString() + "_u", declareOnly);
+                compileFunction(compute(s_v), o.name->argsIndex, str, o.name->getString() + "_v", declareOnly);
+                compileFunction(compute(s_uu), o.name->argsIndex, str, o.name->getString() + "_uu", declareOnly);
+                compileFunction(compute(s_uv), o.name->argsIndex, str, o.name->getString() + "_uv", declareOnly);
+                compileFunction(compute(s_vv), o.name->argsIndex, str, o.name->getString() + "_vv", declareOnly);
 
             }
             if(o.type == function)
@@ -853,7 +853,7 @@ namespace tcc
                     if(N != 1) throw std::string("Function is not plottable");
 
                     std::stringstream buf;
-                    compileFunction(cf, o.name->argsIndex, buf, o.name->getString());
+                    compileFunction(cf, o.name->argsIndex, buf, o.name->getString(), declareOnly);
                     str << buf.str();
                 } catch(std::string &error){}
             }
@@ -863,7 +863,7 @@ namespace tcc
                 int N = cp->tupleSize;
                 if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
 
-                compileFunction(cp, -1, str, o.name->getString());
+                compileFunction(cp, -1, str, o.name->getString(), declareOnly);
             }
 
             if(o.type == vector)
@@ -874,16 +874,22 @@ namespace tcc
                 if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
                 if(cv2->tupleSize != N) throw std::string("Inconsistent space dimensions");
 
-                compileFunction(cv, -1, str, o.name->getString());
-                compileFunction(cv2, -1, str, o.name->getString()+"_org");
+                compileFunction(cv, -1, str, o.name->getString(), declareOnly);
+                compileFunction(cv2, -1, str, o.name->getString()+"_org", declareOnly);
             }
         }
     }
 
-    void Compiler::compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string name)
+    void Compiler::compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string name, bool declareOnly)
     {
         int N = exp->tupleSize;
         declareFunction(N, argsIndex, str, name);
+
+        if(declareOnly)
+        {
+            str << ";\n";
+            return;
+        }
 
         str << "\n{\n";
         int v = 0;
@@ -907,13 +913,13 @@ namespace tcc
             str << "vec" << N;
         else throw std::string("Cannot compile tuples of more than 4 components");
 
-        str << " tcc" << name << "(";
+        str << " F" << name << "(";
         if(argsIndex != -1)
         {
             int args = argList[argsIndex].size();
             for(int i = 0; i < args; i++)
             {
-                str << "float tcc" << argList[argsIndex][i]->getString();
+                str << "float V" << argList[argsIndex][i]->getString();
                 if(i < args-1) str << ", ";
             }
         }

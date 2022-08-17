@@ -11,7 +11,7 @@ namespace tcc
         ExprType type{};
         std::vector<Expr*> sub;
         Table *name{};
-        double number{};
+        float number{};
         int tupleSize{};
         Expr *compute{};
     };
@@ -49,13 +49,13 @@ namespace tcc
         void actOp(ExprType type);
         void actDecl();
         Expr *newExpr(Expr &e);
-        Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, double number = 0);
+        Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, float number = 0);
         Expr *compute(Expr *e);
         Expr *derivative(Expr *e, Table *var);
         Expr *substitute(Expr *e, std::vector<Subst> &substs);
         void compile(Expr *e, std::stringstream &str, int &v);
-        void compile(std::stringstream &str);
-        void compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string suffix);
+        void compile(std::stringstream &str, bool declareOnly = false);
+        void compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string suffix, bool declareOnly);
         void declareFunction(int N, int argsIndex, std::stringstream &str, std::string suffix);
     };
 
