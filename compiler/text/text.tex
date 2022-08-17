@@ -166,7 +166,7 @@ O membro \texttt{type} é o tipo do token atual.
 Os membros \texttt{number} e \texttt{node} são os atributos do token.
 No caso de um número, \texttt{number} é o atributo.
 No caso de um identificador, \texttt{node} é sua posição na tabela de símbolos(\ref{table}), 
-contendo o tipo de token(\texttt{type}) e argumentos de função(\texttt{argsIndex}), no caso de uma função definida.
+contendo o tipo de token(\texttt{type}) e argumentos de função(\texttt{argIndex}), no caso de uma função definida.
 O membro \texttt{table} é a tabela de símbolos compartilhada pelos estágios da compilação.
 
 O lexer tem apenas o método \texttt{advance}, que serve para avançar para o próximo token.
@@ -205,7 +205,7 @@ struct Table
 {
     Table *parent = nullptr;
     std::unique_ptr<Table> children[62];
-    int argsIndex = -1;
+    int argIndex = -1;
     int length = 0;
     TokenType type = TokenType::UNDEFINED;
     char character = 0;
@@ -226,8 +226,8 @@ O membro \texttt{character} representa esse caractere e deve ser o mesmo indicad
 com a excessão da raíz, onde é 0(a raíz representa um identificador vazio).
 O membro \texttt{parent} é o pai do nó, ou nulo para a raíz.
 Os nós \texttt{children[62]} são os $26+26+10$ filhos.
-O tamanho do identificador é \texttt{length}, e seus atributos são \texttt{type} e \texttt{argsIndex}.
-Com a excessão das funções pré-definidas, o atributo \texttt{argsIndex} representa os nomes dos argumentos da função,
+O tamanho do identificador é \texttt{length}, e seus atributos são \texttt{type} e \texttt{argIndex}.
+Com a excessão das funções pré-definidas, o atributo \texttt{argIndex} representa os nomes dos argumentos da função,
 enquanto \texttt{type} sempre indica o tipo do token.
 
 O método \texttt{next} encontra o filho correspondente ao caractere \texttt{c}, e caso seja nulo,
@@ -423,7 +423,7 @@ struct Parser
 O membro \texttt{lexer} é o analisador léxico. O parser controla o avanço dos tokens diretamente.
 O membro \texttt{table} é a tabela de símbolos compartilhada pelos estágios da compilação.
 O membro \texttt{argList} é uma lista de listas de argumentos de função.
-O atributo \texttt{argsIndex} de um token é o índice da lista de seus parâmetros nesse membro.
+O atributo \texttt{argIndex} de um token é o índice da lista de seus parâmetros nesse membro.
 O membro \texttt{objType} e \texttt{objName} auxiliam o estágio da geração, e correspondem ao tipo de objeto e seu nome.
 O membro \texttt{tag} é o nome do argumento marcado em um intervalo do tipo tag.
 O membro \texttt{wrap} indica o tipo de conexão marcado num intervalo do tipo tag.

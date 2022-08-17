@@ -55,8 +55,8 @@ namespace tcc
         Expr *substitute(Expr *e, std::vector<Subst> &substs);
         void compile(Expr *e, std::stringstream &str, int &v);
         void compile(std::stringstream &str, bool declareOnly = false);
-        void compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string suffix, bool declareOnly);
-        void declareFunction(int N, int argsIndex, std::stringstream &str, std::string suffix);
+        void compileFunction(Expr *exp, int argIndex, std::stringstream &str, std::string suffix, bool declareOnly);
+        void declareFunction(int N, int argIndex, std::stringstream &str, std::string suffix);
     };
 
 };

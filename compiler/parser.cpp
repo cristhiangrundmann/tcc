@@ -122,7 +122,7 @@ namespace tcc
         skip('=');
         parseExpr();
 
-        objName->argsIndex = (int)argList.size();
+        objName->argIndex = (int)argList.size();
         argList.push_back(args);
         objName->type = TokenType::FUNCTION;
         if(argList.size()) for(Table *t : argList.back()) t->type = TokenType::UNDEFINED;
@@ -339,9 +339,9 @@ namespace tcc
                 int l = lexer.length;
                 bool ok = false;
 
-                if(node->argsIndex != -1 && lexer.node) while(true)
+                if(node->argIndex != -1 && lexer.node) while(true)
                 {
-                    for(Table *arg : argList[node->argsIndex]) if(arg == lexer.node)
+                    for(Table *arg : argList[node->argIndex]) if(arg == lexer.node)
                     {
                         ok = true;
                         break;

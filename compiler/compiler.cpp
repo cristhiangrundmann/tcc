@@ -429,15 +429,15 @@ namespace tcc
                 Expr *f = e->sub[0];
                 while(f->type != E(FUNCTION)) f = f->sub[0];
                 int argCount = 1;
-                if(f->name->argsIndex != -1)
-                    argCount = argList[f->name->argsIndex].size();
+                if(f->name->argIndex != -1)
+                    argCount = argList[f->name->argIndex].size();
                 
                 std::vector<Subst> substs;
                 if(argCount == 1)
                 {
                     Table *name = nullptr;
-                    if(f->name->argsIndex != -1)
-                        name = argList[f->name->argsIndex][0];
+                    if(f->name->argIndex != -1)
+                        name = argList[f->name->argIndex][0];
                     substs.push_back({name, compute(e->sub[1])});
                 }
                 else
@@ -449,12 +449,12 @@ namespace tcc
                         throw std::string("Wrong number of arguments");
                     for(int i = 0; i < argCount; i++)
                         substs.push_back({
-                            argList[f->name->argsIndex][i],
+                            argList[f->name->argIndex][i],
                             t->sub[i]});
                 }
                 Expr *e0 = compute(e->sub[0]);
                 Expr *r = substitute(e0, substs);
-                if(f->name->argsIndex != -1)
+                if(f->name->argIndex != -1)
                     r = compute(r);
                 else
                     r->tupleSize = 1;
@@ -797,7 +797,7 @@ namespace tcc
             }
             if(o.type == curve)
             {
-                int args = argList[o.name->argsIndex].size();
+                int args = argList[o.name->argIndex].size();
                 if(args != 1)
                     throw std::string("Curves should have 1 parameter");
 
@@ -810,12 +810,12 @@ namespace tcc
 
                 Expr *ct = op(E(TOTAL), c);
 
-                compileFunction(cc, o.name->argsIndex, str, o.name->getString(), declareOnly);
-                compileFunction(compute(ct), o.name->argsIndex, str, o.name->getString() + "_t", declareOnly);                
+                compileFunction(cc, o.name->argIndex, str, o.name->getString(), declareOnly);
+                compileFunction(compute(ct), o.name->argIndex, str, o.name->getString() + "_t", declareOnly);                
             }
             if(o.type == surface)
             {
-                int args = argList[o.name->argsIndex].size();
+                int args = argList[o.name->argIndex].size();
 
                 if(args != 2)
                     throw std::string("Surface should have 2 parameters");
@@ -827,18 +827,18 @@ namespace tcc
                 if(N != 3)
                     throw std::string("Surfaces should be in 3d space");
 
-                Expr *s_u = op(E(PARTIAL), s, nullptr, argList[o.name->argsIndex][0]);
-                Expr *s_v = op(E(PARTIAL), s, nullptr, argList[o.name->argsIndex][1]);
-                Expr *s_uu = op(E(PARTIAL), s_u, nullptr, argList[o.name->argsIndex][0]);
-                Expr *s_uv = op(E(PARTIAL), s_u, nullptr, argList[o.name->argsIndex][1]);
-                Expr *s_vv = op(E(PARTIAL), s_v, nullptr, argList[o.name->argsIndex][1]);
+                Expr *s_u = op(E(PARTIAL), s, nullptr, argList[o.name->argIndex][0]);
+                Expr *s_v = op(E(PARTIAL), s, nullptr, argList[o.name->argIndex][1]);
+                Expr *s_uu = op(E(PARTIAL), s_u, nullptr, argList[o.name->argIndex][0]);
+                Expr *s_uv = op(E(PARTIAL), s_u, nullptr, argList[o.name->argIndex][1]);
+                Expr *s_vv = op(E(PARTIAL), s_v, nullptr, argList[o.name->argIndex][1]);
 
-                compileFunction(cs, o.name->argsIndex, str, o.name->getString(), declareOnly);
-                compileFunction(compute(s_u), o.name->argsIndex, str, o.name->getString() + "_u", declareOnly);
-                compileFunction(compute(s_v), o.name->argsIndex, str, o.name->getString() + "_v", declareOnly);
-                compileFunction(compute(s_uu), o.name->argsIndex, str, o.name->getString() + "_uu", declareOnly);
-                compileFunction(compute(s_uv), o.name->argsIndex, str, o.name->getString() + "_uv", declareOnly);
-                compileFunction(compute(s_vv), o.name->argsIndex, str, o.name->getString() + "_vv", declareOnly);
+                compileFunction(cs, o.name->argIndex, str, o.name->getString(), declareOnly);
+                compileFunction(compute(s_u), o.name->argIndex, str, o.name->getString() + "_u", declareOnly);
+                compileFunction(compute(s_v), o.name->argIndex, str, o.name->getString() + "_v", declareOnly);
+                compileFunction(compute(s_uu), o.name->argIndex, str, o.name->getString() + "_uu", declareOnly);
+                compileFunction(compute(s_uv), o.name->argIndex, str, o.name->getString() + "_uv", declareOnly);
+                compileFunction(compute(s_vv), o.name->argIndex, str, o.name->getString() + "_vv", declareOnly);
 
             }
             if(o.type == function)
@@ -846,14 +846,14 @@ namespace tcc
                 Expr *cf = compute(o.sub[0]);
                 try
                 {
-                    int args = argList[o.name->argsIndex].size();
+                    int args = argList[o.name->argIndex].size();
                     if(args != 1 && args != 2)
                         throw std::string("Functions should have 1 or 2 parameters");
                     int N = cf->tupleSize;
                     if(N != 1) throw std::string("Function is not plottable");
 
                     std::stringstream buf;
-                    compileFunction(cf, o.name->argsIndex, buf, o.name->getString(), declareOnly);
+                    compileFunction(cf, o.name->argIndex, buf, o.name->getString(), declareOnly);
                     str << buf.str();
                 } catch(std::string &error){}
             }
@@ -880,10 +880,10 @@ namespace tcc
         }
     }
 
-    void Compiler::compileFunction(Expr *exp, int argsIndex, std::stringstream &str, std::string name, bool declareOnly)
+    void Compiler::compileFunction(Expr *exp, int argIndex, std::stringstream &str, std::string name, bool declareOnly)
     {
         int N = exp->tupleSize;
-        declareFunction(N, argsIndex, str, name);
+        declareFunction(N, argIndex, str, name);
 
         if(declareOnly)
         {
@@ -905,7 +905,7 @@ namespace tcc
         str << "}\n";
     }
 
-    void Compiler::declareFunction(int N, int argsIndex, std::stringstream &str, std::string name)
+    void Compiler::declareFunction(int N, int argIndex, std::stringstream &str, std::string name)
     {
         if(N == 1)
             str << "float";
@@ -914,12 +914,12 @@ namespace tcc
         else throw std::string("Cannot compile tuples of more than 4 components");
 
         str << " F" << name << "(";
-        if(argsIndex != -1)
+        if(argIndex != -1)
         {
-            int args = argList[argsIndex].size();
+            int args = argList[argIndex].size();
             for(int i = 0; i < args; i++)
             {
-                str << "float V" << argList[argsIndex][i]->getString();
+                str << "float V" << argList[argIndex][i]->getString();
                 if(i < args-1) str << ", ";
             }
         }
