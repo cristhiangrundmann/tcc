@@ -4,7 +4,7 @@
 using std::make_unique;
 using std::unique_ptr;
 
-#define E(x) ExprType::x
+#define E(x) Parser::ExprType::x
 
 namespace tcc
 {
@@ -47,7 +47,7 @@ namespace tcc
             case E(DIVIDE):
             case E(JUX):
             case E(APP):
-            case E(EXP):
+            case E(POW):
             {
                 Expr *e0 = expStack.back();
                 expStack.pop_back();
@@ -136,7 +136,6 @@ namespace tcc
 
     Expr *Compiler::newExpr(Expr &e)
     {
-        fflush(stdout);
         expressions.push_back(std::make_unique<Expr>(e));
         return expressions.back().get();
     }
@@ -217,7 +216,11 @@ namespace tcc
                     return e->compute = t->compute = t;
                 }
 
-                if(e0->type == E(NUMBER) && e0->number == 0) return e->compute = e1;
+                if(e0->type == E(NUMBER) && e0->number == 0)
+                {
+                    if(e->type == E(PLUS)) return e1;
+                    return op(E(UMINUS), e1);
+                }
                 if(e1->type == E(NUMBER) && e1->number == 0) return e->compute = e0; 
 
                 if(e0->tupleSize != e1->tupleSize)
@@ -468,7 +471,7 @@ namespace tcc
                 r->tupleSize = e0->tupleSize;
                 return e->compute = r->compute = r;
             }
-            case E(EXP):
+            case E(POW):
             {
                 Expr *e0 = compute(e->sub[0]);
                 Expr *e1 = compute(e->sub[1]);
@@ -482,7 +485,7 @@ namespace tcc
                 
                 if(e0->tupleSize > 1 || e1->tupleSize > 1)
                     throw std::string("Cannot exponentiate tuples");
-                Expr *r = op(E(EXP), e0, e1);
+                Expr *r = op(E(POW), e0, e1);
                 r->tupleSize = e0->tupleSize;
                 return e->compute = r->compute = r;
             }
@@ -554,7 +557,7 @@ namespace tcc
                 Expr *d0 = derivative(e->sub[0], var);
                 Expr *d1 = derivative(e->sub[1], var);
                 Expr *t = op(E(MINUS), op(e->type, d0, e->sub[1]), op(E(TIMES), e->sub[0], d1));
-                return op(E(DIVIDE), t, op(E(EXP), e->sub[1],
+                return op(E(DIVIDE), t, op(E(POW), e->sub[1],
                 op(E(NUMBER), nullptr, nullptr, nullptr, 2)));
             }
             case E(UPLUS):
@@ -564,7 +567,7 @@ namespace tcc
                 throw std::string("Invalid expression type");
             case E(UDIVIDE):
             {
-                Expr *a = op(E(EXP), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, -2));
+                Expr *a = op(E(POW), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, -2));
                 return op(E(UMINUS), op(E(UDIVIDE), a));
             }
             case E(APP):
@@ -576,13 +579,13 @@ namespace tcc
             case E(TOTAL):
             case E(PARTIAL):
                 throw std::string("Derivatives should be gone");
-            case E(EXP):
+            case E(POW):
             {
                 if(e->sub[1]->type == E(NUMBER))
                 {
                     float num = e->sub[1]->number;
                     Expr *b = op(E(TIMES), e->sub[1], derivative(e->sub[0], var));
-                    return op(E(TIMES), b, op(E(EXP), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, num-1)));
+                    return op(E(TIMES), b, op(E(POW), e->sub[0], op(E(NUMBER), nullptr, nullptr, nullptr, num-1)));
                 }
                 Expr *a = op(E(TIMES), derivative(e->sub[1], var), op(E(APP), FUN(log), e->sub[0]));
                 Expr *b = op(E(TIMES), e->sub[1], op(E(DIVIDE), derivative(e->sub[0], var), e->sub[0]));
@@ -630,7 +633,7 @@ namespace tcc
             case E(TIMES):
             case E(DIVIDE):
             case E(JUX):
-            case E(EXP):
+            case E(POW):
                 return op(e->type,
                     substitute(e->sub[0], substs),
                     substitute(e->sub[1], substs));
@@ -708,7 +711,7 @@ namespace tcc
                     << a << symb << "v" << b << ";\n";
                 break;
             }
-            case E(EXP):
+            case E(POW):
             {
                 compile(e->sub[0], str, v);
                 int a = v;
@@ -987,7 +990,7 @@ namespace tcc
             case E(UPLUS): return calc(e->sub[0]);
             case E(UMINUS): return -calc(e->sub[0]);
             case E(UDIVIDE): return 1.0/calc(e->sub[0]);
-            case E(EXP): return std::pow(calc(e->sub[0]), calc(e->sub[1]));
+            case E(POW): return std::pow(calc(e->sub[0]), calc(e->sub[1]));
             default:
                 throw std::string("Cannot calculate expression");
         }

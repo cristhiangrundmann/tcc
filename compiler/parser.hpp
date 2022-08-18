@@ -5,18 +5,19 @@
 
 namespace tcc
 {
-    enum class ExprType
-    {
-        TAGGED, INTERVAL, GRID, //for intervals
-        PLUS, MINUS, JUX, TIMES, DIVIDE,
-        UPLUS, UMINUS, UTIMES, UDIVIDE,
-        APP, FUNCTION, TOTAL, PARTIAL,
-        EXP, COMPONENT,
-        CONSTANT, NUMBER, VARIABLE, TUPLE
-    };
 
     struct Parser
     {
+        enum class ExprType
+        {
+            TAGGED, INTERVAL, GRID, //for intervals
+            PLUS, MINUS, JUX, TIMES, DIVIDE,
+            UPLUS, UMINUS, UTIMES, UDIVIDE,
+            APP, FUNCTION, TOTAL, PARTIAL,
+            POW, COMPONENT,
+            CONSTANT, NUMBER, VARIABLE, TUPLE
+        };
+
         Lexer lexer;
         std::unique_ptr<Table> table = std::make_unique<Table>();
         std::vector<std::vector<Table*>> argList;

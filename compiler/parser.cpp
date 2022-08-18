@@ -371,7 +371,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actOp(ExprType::EXP);
+            actOp(ExprType::POW);
         }
     }
 
@@ -382,7 +382,7 @@ namespace tcc
         {
             advance();
             parseUnary();
-            actOp(ExprType::EXP);
+            actOp(ExprType::POW);
         }
     }
 
