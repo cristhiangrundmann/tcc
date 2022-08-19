@@ -74,6 +74,7 @@ namespace tcc
         CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
         CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
         CompExpr *derivative(CompExpr *e, Table *var);
+        void compile(CompExpr *e, std::stringstream &str, int &v);
 
         /*
         Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, float number = 0);

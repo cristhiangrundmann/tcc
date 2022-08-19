@@ -106,7 +106,11 @@ namespace tcc
             obj.sub[0] = expStack.back();
             expStack.pop_back();
             std::vector<Subst> subs;
-            compute(obj.sub[0], subs);
+            CompExpr *r = compute(obj.sub[0], subs);
+            std::stringstream s;
+            int v = 0;
+            compile(r, s, v);
+            printf("%s\n", s.str().c_str());
         }
         else if(objType == curve || objType == surface || objType == function)
         {
@@ -159,6 +163,7 @@ namespace tcc
                     return op(type == C(PLUS) ? C(UPLUS) : C(UMINUS), b);
                 if(b->type == C(NUMBER) && b->number == 0)
                     return a;
+                break;
             }
             case C(TIMES):
             {
@@ -172,6 +177,7 @@ namespace tcc
                     return b;
                 if(b->type == C(NUMBER) && b->number == 1)
                     return a;
+                break;
             }
             case C(DIVIDE):
             {
@@ -181,6 +187,7 @@ namespace tcc
                     return op(C(NUMBER), nullptr, nullptr, 0);
                 if(b->type == C(NUMBER) && b->number == 1)
                     return a;
+                break;
             }
             case C(UPLUS): return a;
             case C(UMINUS):
@@ -189,15 +196,18 @@ namespace tcc
                     return op(C(NUMBER), nullptr, nullptr, -a->number);
                 if(a->type == C(UMINUS))
                     return a->sub[0];
+                break;
             }
             case C(UDIVIDE):
             {
                 if(a->type == C(NUMBER))
                     return op(C(NUMBER), nullptr, nullptr, 1.0 / a->number);
+                break;
             }
             case C(APP):
             {
-                if(a->type != C(FUNCTION)) throw std::string("Expected a function");
+                if(a->type != C(FUNCTION))
+                    throw std::string("Expected a function");
                 if(b->type == C(NUMBER))
                 {
                     if(a->name == sin) return op(C(NUMBER), nullptr, nullptr, std::sin(b->number));
@@ -209,6 +219,7 @@ namespace tcc
                     if(a->name == id) return op(C(NUMBER), nullptr, nullptr, b->number);
                     throw std::string("Unknown function");
                 }
+                break;
             }
             case C(POW):
             {
@@ -218,6 +229,7 @@ namespace tcc
                     return op(C(NUMBER), nullptr, nullptr, 0);
                 if(b->type == C(NUMBER) && b->number == 1)
                     return a;
+                break;
             }
             default: break;
         }
@@ -520,7 +532,7 @@ namespace tcc
             case C(APP):
             {
                 if(e->sub[0]->type != C(FUNCTION)) throw std::string("Invalid type");
-                return op(C(FUNCTION), e->sub[0], substitute(e->sub[1], subs));
+                return op(C(APP), e->sub[0], substitute(e->sub[1], subs));
             }
             case C(FUNCTION):
             {
@@ -563,7 +575,11 @@ namespace tcc
                 throw std::string("Invalid type");
             }
             case C(NUMBER): return op(C(NUMBER), nullptr, nullptr, 0);
-            case C(VARIABLE): return op(C(NUMBER), nullptr, nullptr, e->name == var ? 1 : 0);
+            case C(VARIABLE):
+            {
+                if(!var) return op(C(NUMBER), nullptr, nullptr, 1);
+                return op(C(NUMBER), nullptr, nullptr, e->name == var ? 1 : 0);
+            }
             case C(COMPONENT):
             {
                 std::vector<Subst> subs;
@@ -604,7 +620,9 @@ namespace tcc
             {
                 CompExpr *d = derivative(e->sub[0], nullptr);
                 CompExpr *d2 = derivative(e->sub[1], var);
-                return op(C(TIMES), op(C(APP), d, e->sub[1]), d2);
+                std::vector<Subst> subs;
+                subs.push_back({nullptr, e->sub[1]});
+                return op(C(TIMES), substitute(d, subs), d2);
             }
             case C(FUNCTION):
             {
@@ -634,6 +652,126 @@ namespace tcc
     }
 
     #undef FUN
+
+    void Compiler::compile(CompExpr *e, std::stringstream &str, int &v)
+    {
+        switch(e->type)
+        {
+            case C(NUMBER):
+                str << "float v" << ++v << "=(float)" << e->number << ";\n";
+                break;
+            case C(VARIABLE):
+                str << "float v" << ++v << "=V" << e->name->getString() << ";\n";
+                break;
+            case C(CONSTANT):
+                if(e->nTuple == 1)
+                    str << "float v" << ++v << "=C" << e->name->getString() << ";\n";
+                else
+                {
+                    for(int i = 0; i < e->nTuple; i++)
+                        str << "float v" << ++v << "=C" << e->name->getString() << "_" << i+1 << ";\n";                    
+                }
+                break;
+            case C(COMPONENT):
+            {
+                if(e->sub[0]->type != C(CONSTANT)) throw std::string("Invalid expression");
+                Table *name = e->sub[0]->name;
+                if(!name) throw std::string("Invalid expression");
+                if(name->objIndex == -1) throw std::string("Invalid expression");
+                Obj o = objects[name->objIndex];
+                if(o.type != grid && o.type != param) throw std::string("Invalid expression");
+                str << "float v" << ++v << "=C" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
+                break;
+            }
+            case C(PLUS):
+            case C(MINUS):
+            case C(TIMES):
+            case C(DIVIDE):
+            {
+                char symb;
+                if(e->type == C(PLUS)) symb = '+';
+                if(e->type == C(MINUS)) symb = '-';
+                if(e->type == C(TIMES)) symb = '*';
+                if(e->type == C(DIVIDE)) symb = '/';
+                compile(e->sub[0], str, v);
+                int a = v;
+                compile(e->sub[1], str, v);
+                int b = v;
+                str << "float v" << ++v << "=v"
+                    << a << symb << "v" << b << ";\n";
+                break;
+            }
+            case C(POW):
+            {
+                compile(e->sub[0], str, v);
+                int a = v;
+                if(e->sub[1]->type == C(NUMBER))
+                {
+                    float num = e->sub[1]->number;
+                    if(num == (int)num && num >= -10 && num <= 10)
+                    {
+                        char symb = '*';
+                        if(num < 0) symb = '/';
+
+                        str << "float v" << ++v << "=1";
+                        for(int i = 0; i < std::abs(num); i++)
+                            str << symb << "v" << a;
+                        str << ";\n";
+                        break;   
+                    }
+                }
+                compile(e->sub[1], str, v);
+                int b = v;
+                str << "float v" << ++v << "=pow(v"
+                    << a << ",v" << b << ");\n";
+                break;
+            }
+            case C(APP):
+            {
+                compile(e->sub[1], str, v);
+                int a = v;
+                str << "float v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
+                    << a << ");\n";
+                break;
+            }
+            case C(UPLUS):
+            case C(UMINUS):
+            {
+                char symb;
+                if(e->type == C(UPLUS)) symb = '+';
+                if(e->type == C(UMINUS)) symb = '-';
+                compile(e->sub[0], str, v);
+                int a = v;
+                str << "float v" << ++v << "=" << symb << "v" << a << ";\n";
+                break;
+            }
+            case C(FUNCTION):
+                break;
+            case C(UDIVIDE):
+            {
+                compile(e->sub[0], str, v);
+                int k = v;
+                str << "float v" << ++v << "=" << "1.0/v" << k << ";\n";
+                break;
+            }
+            case C(TUPLE):
+            {
+                std::vector<int> indices;
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                {
+                    if(e->sub[i]->nTuple != 1)
+                        throw std::string("Invalid tuple");
+                    compile(e->sub[i], str, v);
+                    indices.push_back(v);
+                }
+                for(int i = 0; i < (int)e->sub.size(); i++)
+                    str << "float v" << ++v << "=" << "v" << indices[i] << ";\n";
+                break;
+            }
+        }
+        return;
+        throw std::string("Invalid expression type");
+    }
 
     /*
     Expr *Compiler::op(ExprType type, Expr *a, Expr *b, Table *name, float number)
