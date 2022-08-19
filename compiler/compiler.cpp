@@ -299,7 +299,8 @@ namespace tcc
                 for(Subst &s : subs)
                     if(s.var == e->name)
                         return op(C(VARIABLE), nullptr, nullptr, 0, e->name, s.exp->nTuple);
-                throw std::string("Invalid nTuple list");
+                //throw std::string("Invalid nTuple list");
+                return op(C(VARIABLE), nullptr, nullptr, 0, e->name);
             }
             case S(FUNCTION):
             {
@@ -614,7 +615,8 @@ namespace tcc
             case C(UDIVIDE):
             {
                 CompExpr *a = op(C(POW), e->sub[0], op(C(NUMBER), nullptr, nullptr, -2));
-                return op(C(UMINUS), op(C(UDIVIDE), a));
+                CompExpr *d = derivative(e->sub[0], var);
+                return op(C(TIMES), op(C(UMINUS), a), d);
             }
             case C(APP):
             {
