@@ -55,6 +55,7 @@ namespace tcc
     {
         Table *var{};
         CompExpr *exp{};
+        float number{};
     };
 
     struct Compiler : public Parser
@@ -81,17 +82,7 @@ namespace tcc
         void header(std::stringstream &str);
         void compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name);
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
-
-        /*
-        Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, float number = 0);
-        Expr *compute(Expr *e);
-        Expr *derivative(Expr *e, Table *var);
-        Expr *substitute(Expr *e, std::vector<Subst> &substs);
-        void compile(Expr *e, std::stringstream &str, int &v);
-        void compile(std::stringstream &str, bool declareOnly = false);
-        void compileFunction(Expr *exp, int argIndex, std::stringstream &str, std::string suffix, bool declareOnly);
-        void declareFunction(int N, int argIndex, std::stringstream &str, std::string suffix);
-        float calc(Expr *e);*/
+        float calculate(CompExpr *e, std::vector<Subst> &subs);
     };
 
 };

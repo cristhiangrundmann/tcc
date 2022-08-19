@@ -18,6 +18,8 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+Compiler cmp;
+
 int main(int, char**)
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -81,14 +83,14 @@ int main(int, char**)
             
             if(ImGui::Button("Compile"))
             {
-                static Compiler cmp;
                 cmp = Compiler();
                 try
                 {
                     cmp.parseProgram(text);
                     msg = "OK";
                     std::stringstream s;
-                    cmp.compile(s, false);
+                    cmp.compile(s);
+                    cmp.header(s);
                     printf("%s\n", s.str().c_str());
                 }
                 catch(std::string err)
@@ -99,6 +101,14 @@ int main(int, char**)
             }
 
             ImGui::Text("Status: %s", msg);
+
+            for(Obj &o : cmp.objects)
+            {
+                if(o.type == cmp.param)
+                {
+                    
+                }
+            }
 
 
             ImGui::End();
