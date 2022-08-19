@@ -12,12 +12,16 @@ namespace tcc
         SymbExpr *e[3]{};
         e[0] = expStack.back(); expStack.pop_back();
         e[1] = expStack.back(); expStack.pop_back();
+        Interval i;
         if(type == S(GRID))
         {
             e[2] = expStack.back();
             expStack.pop_back();
+            i = {type, tag, wrap, {e[2], e[1], e[0]}};
         }
-        Interval i = {type, tag, wrap, {e[0], e[1], e[2]}};
+        else
+            i = {type, tag, wrap, {e[1], e[0], nullptr}};
+        
         intStack.push_back(i);
     }
 
@@ -95,11 +99,11 @@ namespace tcc
 
         if(objType == param || objType == grid)
         {
-            while(!intStack.empty())
-            {
-                obj.intervals.push_back(intStack.back());
+            int size = intStack.size();
+            for(int i = 0; i < size; i++)
+                obj.intervals.push_back(intStack[i]);
+            for(int i = 0; i < size; i++)
                 intStack.pop_back();
-            }
         }
         else if(objType == define)
         {
@@ -779,6 +783,15 @@ namespace tcc
     {
         for(Obj &o : objects)
         {
+            if(o.type == param)
+            {
+                std::vector<Subst> subs;
+                for(Interval &i : o.intervals)
+                {
+                    i.compSub[0] = compute(i.sub[0], subs);
+                    i.compSub[1] = compute(i.sub[1], subs);
+                }
+            }
             if(o.type == curve)
             {
                 int args = argList[o.name->argIndex].size();
@@ -1026,6 +1039,12 @@ namespace tcc
                 throw std::string("Invalid constant");
             }
             case C(NUMBER): return e->number;
+            case C(VARIABLE):
+            {
+                for(Subst &s : subs)
+                    if(s.var == e->name) return s.number;
+                throw std::string("Variable definition missing");
+            }
             default:
                 throw std::string("Invalid type");
         }

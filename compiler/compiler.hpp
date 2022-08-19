@@ -39,6 +39,7 @@ namespace tcc
         SymbExpr *sub[3]{};
         CompExpr *compSub[3]{};
         float number{};
+        float min{}, max{};
     };
 
     struct Obj

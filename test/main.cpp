@@ -104,9 +104,27 @@ int main(int, char**)
 
             for(Obj &o : cmp.objects)
             {
+                std::vector<Subst> subs;
                 if(o.type == cmp.param)
                 {
-                    
+                    ImGui::PushID(o.name);
+                    for(int i = 0; i < (int)o.intervals.size(); i++)
+                    {
+                        ImGui::PushID(i);
+                        float min = cmp.calculate(o.intervals[i].compSub[0], subs);
+                        float max = cmp.calculate(o.intervals[i].compSub[1], subs);
+                        o.intervals[i].min = min;
+                        o.intervals[i].max = max;
+                        std::string str = o.name->getString();
+                        if(o.intervals.size() > 1)
+                        {
+                            str += "_";
+                            str += std::to_string(i+1);
+                        }
+                        ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, min, max, "%.3f");
+                        ImGui::PopID();
+                    }
+                    ImGui::PopID();
                 }
             }
 
