@@ -124,7 +124,6 @@ namespace tcc
 
         objName->argIndex = (int)argList.size();
         argList.push_back(args);
-        objName->type = TokenType::FUNCTION;
         if(argList.size()) for(Table *t : argList.back()) t->type = TokenType::UNDEFINED;
     }
 
@@ -161,6 +160,7 @@ namespace tcc
         require(charToken(','));
         advance(false);
         parseInts(ExprType::TAGGED);
+        objName->type = TokenType::FUNCTION;
     }
 
     void Parser::parseSurface()
@@ -169,11 +169,13 @@ namespace tcc
         require(charToken(','));
         advance(false);
         parseInts(ExprType::TAGGED);
+        objName->type = TokenType::FUNCTION;
     }
 
     void Parser::parseFunction()
     {
         parseFDecl();
+        objName->type = TokenType::FUNCTION;
     }
 
     void Parser::parsePoint()

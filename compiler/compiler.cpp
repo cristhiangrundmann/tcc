@@ -257,6 +257,7 @@ namespace tcc
     {
         if(e->type == C(TUPLE))
         {
+            printf("t");
             if(e->sub.size() < index) throw std::string("Invalid index");
             return e->sub[index-1];
         }
@@ -790,7 +791,23 @@ namespace tcc
                 {
                     i.compSub[0] = compute(i.sub[0], subs);
                     i.compSub[1] = compute(i.sub[1], subs);
+                    i.min = calculate(i.compSub[0], subs);
+                    i.max = calculate(i.compSub[1], subs);
+                    i.number = i.min;
                 }
+            }
+            if(o.type == grid)
+            {
+                std::vector<Subst> subs;
+                for(Interval &i : o.intervals)
+                {
+                    i.compSub[0] = compute(i.sub[0], subs);
+                    i.compSub[1] = compute(i.sub[1], subs);
+                    i.compSub[2] = compute(i.sub[2], subs);
+                    i.min = calculate(i.compSub[0], subs);
+                    i.max = calculate(i.compSub[1], subs);
+                    i.number = i.min;
+                }   
             }
             if(o.type == curve)
             {
@@ -799,8 +816,13 @@ namespace tcc
                     throw std::string("Curves should have 1 parameter");
 
                 std::vector<Subst> subs;
+
+                o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
+                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
+
                 SymbExpr *c = o.sub[0];
                 CompExpr *cc = compute(c, subs);
+                o.compSub[0] = cc;
 
                 int N = cc->nTuple;
                 o.nTuple = N;
@@ -821,8 +843,14 @@ namespace tcc
 
                 std::vector<Subst> subs;
 
+                o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
+                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
+                o.intervals[1].compSub[0] = compute(o.intervals[1].sub[0], subs);
+                o.intervals[1].compSub[1] = compute(o.intervals[1].sub[1], subs);
+
                 SymbExpr *s = o.sub[0];
                 CompExpr *cs = compute(s, subs);
+                o.compSub[0] = cs;
 
                 int N = cs->nTuple;
                 o.nTuple = N;
@@ -847,6 +875,7 @@ namespace tcc
             {
                 std::vector<Subst> subs;
                 CompExpr *cf = compute(o.sub[0], subs);
+                o.compSub[0] = cf;
                 try
                 {
                     int args = argList[o.name->argIndex].size();
@@ -865,6 +894,7 @@ namespace tcc
             {
                 std::vector<Subst> subs;
                 CompExpr *cp = compute(o.sub[0], subs);
+                o.compSub[0] = cp;
                 int N = cp->nTuple;
                 o.nTuple = N;
                 if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
@@ -877,6 +907,8 @@ namespace tcc
                 std::vector<Subst> subs;
                 CompExpr *cv = compute(o.sub[0], subs);
                 CompExpr *cv2 = compute(o.sub[1], subs);
+                o.compSub[0] = cv;
+                o.compSub[1] = cv2;
                 int N = cv->nTuple;
                 o.nTuple = N;
                 if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
@@ -1022,7 +1054,7 @@ namespace tcc
                     throw std::string("Invalid constant");
                 Obj &o = objects[c->name->objIndex];
                 if(o.type == param || o.type == grid)
-                    return o.intervals[e->number].number;
+                    return o.intervals[e->number-1].number;
                 throw std::string("Invalid constant");   
             }
             case C(CONSTANT):
