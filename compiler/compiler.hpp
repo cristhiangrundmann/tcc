@@ -6,14 +6,29 @@
 namespace tcc
 {
 
-    struct Expr
+    struct SymbExpr
     {
         Parser::ExprType type{};
-        std::vector<Expr*> sub;
+        std::vector<SymbExpr*> sub{};
         Table *name{};
         float number{};
-        int tupleSize{};
-        Expr *compute{};
+    };
+
+    struct CompExpr
+    {
+        enum class ExprType
+        {
+            PLUS, MINUS, TIMES, DIVIDE,
+            UPLUS, UMINUS, UDIVIDE,
+            APP, FUNCTION,
+            POW, COMPONENT,
+            CONSTANT, NUMBER, VARIABLE, TUPLE
+        };
+        ExprType type{};
+        std::vector<CompExpr*> sub{};
+        Table *name{};
+        float number{};
+        int nTuple{};
     };
 
     struct Interval
@@ -21,7 +36,8 @@ namespace tcc
         Parser::ExprType type{};
         Table *tag{};
         char wrap{};
-        Expr *sub[3]{};
+        SymbExpr *sub[3]{};
+        CompExpr *compSub[3]{};
         float number{};
     };
 
@@ -29,27 +45,37 @@ namespace tcc
     {
         Table *type{};
         Table *name{};
-        Expr *sub[2]{};
+        SymbExpr *sub[2]{};
+        CompExpr *compSub[2]{};
         std::vector<Interval> intervals;
     };
 
     struct Subst
     {
         Table *var{};
-        Expr *exp{};
+        CompExpr *exp{};
     };
 
     struct Compiler : public Parser
     {
-        std::vector<std::unique_ptr<Expr>> expressions;
-        std::vector<Obj> objects;
-        std::vector<Expr*> expStack;
+        std::vector<std::unique_ptr<SymbExpr>> symbExprs;
+        std::vector<std::unique_ptr<CompExpr>> compExprs;
+        std::vector<SymbExpr*> expStack;
         std::vector<Interval> intStack;
+        std::vector<Obj> objects;
 
         void actInt(ExprType type);
         void actOp(ExprType type);
         void actDecl();
-        Expr *newExpr(Expr &e);
+        SymbExpr *newExpr(SymbExpr &e);
+        CompExpr *newExpr(CompExpr &e);
+        CompExpr *op(CompExpr::ExprType type, CompExpr *a = nullptr, CompExpr *b = nullptr, float number = 0, Table *name = nullptr, int nTuple = 1);
+        CompExpr *_comp(CompExpr *e, unsigned int index, std::vector<Subst> &subs);
+        CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
+        CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
+        CompExpr *derivative(CompExpr *e, Table *var);
+
+        /*
         Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, float number = 0);
         Expr *compute(Expr *e);
         Expr *derivative(Expr *e, Table *var);
@@ -58,7 +84,7 @@ namespace tcc
         void compile(std::stringstream &str, bool declareOnly = false);
         void compileFunction(Expr *exp, int argIndex, std::stringstream &str, std::string suffix, bool declareOnly);
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string suffix);
-        float calc(Expr *e);
+        float calc(Expr *e);*/
     };
 
 };
