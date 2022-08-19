@@ -243,6 +243,18 @@ namespace tcc
         return newExpr(e);
     }
 
+
+    SymbExpr Compiler::op(Parser::ExprType type, SymbExpr *a, SymbExpr *b, float number, Table *name)
+    {
+        SymbExpr e{};
+        e.type = type;
+        if(a) e.sub.push_back(a);
+        if(a && b) e.sub.push_back(b);
+        e.name = name;
+        e.number = number;
+        return e;
+    }
+
     CompExpr *Compiler::_comp(CompExpr *e, unsigned int index, std::vector<Subst> &subs)
     {
         if(e->type == C(TUPLE))
@@ -467,10 +479,7 @@ namespace tcc
             }
             case S(UTIMES):
             {
-                SymbExpr s;
-                s.type = S(JUX);
-                s.sub.push_back(e->sub[0]);
-                s.sub.push_back(e->sub[0]);
+                SymbExpr s = op(S(JUX), e->sub[0], e->sub[0]);
                 return compute(&s, subs);
             }
             case S(UDIVIDE):
@@ -772,7 +781,219 @@ namespace tcc
             }
         }
         return;
-        throw std::string("Invalid expression type");
+    }
+
+    void Compiler::compile(std::stringstream &str)
+    {
+        for(Obj o : objects)
+        {
+            if(o.type == param || o.type == grid)
+            {
+                o.nTuple = (int)o.intervals.size();
+                for(int i = 0; i < o.nTuple; i++)
+                {
+                    str << "uniform float C" << o.name->getString();
+                    if((int)o.intervals.size() != 1)
+                        str << "_" << i+1;
+                    str  << ";\n";
+                }
+            }
+            if(o.type == define)
+            {
+                //
+            }
+            if(o.type == curve)
+            {
+                int args = argList[o.name->argIndex].size();
+                if(args != 1)
+                    throw std::string("Curves should have 1 parameter");
+
+                std::vector<Subst> subs;
+                SymbExpr *c = o.sub[0];
+                CompExpr *cc = compute(c, subs);
+
+                int N = cc->nTuple;
+                o.nTuple = N;
+                if(N != 2 && N != 3)
+                    throw std::string("Curves should be in 2d or 3d space");
+
+                SymbExpr ct = op(S(TOTAL), c);
+
+                compileFunction(cc, o.name->argIndex, str, o.name->getString());
+                compileFunction(compute(&ct, subs), o.name->argIndex, str, o.name->getString() + "_t");
+            }
+            if(o.type == surface)
+            {
+                int args = argList[o.name->argIndex].size();
+
+                if(args != 2)
+                    throw std::string("Surface should have 2 parameters");
+
+                std::vector<Subst> subs;
+
+                SymbExpr *s = o.sub[0];
+                CompExpr *cs = compute(s, subs);
+
+                int N = cs->nTuple;
+                o.nTuple = N;
+                if(N != 3)
+                    throw std::string("Surfaces should be in 3d space");
+
+                SymbExpr s_u = op(S(PARTIAL), s, nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_v = op(S(PARTIAL), s, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
+
+                compileFunction(cs, o.name->argIndex, str, o.name->getString());
+                compileFunction(compute(&s_u, subs), o.name->argIndex, str, o.name->getString() + "_u");
+                compileFunction(compute(&s_v, subs), o.name->argIndex, str, o.name->getString() + "_v");
+                compileFunction(compute(&s_uu, subs), o.name->argIndex, str, o.name->getString() + "_uu");
+                compileFunction(compute(&s_uv, subs), o.name->argIndex, str, o.name->getString() + "_uv");
+                compileFunction(compute(&s_vv, subs), o.name->argIndex, str, o.name->getString() + "_vv");
+
+            }
+            if(o.type == function)
+            {
+                std::vector<Subst> subs;
+                CompExpr *cf = compute(o.sub[0], subs);
+                try
+                {
+                    int args = argList[o.name->argIndex].size();
+                    if(args != 1 && args != 2)
+                        throw std::string("Functions should have 1 or 2 parameters");
+                    int N = cf->nTuple;
+                    o.nTuple = N;
+                    if(N != 1) throw std::string("Function is not plottable");
+
+                    std::stringstream buf;
+                    compileFunction(cf, o.name->argIndex, buf, o.name->getString());
+                    str << buf.str();
+                } catch(std::string &error){}
+            }
+            if(o.type == point)
+            {
+                std::vector<Subst> subs;
+                CompExpr *cp = compute(o.sub[0], subs);
+                int N = cp->nTuple;
+                o.nTuple = N;
+                if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
+
+                compileFunction(cp, -1, str, o.name->getString());
+            }
+
+            if(o.type == vector)
+            {
+                std::vector<Subst> subs;
+                CompExpr *cv = compute(o.sub[0], subs);
+                CompExpr *cv2 = compute(o.sub[1], subs);
+                int N = cv->nTuple;
+                o.nTuple = N;
+                if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
+                if(cv2->nTuple != N) throw std::string("Inconsistent space dimensions");
+
+                compileFunction(cv, -1, str, o.name->getString());
+                compileFunction(cv2, -1, str, o.name->getString()+"_org");
+            }
+        }
+    }
+
+    void Compiler::header(std::stringstream &str)
+    {
+        for(Obj o : objects)
+        {
+            if(o.type == param || o.type == grid)
+            {
+                for(int i = 0; i < (int)o.intervals.size(); i++)
+                {
+                    str << "uniform float C" << o.name->getString();
+                    if((int)o.intervals.size() != 1)
+                        str << "_" << i+1;
+                    str  << ";\n";
+                }
+            }
+            if(o.type == define)
+            {
+                //
+            }
+            if(o.type == curve)
+            {
+                int N = o.nTuple;
+                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_t", true);
+            }
+            if(o.type == surface)
+            {
+                int N = o.nTuple;
+                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_u", true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_v", true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_uu", true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_uv", true);
+                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_vv", true);
+            }
+            if(o.type == function)
+            {
+                int N = o.nTuple;
+                if(N != 1) continue;
+                int args = argList[o.name->argIndex].size();
+                if(args != 1 && args != 2) continue;
+                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
+            }
+            if(o.type == point)
+            {
+                int N = o.nTuple;
+                declareFunction(N, -1, str, o.name->getString(), true);
+            }
+
+            if(o.type == vector)
+            {
+                int N = o.nTuple;
+                declareFunction(N, -1, str, o.name->getString(), true);
+                declareFunction(N, -1, str, o.name->getString()+"_org", true);
+            }
+        }
+    }
+
+    void Compiler::compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name)
+    {
+        int N = exp->nTuple;
+        declareFunction(N, argIndex, str, name);
+
+        str << "\n{\n";
+        int v = 0;
+        compile(exp, str, v);
+
+        if(N == 1)
+            str << "return v" << v << ";\n";
+        else if(N == 2)
+            str << "return vec2(v" << v-1 << ", v" << v << ");\n";
+        else if(N == 3)
+            str << "return vec3(v" << v-2 << ", v" << v-1 << ", v" << v << ");\n";
+
+        str << "}\n";
+    }
+
+    void Compiler::declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly)
+    {
+        if(N == 1)
+            str << "float";
+        else if(N == 2 || N == 3)
+            str << "vec" << N;
+        else throw std::string("Cannot compile tuples of more than 4 components");
+
+        str << " F" << name << "(";
+        if(argIndex != -1)
+        {
+            int args = argList[argIndex].size();
+            for(int i = 0; i < args; i++)
+            {
+                str << "float V" << argList[argIndex][i]->getString();
+                if(i < args-1) str << ", ";
+            }
+        }
+        str << ")";
+        if(declareOnly) str << ";";
     }
 
     /*

@@ -48,6 +48,7 @@ namespace tcc
         SymbExpr *sub[2]{};
         CompExpr *compSub[2]{};
         std::vector<Interval> intervals;
+        int nTuple{};
     };
 
     struct Subst
@@ -69,12 +70,17 @@ namespace tcc
         void actDecl();
         SymbExpr *newExpr(SymbExpr &e);
         CompExpr *newExpr(CompExpr &e);
+        SymbExpr op(Parser::ExprType type, SymbExpr *a = nullptr, SymbExpr *b = nullptr, float number = 0, Table *name = nullptr);
         CompExpr *op(CompExpr::ExprType type, CompExpr *a = nullptr, CompExpr *b = nullptr, float number = 0, Table *name = nullptr, int nTuple = 1);
         CompExpr *_comp(CompExpr *e, unsigned int index, std::vector<Subst> &subs);
         CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
         CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
         CompExpr *derivative(CompExpr *e, Table *var);
         void compile(CompExpr *e, std::stringstream &str, int &v);
+        void compile(std::stringstream &str);
+        void header(std::stringstream &str);
+        void compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name);
+        void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
 
         /*
         Expr *op(ExprType type, Expr *a = nullptr, Expr *b = nullptr, Table *name = nullptr, float number = 0);
