@@ -667,7 +667,7 @@ namespace tcc
         switch(e->type)
         {
             case C(NUMBER):
-                str << "\tfloat v" << ++v << "=(float)" << e->number << ";\n";
+                str << "\tfloat v" << ++v << "=" << e->number << ";\n";
                 break;
             case C(VARIABLE):
                 str << "\tfloat v" << ++v << "=V" << e->name->getString() << ";\n";
