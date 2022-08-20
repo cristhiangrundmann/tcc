@@ -49,6 +49,7 @@ namespace tcc
         SymbExpr *sub[2]{};
         CompExpr *compSub[2]{};
         std::vector<Interval> intervals;
+        std::vector<int> deps;
         int nTuple{};
     };
 
@@ -84,6 +85,7 @@ namespace tcc
         void compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name);
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
         float calculate(CompExpr *e, std::vector<Subst> &subs);
+        void dependencies(CompExpr *e, int objIndex);
     };
 
 };

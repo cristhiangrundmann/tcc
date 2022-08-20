@@ -229,6 +229,12 @@ namespace tcc
                     return a;
                 break;
             }
+            case C(CONSTANT):
+            {
+                if(name == e) return op(C(NUMBER), nullptr, nullptr, Parser::CE);
+                if(name == pi) return op(C(NUMBER), nullptr, nullptr, Parser::CPI);
+                break;
+            }
             default: break;
         }
         CompExpr e{};
@@ -782,8 +788,9 @@ namespace tcc
 
     void Compiler::compile(std::stringstream &str)
     {
-        for(Obj &o : objects)
+        for(int objIndex = 0; objIndex < (int)objects.size(); objIndex++)
         {
+            Obj &o = objects[objIndex];
             if(o.type == param)
             {
                 std::vector<Subst> subs;
@@ -791,6 +798,8 @@ namespace tcc
                 {
                     i.compSub[0] = compute(i.sub[0], subs);
                     i.compSub[1] = compute(i.sub[1], subs);
+                    dependencies(i.compSub[0], objIndex);
+                    dependencies(i.compSub[1], objIndex);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
                     i.number = i.min;
@@ -804,6 +813,9 @@ namespace tcc
                     i.compSub[0] = compute(i.sub[0], subs);
                     i.compSub[1] = compute(i.sub[1], subs);
                     i.compSub[2] = compute(i.sub[2], subs);
+                    dependencies(i.compSub[0], objIndex);
+                    dependencies(i.compSub[1], objIndex);
+                    dependencies(i.compSub[2], objIndex);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
                     i.number = i.min;
@@ -820,9 +832,13 @@ namespace tcc
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
                 o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
 
+                dependencies(o.intervals[0].compSub[0], objIndex);
+                dependencies(o.intervals[0].compSub[1], objIndex);
+
                 SymbExpr *c = o.sub[0];
                 CompExpr *cc = compute(c, subs);
                 o.compSub[0] = cc;
+                dependencies(o.compSub[0], objIndex);
 
                 int N = cc->nTuple;
                 o.nTuple = N;
@@ -848,9 +864,15 @@ namespace tcc
                 o.intervals[1].compSub[0] = compute(o.intervals[1].sub[0], subs);
                 o.intervals[1].compSub[1] = compute(o.intervals[1].sub[1], subs);
 
+                dependencies(o.intervals[0].compSub[0], objIndex);
+                dependencies(o.intervals[0].compSub[1], objIndex);
+                dependencies(o.intervals[1].compSub[0], objIndex);
+                dependencies(o.intervals[1].compSub[1], objIndex);
+
                 SymbExpr *s = o.sub[0];
                 CompExpr *cs = compute(s, subs);
                 o.compSub[0] = cs;
+                dependencies(o.compSub[0], objIndex);
 
                 int N = cs->nTuple;
                 o.nTuple = N;
@@ -869,32 +891,13 @@ namespace tcc
                 compileFunction(compute(&s_uu, subs), o.name->argIndex, str, o.name->getString() + "_uu");
                 compileFunction(compute(&s_uv, subs), o.name->argIndex, str, o.name->getString() + "_uv");
                 compileFunction(compute(&s_vv, subs), o.name->argIndex, str, o.name->getString() + "_vv");
-
-            }
-            if(o.type == function)
-            {
-                std::vector<Subst> subs;
-                CompExpr *cf = compute(o.sub[0], subs);
-                o.compSub[0] = cf;
-                try
-                {
-                    int args = argList[o.name->argIndex].size();
-                    if(args != 1 && args != 2)
-                        throw std::string("Functions should have 1 or 2 parameters");
-                    int N = cf->nTuple;
-                    o.nTuple = N;
-                    if(N != 1) throw std::string("Function is not plottable");
-
-                    std::stringstream buf;
-                    compileFunction(cf, o.name->argIndex, buf, o.name->getString());
-                    str << buf.str();
-                } catch(std::string &error){}
             }
             if(o.type == point)
             {
                 std::vector<Subst> subs;
                 CompExpr *cp = compute(o.sub[0], subs);
                 o.compSub[0] = cp;
+                dependencies(o.compSub[0], objIndex);
                 int N = cp->nTuple;
                 o.nTuple = N;
                 if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
@@ -909,6 +912,8 @@ namespace tcc
                 CompExpr *cv2 = compute(o.sub[1], subs);
                 o.compSub[0] = cv;
                 o.compSub[1] = cv2;
+                dependencies(o.compSub[0], objIndex);
+                dependencies(o.compSub[1], objIndex);
                 int N = cv->nTuple;
                 o.nTuple = N;
                 if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
@@ -956,20 +961,11 @@ namespace tcc
                 str << "uniform float F" << o.name->getString() + "_minv;\n";
                 str << "uniform float F" << o.name->getString() + "_maxv;\n";
             }
-            if(o.type == function)
-            {
-                int N = o.nTuple;
-                if(N != 1) continue;
-                int args = argList[o.name->argIndex].size();
-                if(args != 1 && args != 2) continue;
-                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
-            }
             if(o.type == point)
             {
                 int N = o.nTuple;
                 declareFunction(N, -1, str, o.name->getString(), true);
             }
-
             if(o.type == vector)
             {
                 int N = o.nTuple;
@@ -1079,6 +1075,44 @@ namespace tcc
             }
             default:
                 throw std::string("Invalid type");
+        }
+    }
+
+    void Compiler::dependencies(CompExpr *e, int objIndex)
+    {
+        switch(e->type)
+        {
+            case C(PLUS):
+            case C(MINUS):
+            case C(TIMES):
+            case C(DIVIDE):
+            case C(POW):
+                dependencies(e->sub[0], objIndex);
+                dependencies(e->sub[1], objIndex);
+                break;
+            case C(UPLUS):
+            case C(UMINUS):
+            case C(UDIVIDE):
+                dependencies(e->sub[0], objIndex);
+            case C(APP):
+                dependencies(e->sub[1], objIndex);
+                break;
+            case C(CONSTANT):
+            {
+                if(e->name->objIndex == -1) return;
+                for(int d : objects[e->name->objIndex].deps)
+                    if(d == objIndex) return;
+                objects[e->name->objIndex].deps.push_back(objIndex);
+                break;
+            }
+            case C(FUNCTION):
+            case C(COMPONENT):
+            case C(VARIABLE):
+            case C(NUMBER): break;
+            case C(TUPLE):
+                for(CompExpr *c : e->sub)
+                    dependencies(c, objIndex);
+                break;
         }
     }
 };
