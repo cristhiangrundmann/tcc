@@ -71,6 +71,21 @@ const char *vertexShaderSource =
 "   FragColor = vec4(, 0, 0, 1);\n"
 "}\n\0";*/
 
+int sp = -1;
+unsigned int fbo, VAO;
+
+void update()
+{
+    if(sp == -1) return;
+    glUseProgram(sp);
+    glDisable(GL_DEPTH_TEST);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBindVertexArray(VAO);
+    glViewport(0, 0, 512, 512);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 int main(int, char**)
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -110,7 +125,6 @@ int main(int, char**)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    unsigned int fbo;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     unsigned int texture;
@@ -140,7 +154,7 @@ int main(int, char**)
         +1.0f, +1.0f,
     }; 
 
-    unsigned int VBO, VAO;
+    unsigned int VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glBindVertexArray(VAO);
@@ -172,7 +186,7 @@ int main(int, char**)
 
             static bool use_work_area = true;
             static ImGuiWindowFlags flags = 
-                ImGuiWindowFlags_NoDecoration | 
+                //ImGuiWindowFlags_NoDecoration | 
                 ImGuiWindowFlags_NoMove | 
                 ImGuiWindowFlags_NoResize | 
                 ImGuiWindowFlags_NoSavedSettings;
@@ -188,10 +202,11 @@ int main(int, char**)
 
             static std::string error;
             static const char *msg = "OK";
-            
+    
             if(ImGui::Button("Compile"))
             {
                 cmp = Compiler();
+                sp = -1;
                 try
                 {
                     cmp.parseProgram(text);
@@ -222,18 +237,14 @@ int main(int, char**)
                             int fs = compileShader(GL_FRAGMENT_SHADER, s.str().c_str());
                             int vs = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
                             int shaders[2] = {fs, vs};
-                            int sp = linkProgram(shaders, 2);
-
-                            glUseProgram(sp);
-                            glDisable(GL_DEPTH_TEST);
-                            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-                            glBindVertexArray(VAO);
-                            glViewport(0, 0, 512, 512);
-                            glDrawArrays(GL_TRIANGLES, 0, 6);
-                            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                            if(sp != -1)
+                            {
+                                glDeleteProgram(sp);
+                            }
+                            sp = linkProgram(shaders, 2);
                             glDeleteShader(fs);
                             glDeleteShader(vs);
-                            glDeleteProgram(sp);
+                            update();
                             break;
                         }
                     }
@@ -266,7 +277,17 @@ int main(int, char**)
                             str += "_";
                             str += std::to_string(i+1);
                         }
+                        float cur = o.intervals[i].number;
                         ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                        if(cur != o.intervals[i].number)
+                        if(sp != -1)
+                        {
+                            std::string name = std::string("C") + str;
+                            glUseProgram(sp);
+                            int loc = glGetUniformLocation(sp, name.c_str());
+                            if(loc != -1) glUniform1f(loc, o.intervals[i].number);
+                            update();
+                        }
                         ImGui::PopID();
                     }
                     ImGui::PopID();
