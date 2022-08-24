@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 #include <cmath>
+#include <GL/glew.h>
 
 #define S(x) Parser::ExprType::x
 #define C(x) CompExpr::ExprType::x
@@ -263,7 +264,6 @@ namespace tcc
     {
         if(e->type == C(TUPLE))
         {
-            printf("t");
             if(e->sub.size() < index) throw std::string("Invalid index");
             return e->sub[index-1];
         }
@@ -786,193 +786,279 @@ namespace tcc
         }
     }
 
-    void Compiler::compile(std::stringstream &str)
+
+    static float quadData[] = 
     {
+        -1.0f, -1.0f,
+        +1.0f, -1.0f,
+        +1.0f, +1.0f,
+
+        -1.0f, -1.0f,
+        -1.0f, +1.0f,
+        +1.0f, +1.0f,
+    };
+
+    void Compiler::reset()
+    {
+        for(Obj &o : objects)
+        {
+            o.name->type = TokenType::UNDEFINED;
+            o.name->argIndex = -1;
+            o.name->objIndex = -1;
+        }
+
+        curveFrag = 0;
+        frameTex0 = 0;
+        frame = 0;
+        quad = 0;
+        block = 0;
+
+        objects.clear();
+        symbExprs.clear();
+        compExprs.clear();
+        expStack.clear();
+        intStack.clear();
+        argList.clear();
+
+        frames.clear();
+        shaders.clear();
+        programs.clear();
+        textures.clear();
+        buffers.clear();
+        arrays.clear();
+
+    }
+
+    void Compiler::compile(const char *source)
+    {
+        reset();
+        parseProgram(source);
+        std::vector<Subst> subs;
+
+        std::stringstream hdr;
+        header(hdr);
+
+        {
+            glGenBuffers(1, &block);
+            Buffer b{block};
+            buffers.push_back(std::make_unique<Buffer>(b));
+            b.ID = 0;
+            glBindBuffer(GL_UNIFORM_BUFFER, block);
+            glBufferData(GL_UNIFORM_BUFFER, blockSize, NULL, GL_DYNAMIC_DRAW);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, block);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+
+        {
+            glGenVertexArrays(1, &quad);
+            Array arr{quad};
+            arrays.push_back(std::make_unique<Array>(arr));
+            arr.ID = 0;
+            uint vbo{};
+            glGenBuffers(1, &vbo);
+            Buffer buf{vbo};
+            buffers.push_back(std::make_unique<Buffer>(buf));
+            buf.ID = 0;
+            glBindVertexArray(quad);
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(quadData), quadData, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+            glBindVertexArray(0);
+        }
+
+        {
+            glGenFramebuffers(1, &frame);
+            Framebuffer f{frame};
+            frames.push_back(std::make_unique<Framebuffer>(f));
+            f.ID = 0;
+            Texture tex;
+            tex.create({512, 512}, GL_RGB, GL_UNSIGNED_BYTE);
+            textures.push_back(std::make_unique<Texture>(tex));
+            frameTex0 = tex.ID;
+            glBindFramebuffer(GL_FRAMEBUFFER, frame);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.ID, 0);
+            uint b = GL_COLOR_ATTACHMENT0;
+            glNamedFramebufferDrawBuffers(frame, 1, &b);
+            tex.ID = 0;
+        }
+
+        {
+            Shader s;
+            s.compile(GL_FRAGMENT_SHADER, 
+            "#version 460 core\n"
+            "layout (location = 0) out vec4 color;\n"
+            "void main()\n{\n"
+            "color = vec4(1, 1, 1, 1);\n"
+            "\n}\n"
+            );
+
+            shaders.push_back(std::make_unique<Shader>(s));
+            curveFrag = s.ID;
+            s.ID = 0;
+        }
+
         for(int objIndex = 0; objIndex < (int)objects.size(); objIndex++)
         {
+            std::stringstream str;
+
             Obj &o = objects[objIndex];
             if(o.type == param)
             {
-                std::vector<Subst> subs;
                 for(Interval &i : o.intervals)
                 {
                     i.compSub[0] = compute(i.sub[0], subs);
                     i.compSub[1] = compute(i.sub[1], subs);
-                    dependencies(i.compSub[0], objIndex);
-                    dependencies(i.compSub[1], objIndex);
+                    dependencies(i.compSub[0], o.grids);
+                    dependencies(i.compSub[1], o.grids);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
+                    if(i.max < i.min) throw std::string("Degenerate interval");
                     i.number = i.min;
                 }
             }
             if(o.type == grid)
             {
-                std::vector<Subst> subs;
                 for(Interval &i : o.intervals)
                 {
                     i.compSub[0] = compute(i.sub[0], subs);
                     i.compSub[1] = compute(i.sub[1], subs);
                     i.compSub[2] = compute(i.sub[2], subs);
-                    dependencies(i.compSub[0], objIndex);
-                    dependencies(i.compSub[1], objIndex);
-                    dependencies(i.compSub[2], objIndex);
+                    dependencies(i.compSub[0], o.grids);
+                    dependencies(i.compSub[1], o.grids);
+                    dependencies(i.compSub[2], o.grids);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
-                    i.number = i.min;
-                }   
+                    if(i.max < i.min) throw std::string("Degenerate interval");
+                    i.number = floor(calculate(i.compSub[2], subs));
+                    if(i.number < 1) throw std::string("Grids must have at least 1 point");
+                }
             }
             if(o.type == curve)
             {
-                int args = argList[o.name->argIndex].size();
-                if(args != 1)
+                if(argList[o.name->argIndex].size() != 1)
                     throw std::string("Curves should have 1 parameter");
-
-                std::vector<Subst> subs;
-
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
                 o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
-
-                dependencies(o.intervals[0].compSub[0], objIndex);
-                dependencies(o.intervals[0].compSub[1], objIndex);
-
-                SymbExpr *c = o.sub[0];
-                CompExpr *cc = compute(c, subs);
-                o.compSub[0] = cc;
-                dependencies(o.compSub[0], objIndex);
-
-                int N = cc->nTuple;
-                o.nTuple = N;
-                if(N != 2 && N != 3)
+                dependencies(o.intervals[0].compSub[0], o.grids);
+                dependencies(o.intervals[0].compSub[1], o.grids);
+                o.intervals[0].min = calculate(o.intervals[0].compSub[0], subs);
+                o.intervals[0].max = calculate(o.intervals[0].compSub[1], subs);
+                o.compSub[0] = compute(o.sub[0], subs);
+                dependencies(o.compSub[0], o.grids, true);
+                o.nTuple = o.compSub[0]->nTuple;
+                if(o.nTuple != 2 && o.nTuple != 3)
                     throw std::string("Curves should be in 2d or 3d space");
 
-                SymbExpr ct = op(S(TOTAL), c);
+                if(o.nTuple != 3) return;
 
-                compileFunction(cc, o.name->argIndex, str, o.name->getString());
+                str << "#version 460 core\n" << hdr.str();
+
+                SymbExpr ct = op(S(TOTAL), o.sub[0]);
+                compileFunction(o.compSub[0], o.name->argIndex, str, o.name->getString());
                 compileFunction(compute(&ct, subs), o.name->argIndex, str, o.name->getString() + "_t");
+
+                str << "layout (location = 0) in float t;\n";
+                str << "void main()\n{\n";
+                str << "gl_Position = vec4(";
+                str << "F" << o.name->getString() << "(t), 1);\n}\n";
+                
+                printf("%s\n", str.str().c_str());
+                Shader s;
+                s.compile(GL_VERTEX_SHADER, str.str().c_str());
+                Program p;
+                uint shads[] = {curveFrag, s.ID};
+                p.link(shads, 2);
+                programs.push_back(std::make_unique<Program>(p));
+                o.program = p.ID;
+                p.ID = 0;
+
+                create1DGrid(10, o.intervals[0]);
+
+                o.array = arrays.back().get()->ID;
             }
             if(o.type == surface)
             {
-                int args = argList[o.name->argIndex].size();
-
-                if(args != 2)
+                if(argList[o.name->argIndex].size() != 2)
                     throw std::string("Surface should have 2 parameters");
-
-                std::vector<Subst> subs;
-
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
                 o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
                 o.intervals[1].compSub[0] = compute(o.intervals[1].sub[0], subs);
                 o.intervals[1].compSub[1] = compute(o.intervals[1].sub[1], subs);
-
-                dependencies(o.intervals[0].compSub[0], objIndex);
-                dependencies(o.intervals[0].compSub[1], objIndex);
-                dependencies(o.intervals[1].compSub[0], objIndex);
-                dependencies(o.intervals[1].compSub[1], objIndex);
-
-                SymbExpr *s = o.sub[0];
-                CompExpr *cs = compute(s, subs);
-                o.compSub[0] = cs;
-                dependencies(o.compSub[0], objIndex);
-
-                int N = cs->nTuple;
-                o.nTuple = N;
-                if(N != 3)
+                dependencies(o.intervals[0].compSub[0], o.grids);
+                dependencies(o.intervals[0].compSub[1], o.grids);
+                dependencies(o.intervals[1].compSub[0], o.grids);
+                dependencies(o.intervals[1].compSub[1], o.grids);
+                o.intervals[0].min = calculate(o.intervals[0].compSub[0], subs);
+                o.intervals[0].max = calculate(o.intervals[0].compSub[1], subs);
+                o.intervals[1].min = calculate(o.intervals[1].compSub[0], subs);
+                o.intervals[1].max = calculate(o.intervals[1].compSub[1], subs);
+                o.compSub[0] = compute(o.sub[0], subs);
+                dependencies(o.compSub[0], o.grids, true);
+                o.nTuple = o.compSub[0]->nTuple;
+                if(o.nTuple != 3)
                     throw std::string("Surfaces should be in 3d space");
-
-                SymbExpr s_u = op(S(PARTIAL), s, nullptr, 0, argList[o.name->argIndex][0]);
-                SymbExpr s_v = op(S(PARTIAL), s, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_v = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
-
-                compileFunction(cs, o.name->argIndex, str, o.name->getString());
+                compileFunction(o.compSub[0], o.name->argIndex, str, o.name->getString());
                 compileFunction(compute(&s_u, subs), o.name->argIndex, str, o.name->getString() + "_u");
                 compileFunction(compute(&s_v, subs), o.name->argIndex, str, o.name->getString() + "_v");
                 compileFunction(compute(&s_uu, subs), o.name->argIndex, str, o.name->getString() + "_uu");
                 compileFunction(compute(&s_uv, subs), o.name->argIndex, str, o.name->getString() + "_uv");
                 compileFunction(compute(&s_vv, subs), o.name->argIndex, str, o.name->getString() + "_vv");
             }
+
             if(o.type == point)
             {
-                std::vector<Subst> subs;
-                CompExpr *cp = compute(o.sub[0], subs);
-                o.compSub[0] = cp;
-                dependencies(o.compSub[0], objIndex);
-                int N = cp->nTuple;
-                o.nTuple = N;
-                if(N != 2 && N != 3) throw std::string("Points must be in 2d or 3d space");
-
-                compileFunction(cp, -1, str, o.name->getString());
+                o.compSub[0] = compute(o.sub[0], subs);
+                dependencies(o.compSub[0], o.grids, true);
+                o.nTuple = o.compSub[0]->nTuple;
+                if(o.nTuple != 2 && o.nTuple != 3)
+                    throw std::string("Points must be in 2d or 3d space");
+                compileFunction(o.compSub[0], -1, str, o.name->getString());
             }
 
             if(o.type == vector)
             {
-                std::vector<Subst> subs;
-                CompExpr *cv = compute(o.sub[0], subs);
-                CompExpr *cv2 = compute(o.sub[1], subs);
-                o.compSub[0] = cv;
-                o.compSub[1] = cv2;
-                dependencies(o.compSub[0], objIndex);
-                dependencies(o.compSub[1], objIndex);
-                int N = cv->nTuple;
-                o.nTuple = N;
-                if(N != 2 && N != 3) throw std::string("Vectors must be in 2d or 3d space");
-                if(cv2->nTuple != N) throw std::string("Inconsistent space dimensions");
-
-                compileFunction(cv, -1, str, o.name->getString());
-                compileFunction(cv2, -1, str, o.name->getString()+"_org");
+                o.compSub[0] = compute(o.sub[0], subs);
+                o.compSub[1] = compute(o.sub[1], subs);
+                dependencies(o.compSub[0], o.grids, true);
+                dependencies(o.compSub[1], o.grids, true);
+                o.nTuple = o.compSub[0]->nTuple;
+                if(o.nTuple != 2 && o.nTuple != 3)
+                    throw std::string("Vectors must be in 2d or 3d space");
+                if(o.compSub[1]->nTuple != o.nTuple)
+                    throw std::string("Inconsistent space dimensions");
+                compileFunction(o.compSub[0], -1, str, o.name->getString());
+                compileFunction(o.compSub[1], -1, str, o.name->getString()+"_org");
             }
         }
     }
 
     void Compiler::header(std::stringstream &str)
     {
+        blockSize = 64;
+        str << "layout (std140, binding = 0) uniform Header\n{\n\tmat4 camera;\n";
+    
         for(Obj &o : objects)
         {
             if(o.type == param || o.type == grid)
             {
                 for(int i = 0; i < (int)o.intervals.size(); i++)
                 {
-                    str << "uniform float C" << o.name->getString();
+                    str << "\tfloat C" << o.name->getString();
                     if((int)o.intervals.size() != 1)
                         str << "_" << i+1;
                     str  << ";\n";
+                    o.intervals[i].offset = blockSize;
+                    blockSize += 4;
                 }
             }
-            if(o.type == curve)
-            {
-                int N = o.nTuple;
-                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_t", true);
-                str << "uniform float F" << o.name->getString() + "_mint;\n";
-                str << "uniform float F" << o.name->getString() + "_maxt;\n";
-            }
-            if(o.type == surface)
-            {
-                int N = o.nTuple;
-                declareFunction(N, o.name->argIndex, str, o.name->getString(), true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_u", true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_v", true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_uu", true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_uv", true);
-                declareFunction(N, o.name->argIndex, str, o.name->getString() + "_vv", true);
-                str << "uniform float F" << o.name->getString() + "_minu;\n";
-                str << "uniform float F" << o.name->getString() + "_maxu;\n";
-                str << "uniform float F" << o.name->getString() + "_minv;\n";
-                str << "uniform float F" << o.name->getString() + "_maxv;\n";
-            }
-            if(o.type == point)
-            {
-                int N = o.nTuple;
-                declareFunction(N, -1, str, o.name->getString(), true);
-            }
-            if(o.type == vector)
-            {
-                int N = o.nTuple;
-                declareFunction(N, -1, str, o.name->getString(), true);
-                declareFunction(N, -1, str, o.name->getString()+"_org", true);
-            }
         }
+        str << "};\n";
     }
 
     void Compiler::compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name)
@@ -1078,7 +1164,7 @@ namespace tcc
         }
     }
 
-    void Compiler::dependencies(CompExpr *e, int objIndex)
+    void Compiler::dependencies(CompExpr *e, std::vector<int> &grids, bool allow)
     {
         switch(e->type)
         {
@@ -1087,33 +1173,143 @@ namespace tcc
             case C(TIMES):
             case C(DIVIDE):
             case C(POW):
-                dependencies(e->sub[0], objIndex);
-                dependencies(e->sub[1], objIndex);
+                dependencies(e->sub[0], grids, allow);
+                dependencies(e->sub[1], grids, allow);
                 break;
             case C(UPLUS):
             case C(UMINUS):
             case C(UDIVIDE):
-                dependencies(e->sub[0], objIndex);
+                dependencies(e->sub[0], grids, allow);
             case C(APP):
-                dependencies(e->sub[1], objIndex);
+                dependencies(e->sub[1], grids, allow);
                 break;
             case C(CONSTANT):
-            {
                 if(e->name->objIndex == -1) return;
-                for(int d : objects[e->name->objIndex].deps)
-                    if(d == objIndex) return;
-                objects[e->name->objIndex].deps.push_back(objIndex);
-                break;
-            }
-            case C(FUNCTION):
             case C(COMPONENT):
+                if(!allow)
+                    throw std::string("Invalid dependency");
+                if(objects[e->name->objIndex].type == grid)
+                {
+                    for(int k : grids)
+                        if(k == e->name->objIndex)
+                            return;
+                    grids.push_back(e->name->objIndex);
+                }
+                break;
+            case C(FUNCTION):
             case C(VARIABLE):
             case C(NUMBER): break;
             case C(TUPLE):
                 for(CompExpr *c : e->sub)
-                    dependencies(c, objIndex);
+                    dependencies(c, grids, allow);
                 break;
         }
+    }
+
+    Framebuffer::~Framebuffer()
+    {
+        printf("framebuffer %d gone\n", ID);
+        glDeleteFramebuffers(1, &ID);
+    }
+
+    void Shader::compile(uint type, const char *source)
+    {
+        ID = glCreateShader(type);
+        glShaderSource(ID, 1, &source, NULL);
+        glCompileShader(ID);
+        int success;
+        static char infoLog[512];
+        glGetShaderiv(ID, GL_COMPILE_STATUS, &success);
+        if(!success)
+        {
+            glGetShaderInfoLog(ID, 512, NULL, infoLog);
+            throw std::string("Cannot compile shader: ") + infoLog;
+        }
+    }
+
+    Shader::~Shader()
+    {
+        printf("shader %d gone\n", ID);
+        glDeleteShader(ID);
+    }
+
+    void Program::link(uint shaders[], int size)
+    {
+        ID = glCreateProgram();
+        for(int k = 0; k < size; k++)
+            glAttachShader(ID, shaders[k]);
+        glLinkProgram(ID);
+        int success;
+        static char infoLog[512];
+        glGetProgramiv(ID, GL_LINK_STATUS, &success);
+        if(!success) 
+        {
+            glGetProgramInfoLog(ID, 512, NULL, infoLog);
+            throw std::string("Cannot link shader: ") + infoLog;
+        }
+    }
+
+    Program::~Program()
+    {
+        printf("program %d gone\n", ID);
+        glDeleteProgram(ID);
+    }
+
+    void Texture::create(Size s, uint base, uint type)
+    {
+        glGenTextures(1, &ID);
+        glBindTexture(GL_TEXTURE_2D, ID);
+        glTexImage2D(GL_TEXTURE_2D, 0, base, s.width, s.height, 0, base, type, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+
+    Texture::~Texture()
+    {
+        printf("texture %d gone\n", ID);
+        glDeleteTextures(1, &ID);
+    }
+
+    Buffer::~Buffer()
+    {
+        printf("buffer %d gone\n", ID);
+        glDeleteBuffers(1, &ID);
+    }
+
+    void Compiler::create2DGrid(uint nx, uint ny, Interval &i, Interval &j)
+    {
+    }
+
+    void Compiler::create1DGrid(uint nx, Interval &i)
+    {
+        float *data = new float[nx];
+        for(uint x = 0; x < nx; x++)
+        {
+            data[x] = i.min + (i.max-i.min)*x/(nx-1);
+        }
+
+        Array arr;
+        glGenVertexArrays(1, &arr.ID);
+        arrays.push_back(std::make_unique<Array>(arr));
+        Buffer buf;
+        glGenBuffers(1, &buf.ID);
+        buffers.push_back(std::make_unique<Buffer>(buf));
+        glBindVertexArray(arr.ID);
+        glBindBuffer(GL_ARRAY_BUFFER, buf.ID);
+        glBufferData(GL_ARRAY_BUFFER, nx*sizeof(float), data, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 1 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
+        buf.ID = 0;
+        arr.ID = 0;
+        i.number = nx;
+        delete[] data;
+    }
+
+    Array::~Array()
+    {
+        printf("array %d gone\n", ID);
+        glDeleteVertexArrays(1, &ID);
     }
 };
 

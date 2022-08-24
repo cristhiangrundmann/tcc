@@ -8,6 +8,8 @@ namespace tcc
     #define require(x) {if(!compare(x)) actSyntaxError(x);}
     #define skip(x) {require(charToken(x)); advance();}
 
+    Parser::~Parser() {}
+
     Parser::Parser()
     {
         lexer.table = table.get();

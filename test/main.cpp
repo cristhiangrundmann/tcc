@@ -18,76 +18,71 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-Compiler cmp;
+Compiler *cmp{};
 
-unsigned int compileShader(int type, const char *source)
+void draw2(Obj &o)
 {
-    unsigned int i = glCreateShader(type);
-    glShaderSource(i, 1, &source, NULL);
-    glCompileShader(i);
-    int success;
-    static char infoLog[512];
-    glGetShaderiv(i, GL_COMPILE_STATUS, &success);
-    if (!success)
+    if(o.type != cmp->curve) return;
+    glUseProgram(o.program);
+    glBindVertexArray(o.array);
+    glLineWidth(5);
+    glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
+}
+
+void draw(Obj &o)
+{
+    if(o.grids.size() == 0)
     {
-        glGetShaderInfoLog(i, 512, NULL, infoLog);
-        throw std::string("Cannot compile shader: ") + infoLog;
+        draw2(o);
+        return;
     }
-    return i;
-}
 
-unsigned int linkProgram(int *shaders, int size)
-{
-    unsigned int i = glCreateProgram();
-    for(int k = 0; k < size; k++)
-        glAttachShader(i, shaders[k]);
-    glLinkProgram(i);
-    int success;
-    static char infoLog[512];
-    glGetProgramiv(i, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(i, 512, NULL, infoLog);
-        throw std::string("Cannot link shader: ") + infoLog;
+    struct State
+    {
+        uint index{};
+        Interval g{};
+    };
+
+    std::vector<State> states;
+
+    glBindBuffer(GL_UNIFORM_BUFFER, cmp->block);
+    for(uint s = 0; s < o.grids.size(); s++)
+    {
+        Obj &o2 = cmp->objects[o.grids[s]];
+        for(Interval &i : o2.intervals)
+        {
+            glBufferSubData(GL_UNIFORM_BUFFER, i.offset, 4, &i.min);
+            states.push_back({0, i});
+        }
     }
-    return i;
-}
 
-const char *vertexShaderSource = 
-"#version 460 core\n"
-"layout (location = 0) in vec2 aPos;\n"
-"out vec2 pos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n"
-"   pos = aPos;\n"
-"}\n\0";
+    while(true)
+    {
+        draw2(o);
 
-/*const char *fragmentShaderSource = 
-"#version 460 core\n"
-"out vec4 FragColor;\n"
-"in vec2 pos;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(, 0, 0, 1);\n"
-"}\n\0";*/
+        bool carry = true;
 
-int sp = -1;
-unsigned int fbo, VAO;
+        for(uint s = 0; s < states.size(); s++)
+        {
+            Interval &g = states[s].g;
+            states[s].index++;
+            if(states[s].index >= g.number)
+                states[s].index = 0;
+            else
+                carry = false;
+            float x = g.min + (g.max - g.min)*states[s].index/(g.number-1);
+            glBufferSubData(GL_UNIFORM_BUFFER, g.offset, 4, &x);
+            if(!carry) break;
+        }
 
-void update()
-{
-    if(sp == -1) return;
-    glUseProgram(sp);
-    glDisable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glBindVertexArray(VAO);
-    glViewport(0, 0, 512, 512);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        if(carry) break;
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 int main(int, char**)
 {
+    cmp = new Compiler{};
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return 1;
 
@@ -125,52 +120,6 @@ int main(int, char**)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	    printf("Framebuffer is not complete!");
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    float vertices[] =
-    {
-        -1.0f, -1.0f,
-        +1.0f, -1.0f,
-        +1.0f, +1.0f,
-
-        -1.0f, -1.0f,
-        -1.0f, +1.0f,
-        +1.0f, +1.0f,
-    }; 
-
-    unsigned int VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -205,72 +154,41 @@ int main(int, char**)
     
             if(ImGui::Button("Compile"))
             {
-                cmp = Compiler();
-                sp = -1;
                 try
                 {
-                    cmp.parseProgram(text);
+                    cmp->compile(text);
                     msg = "OK";
-                    std::stringstream s1, s2;
-                    cmp.compile(s1);
-                    cmp.header(s2);
-
-                    for(Obj &o : cmp.objects)
-                    {
-                        if(o.type == cmp.function)
-                        {
-                            if(!o.compSub[0]) break;
-                            if(cmp.argList[o.name->argIndex].size() != 2) break;
-
-                            std::stringstream s;
-
-                            s << "#version 460 core\nin vec2 pos;\nout vec4 FragColor;\n" << s2.str() << s1.str();
-                            s << "void main()\n{\n";
-                            s << "float b = 0.01;\n";
-                            s << "float d = abs(" << "F" << o.name->getString() << "(pos.x/0.9, -pos.y/0.9));\n";
-                            s << "float red = 0;\n";
-                            s << "if(d < b) red = (b-d)/b;\n";
-                            s << "FragColor = vec4(red, red*(pos.x+1)/2, red*(pos.y+1)/2, 1);\n}\n";
-
-                            printf("%s\n", s.str().c_str());
-
-                            int fs = compileShader(GL_FRAGMENT_SHADER, s.str().c_str());
-                            int vs = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-                            int shaders[2] = {fs, vs};
-                            if(sp != -1)
-                            {
-                                glDeleteProgram(sp);
-                            }
-                            sp = linkProgram(shaders, 2);
-                            glDeleteShader(fs);
-                            glDeleteShader(vs);
-                            update();
-                            break;
-                        }
-                    }
                 }
                 catch(std::string err)
                 {
                    error = err;
                    msg = error.c_str();
+                   delete cmp;
+                   cmp = new Compiler;
                 }
             }
 
             ImGui::Text("Status: %s", msg);
 
-            for(Obj &o : cmp.objects)
+            glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame);
+            glViewport(0, 0, 512, 512);
+            glClearColor(0,0,0,1);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+
+            for(Obj &o : cmp->objects)
             {
                 std::vector<Subst> subs;
-                if(o.type == cmp.param)
+                if(o.type == cmp->curve)
+                {
+                    draw(o);
+                }
+                if(o.type == cmp->param)
                 {
                     ImGui::PushID(o.name);
                     for(int i = 0; i < (int)o.intervals.size(); i++)
                     {
                         ImGui::PushID(i);
-                        float min = cmp.calculate(o.intervals[i].compSub[0], subs);
-                        float max = cmp.calculate(o.intervals[i].compSub[1], subs);
-                        o.intervals[i].min = min;
-                        o.intervals[i].max = max;
                         std::string str = o.name->getString();
                         if(o.intervals.size() > 1)
                         {
@@ -278,22 +196,22 @@ int main(int, char**)
                             str += std::to_string(i+1);
                         }
                         float cur = o.intervals[i].number;
-                        ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                        ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
+                            o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
                         if(cur != o.intervals[i].number)
-                        if(sp != -1)
                         {
-                            std::string name = std::string("C") + str;
-                            glUseProgram(sp);
-                            int loc = glGetUniformLocation(sp, name.c_str());
-                            if(loc != -1) glUniform1f(loc, o.intervals[i].number);
-                            update();
+                            glBindBuffer(GL_UNIFORM_BUFFER, cmp->block);
+                            glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
+                            glBindBuffer(GL_UNIFORM_BUFFER, 0);
                         }
                         ImGui::PopID();
                     }
                     ImGui::PopID();
                 }
             }
-            ImGui::Image((void*)(intptr_t)texture, ImVec2(512, 512));
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            ImGui::Image((void*)(intptr_t)cmp->frameTex0, ImVec2(512, 512));
             ImGui::End();
 		}
 
@@ -308,6 +226,8 @@ int main(int, char**)
 
         glfwSwapBuffers(window);
     }
+
+    delete cmp;
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();

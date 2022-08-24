@@ -73,6 +73,8 @@ namespace tcc
         virtual void actInt(ExprType type);
         virtual void actOp(ExprType type);
         virtual void actDecl();
+
+        virtual ~Parser() = 0;
     };
 
 
