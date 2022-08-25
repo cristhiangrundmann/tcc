@@ -160,7 +160,7 @@ namespace tcc
             case C(MINUS):
             {
                 if(a->type == C(NUMBER) && b->type == C(NUMBER))
-                    return op(C(NUMBER), nullptr, nullptr, a->number + b->number);
+                    return op(C(NUMBER), nullptr, nullptr, a->number + (type == C(PLUS) ? 1 : -1)*b->number);
                 if(a->type == C(NUMBER) && a->number == 0)
                     return op(type == C(PLUS) ? C(UPLUS) : C(UMINUS), b);
                 if(b->type == C(NUMBER) && b->number == 0)
