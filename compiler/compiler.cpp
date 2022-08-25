@@ -926,7 +926,7 @@ namespace tcc
                 
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
-                str << "gl_Position = vec4(";
+                str << "gl_Position = camera*vec4(";
                 str << "F" << o.name->getString() << "(t), 1);\n}\n";
                 
                 o.program.shaders.push_back(new Shader);
@@ -977,7 +977,7 @@ namespace tcc
 
                 str << "layout (location = 0) in vec2 uv;\n";
                 str << "void main()\n{\n";
-                str << "gl_Position = vec4(";
+                str << "gl_Position = camera*vec4(";
                 str << "F" << o.name->getString() << "(uv.x, uv.y), 1);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
@@ -1004,7 +1004,7 @@ namespace tcc
                 compileFunction(o.compSub[0], -1, str, o.name->getString());
 
                 str << "void main()\n{\n";
-                str << "gl_Position = vec4(";
+                str << "gl_Position = camera*vec4(";
                 str << "F" << o.name->getString() << "(), 1);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
@@ -1042,7 +1042,7 @@ namespace tcc
 
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
-                str << "gl_Position = vec4(";
+                str << "gl_Position = camera*vec4(";
                 str << "F" << o.name->getString() << "_org()+t*";
                 str << "F" << o.name->getString() << "(), 1);\n}\n";
 
