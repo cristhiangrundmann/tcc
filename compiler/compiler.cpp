@@ -115,10 +115,13 @@ namespace tcc
         {
             obj.sub[0] = expStack.back();
             expStack.pop_back();
-            if(objType != function) while(!intStack.empty())
+            if(objType != function) 
             {
-                obj.intervals.push_back(intStack.back());
-                intStack.pop_back();
+                int size = intStack.size();
+                for(int i = 0; i < size; i++)
+                    obj.intervals.push_back(intStack[i]);
+                for(int i = 0; i < size; i++)
+                    intStack.pop_back();
             }
         }
         else if(objType == point)
@@ -954,8 +957,12 @@ namespace tcc
                 o.compSub[0] = compute(o.sub[0], subs);
                 dependencies(o.compSub[0], o.grids, true);
                 o.nTuple = o.compSub[0]->nTuple;
+
                 if(o.nTuple != 3)
                     throw std::string("Surfaces should be in 3d space");
+                
+                str << "#version 460 core\n" << hdr.str();
+
                 SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_v = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
@@ -967,6 +974,20 @@ namespace tcc
                 compileFunction(compute(&s_uu, subs), o.name->argIndex, str, o.name->getString() + "_uu");
                 compileFunction(compute(&s_uv, subs), o.name->argIndex, str, o.name->getString() + "_uv");
                 compileFunction(compute(&s_vv, subs), o.name->argIndex, str, o.name->getString() + "_vv");
+
+                str << "layout (location = 0) in vec2 uv;\n";
+                str << "void main()\n{\n";
+                str << "gl_Position = vec4(";
+                str << "F" << o.name->getString() << "(uv.x, uv.y), 1);\n}\n";
+
+                o.program.shaders.push_back(new Shader);
+                Shader *sh = o.program.shaders.back();
+
+                sh->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program.ID = glCreateProgram();
+                glAttachShader(o.program.ID, defaultFrag.ID);
+                o.program.link();
+                o.array.create2DGrid(20, 20, o.intervals[0], o.intervals[1]);
             }
 
             if(o.type == point)
@@ -1288,22 +1309,71 @@ namespace tcc
         glDeleteBuffers(1, &ID);
     }
 
-    /*
+    
     void Array::create2DGrid(uint nx, uint ny, Interval &i, Interval &j)
     {
+        float *data = new float[nx*ny*2];
+        for(uint x = 0; x < nx; x++)
+        for(uint y = 0; y < ny; y++)
+        {
+            data[2*(x + y*nx)+0] = i.min + (i.max - i.min)*x/(nx-1);
+            data[2*(x + y*nx)+1] = j.min + (j.max - j.min)*y/(ny-1);
+        }
+
+        uint *eData = new uint[(nx-1)*(ny-1)*6];
+
+        for(uint x = 0; x < nx-1; x++)
+        for(uint y = 0; y < ny-1; y++)
+        {
+            eData[6*(x + y*(nx-1))+0] = x+0 + (y+0)*nx;
+            eData[6*(x + y*(nx-1))+1] = x+0 + (y+1)*nx;
+            eData[6*(x + y*(nx-1))+2] = x+1 + (y+0)*nx;
+            eData[6*(x + y*(nx-1))+3] = x+1 + (y+0)*nx;
+            eData[6*(x + y*(nx-1))+4] = x+0 + (y+1)*nx;
+            eData[6*(x + y*(nx-1))+5] = x+1 + (y+1)*nx;
+        }
+
+        glGenVertexArrays(1, &ID);
+        glBindVertexArray(ID);
+
+        {
+            buffers.push_back(new Buffer);
+            Buffer *buf = buffers.back();
+            glGenBuffers(1, &buf->ID);
+            glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
+            glBufferData(GL_ARRAY_BUFFER, nx*ny*2*sizeof(float), data, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+        }
+
+        {
+            buffers.push_back(new Buffer);
+            Buffer *buf = buffers.back();
+            glGenBuffers(1, &buf->ID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf->ID);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, (nx-1)*(ny-1)*6*sizeof(uint), eData, GL_STATIC_DRAW);
+        }
+
+        glBindVertexArray(0);
+        i.number = nx;
+        j.number = ny;
+        delete[] data;
+        delete[] eData;
     }
-    */
+    
 
     void Array::create1DGrid(uint nx, Interval &i)
     {
         float *data = new float[nx];
+
         for(uint x = 0; x < nx; x++)
             data[x] = i.min + (i.max-i.min)*x/(nx-1);
+
         glGenVertexArrays(1, &ID);
+        glBindVertexArray(ID);
         buffers.push_back(new Buffer);
         Buffer *buf = buffers.back();
         glGenBuffers(1, &buf->ID);
-        glBindVertexArray(ID);
         glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
         glBufferData(GL_ARRAY_BUFFER, nx*sizeof(float), data, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 1 * sizeof(float), (void*)0);

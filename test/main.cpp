@@ -23,11 +23,20 @@ Compiler *cmp{};
 void draw2(Obj &o)
 {
     if(!o.program.ID) return;
+    
     if(o.type == cmp->curve)
     {
         glUseProgram(o.program.ID);
         glBindVertexArray(o.array.ID);
         glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
+    }
+
+    if(o.type == cmp->surface)
+    {
+        glUseProgram(o.program.ID);
+        glBindVertexArray(o.array.ID);
+        uint count = o.intervals[0].number*o.intervals[1].number*6;
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
     }
 
     if(o.type == cmp->point)
@@ -113,7 +122,7 @@ int main(int, char**)
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(0); // Enable vsync
+    glfwSwapInterval(1); // Enable vsync
 
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
@@ -233,6 +242,8 @@ int main(int, char**)
                         ImGui::PopID();
                     }
                     if(o.type == cmp->curve)
+                        draw(o);
+                    if(o.type == cmp->surface)
                         draw(o);
                     if(o.type == cmp->point)
                         draw(o);
