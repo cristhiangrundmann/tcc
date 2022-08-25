@@ -44,36 +44,23 @@ namespace tcc
 
     typedef unsigned int uint;
 
-    struct Obj
-    {
-        Table *type{};
-        Table *name{};
-        SymbExpr *sub[2]{};
-        CompExpr *compSub[2]{};
-        std::vector<Interval> intervals;
-        std::vector<int> grids;
-        int nTuple{};
-
-        uint array{};
-        uint program{};
-    };
-
-    struct Subst
-    {
-        Table *var{};
-        CompExpr *exp{};
-        float number{};
-    };
-
     struct Size
     {
         uint width{};
         uint height{};
     };
 
+    struct Texture
+    {
+        uint ID{};
+        void create(Size size, uint base, uint type);
+        ~Texture();
+    };
+
     struct Framebuffer
     {
         uint ID{};
+        std::vector<Texture*> textures;
         ~Framebuffer();
     };
 
@@ -87,15 +74,9 @@ namespace tcc
     struct Program
     {
         uint ID{};
-        void link(uint shaders[], int size);
+        std::vector<Shader*> shaders;
+        void link();
         ~Program();
-    };
-
-    struct Texture
-    {
-        uint ID{};
-        void create(Size size, uint base, uint type);
-        ~Texture();
     };
 
     struct Buffer
@@ -107,7 +88,31 @@ namespace tcc
     struct Array
     {
         uint ID{};
+        std::vector<Buffer*> buffers;
+        void create1DGrid(uint nx, Interval &i);
+        void create2DGrid(uint nx, uint ny, Interval &i, Interval &j);
         ~Array();
+    };
+
+    struct Obj
+    {
+        Table *type{};
+        Table *name{};
+        SymbExpr *sub[2]{};
+        CompExpr *compSub[2]{};
+        std::vector<Interval> intervals;
+        std::vector<int> grids;
+        int nTuple{};
+
+        Program program{};
+        Array array{};
+    };
+
+    struct Subst
+    {
+        Table *var{};
+        CompExpr *exp{};
+        float number{};
     };
 
     struct Compiler : public Parser
@@ -117,24 +122,15 @@ namespace tcc
         std::vector<SymbExpr*> expStack;
         std::vector<Interval> intStack;
         std::vector<Obj> objects;
-        std::vector<std::unique_ptr<Framebuffer>> frames;
-        std::vector<std::unique_ptr<Shader>> shaders;
-        std::vector<std::unique_ptr<Program>> programs;
-        std::vector<std::unique_ptr<Texture>> textures;
-        std::vector<std::unique_ptr<Buffer>> buffers;
-        std::vector<std::unique_ptr<Array>> arrays;
 
-        uint curveFrag{};
-        uint frameTex0{};
-        uint frame{};
-        uint quad{};
-        uint block{};
+        Buffer block{};
         uint blockSize{};
+        Framebuffer frame{};
+        Array quad{};
+        Array line{};
+        Shader defaultFrag{};
 
-        void reset();
-
-        void create1DGrid(uint nx, Interval &i);
-        void create2DGrid(uint nx, uint ny, Interval &i, Interval &j);
+        bool compiled = false;
 
         void actInt(ExprType type);
         void actOp(ExprType type);

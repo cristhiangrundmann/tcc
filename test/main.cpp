@@ -22,11 +22,27 @@ Compiler *cmp{};
 
 void draw2(Obj &o)
 {
-    if(o.type != cmp->curve) return;
-    glUseProgram(o.program);
-    glBindVertexArray(o.array);
-    glLineWidth(5);
-    glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
+    if(!o.program.ID) return;
+    if(o.type == cmp->curve)
+    {
+        glUseProgram(o.program.ID);
+        glBindVertexArray(o.array.ID);
+        glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
+    }
+
+    if(o.type == cmp->point)
+    {
+        glUseProgram(o.program.ID);
+        glBindVertexArray(cmp->line.ID);
+        glDrawArrays(GL_POINTS, 0, 1);
+    }
+
+    if(o.type == cmp->vector)
+    {
+        glUseProgram(o.program.ID);
+        glBindVertexArray(cmp->line.ID);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
 }
 
 void draw(Obj &o)
@@ -45,7 +61,7 @@ void draw(Obj &o)
 
     std::vector<State> states;
 
-    glBindBuffer(GL_UNIFORM_BUFFER, cmp->block);
+    glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
     for(uint s = 0; s < o.grids.size(); s++)
     {
         Obj &o2 = cmp->objects[o.grids[s]];
@@ -82,7 +98,8 @@ void draw(Obj &o)
 
 int main(int, char**)
 {
-    cmp = new Compiler{};
+    cmp = new Compiler;
+
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return 1;
 
@@ -96,7 +113,7 @@ int main(int, char**)
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(0); // Enable vsync
 
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
@@ -119,6 +136,11 @@ int main(int, char**)
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
+
+    glEnable(GL_LINE_SMOOTH);
+    glLineWidth(10);
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10);
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -154,6 +176,11 @@ int main(int, char**)
     
             if(ImGui::Button("Compile"))
             {
+                if(cmp->compiled)
+                {
+                    delete cmp;
+                    cmp = new Compiler;
+                }
                 try
                 {
                     cmp->compile(text);
@@ -170,48 +197,53 @@ int main(int, char**)
 
             ImGui::Text("Status: %s", msg);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame);
-            glViewport(0, 0, 512, 512);
-            glClearColor(0,0,0,1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-
-            for(Obj &o : cmp->objects)
+            if(cmp->compiled)
             {
-                std::vector<Subst> subs;
-                if(o.type == cmp->curve)
+                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+                glViewport(0, 0, 512, 512);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                for(Obj &o : cmp->objects)
                 {
-                    draw(o);
-                }
-                if(o.type == cmp->param)
-                {
-                    ImGui::PushID(o.name);
-                    for(int i = 0; i < (int)o.intervals.size(); i++)
+                    std::vector<Subst> subs;
+                    if(o.type == cmp->param)
                     {
-                        ImGui::PushID(i);
-                        std::string str = o.name->getString();
-                        if(o.intervals.size() > 1)
+                        ImGui::PushID(o.name);
+                        for(int i = 0; i < (int)o.intervals.size(); i++)
                         {
-                            str += "_";
-                            str += std::to_string(i+1);
-                        }
-                        float cur = o.intervals[i].number;
-                        ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
-                            o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-                        if(cur != o.intervals[i].number)
-                        {
-                            glBindBuffer(GL_UNIFORM_BUFFER, cmp->block);
-                            glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
-                            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+                            ImGui::PushID(i);
+                            std::string str = o.name->getString();
+                            if(o.intervals.size() > 1)
+                            {
+                                str += "_";
+                                str += std::to_string(i+1);
+                            }
+                            float cur = o.intervals[i].number;
+                            ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
+                                o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                            if(cur != o.intervals[i].number)
+                            {
+                                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                                glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
+                                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+                            }
+                            ImGui::PopID();
                         }
                         ImGui::PopID();
                     }
-                    ImGui::PopID();
+                    if(o.type == cmp->curve)
+                        draw(o);
+                    if(o.type == cmp->point)
+                        draw(o);
+                    if(o.type == cmp->vector)
+                        draw(o);
                 }
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(512, 512));
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            ImGui::Image((void*)(intptr_t)cmp->frameTex0, ImVec2(512, 512));
             ImGui::End();
 		}
 

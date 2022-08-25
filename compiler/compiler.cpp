@@ -745,6 +745,7 @@ namespace tcc
             {
                 compile(e->sub[1], str, v);
                 int a = v;
+                if(e->sub[0]->name == id) break;
                 str << "\tfloat v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
                     << a << ");\n";
                 break;
@@ -798,69 +799,32 @@ namespace tcc
         +1.0f, +1.0f,
     };
 
-    void Compiler::reset()
-    {
-        for(Obj &o : objects)
-        {
-            o.name->type = TokenType::UNDEFINED;
-            o.name->argIndex = -1;
-            o.name->objIndex = -1;
-        }
-
-        curveFrag = 0;
-        frameTex0 = 0;
-        frame = 0;
-        quad = 0;
-        block = 0;
-
-        objects.clear();
-        symbExprs.clear();
-        compExprs.clear();
-        expStack.clear();
-        intStack.clear();
-        argList.clear();
-
-        frames.clear();
-        shaders.clear();
-        programs.clear();
-        textures.clear();
-        buffers.clear();
-        arrays.clear();
-
-    }
+    static float lineData[] = {0, 1};
 
     void Compiler::compile(const char *source)
     {
-        reset();
+        if(compiled) throw std::string("Program is already compiled");
+        compiled = true;
+
         parseProgram(source);
         std::vector<Subst> subs;
 
         std::stringstream hdr;
         header(hdr);
+        
+        glGenBuffers(1, &block.ID);
+        glBindBuffer(GL_UNIFORM_BUFFER, block.ID);
+        glBufferData(GL_UNIFORM_BUFFER, blockSize, NULL, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, block.ID);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         {
-            glGenBuffers(1, &block);
-            Buffer b{block};
-            buffers.push_back(std::make_unique<Buffer>(b));
-            b.ID = 0;
-            glBindBuffer(GL_UNIFORM_BUFFER, block);
-            glBufferData(GL_UNIFORM_BUFFER, blockSize, NULL, GL_DYNAMIC_DRAW);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 0, block);
-            glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        }
-
-        {
-            glGenVertexArrays(1, &quad);
-            Array arr{quad};
-            arrays.push_back(std::make_unique<Array>(arr));
-            arr.ID = 0;
-            uint vbo{};
-            glGenBuffers(1, &vbo);
-            Buffer buf{vbo};
-            buffers.push_back(std::make_unique<Buffer>(buf));
-            buf.ID = 0;
-            glBindVertexArray(quad);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glGenVertexArrays(1, &quad.ID);
+            quad.buffers.push_back(new Buffer);
+            Buffer *buf = quad.buffers.back();
+            glGenBuffers(1, &buf->ID);
+            glBindVertexArray(quad.ID);
+            glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
             glBufferData(GL_ARRAY_BUFFER, sizeof(quadData), quadData, GL_STATIC_DRAW);
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
             glEnableVertexAttribArray(0);
@@ -868,35 +832,35 @@ namespace tcc
         }
 
         {
-            glGenFramebuffers(1, &frame);
-            Framebuffer f{frame};
-            frames.push_back(std::make_unique<Framebuffer>(f));
-            f.ID = 0;
-            Texture tex;
-            tex.create({512, 512}, GL_RGB, GL_UNSIGNED_BYTE);
-            textures.push_back(std::make_unique<Texture>(tex));
-            frameTex0 = tex.ID;
-            glBindFramebuffer(GL_FRAMEBUFFER, frame);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.ID, 0);
-            uint b = GL_COLOR_ATTACHMENT0;
-            glNamedFramebufferDrawBuffers(frame, 1, &b);
-            tex.ID = 0;
+            glGenVertexArrays(1, &line.ID);
+            line.buffers.push_back(new Buffer);
+            Buffer *buf = line.buffers.back();
+            glGenBuffers(1, &buf->ID);
+            glBindVertexArray(line.ID);
+            glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(lineData), lineData, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+            glBindVertexArray(0);
         }
+        
+        glGenFramebuffers(1, &frame.ID);
+        frame.textures.push_back(new Texture);
+        Texture *tex = frame.textures.back();
+        tex->create({512, 512}, GL_RGB, GL_UNSIGNED_BYTE);
+        glBindFramebuffer(GL_FRAMEBUFFER, frame.ID);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+        uint b = GL_COLOR_ATTACHMENT0;
+        glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        {
-            Shader s;
-            s.compile(GL_FRAGMENT_SHADER, 
-            "#version 460 core\n"
-            "layout (location = 0) out vec4 color;\n"
-            "void main()\n{\n"
-            "color = vec4(1, 1, 1, 1);\n"
-            "\n}\n"
-            );
-
-            shaders.push_back(std::make_unique<Shader>(s));
-            curveFrag = s.ID;
-            s.ID = 0;
-        }
+        defaultFrag.compile(GL_FRAGMENT_SHADER, 
+        "#version 460 core\n"
+        "layout (location = 0) out vec4 color;\n"
+        "void main()\n{\n"
+        "color = vec4(1, 1, 1, 1);\n"
+        "\n}\n"
+        );
 
         for(int objIndex = 0; objIndex < (int)objects.size(); objIndex++)
         {
@@ -951,32 +915,26 @@ namespace tcc
                     throw std::string("Curves should be in 2d or 3d space");
 
                 if(o.nTuple != 3) return;
-
                 str << "#version 460 core\n" << hdr.str();
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
                 compileFunction(o.compSub[0], o.name->argIndex, str, o.name->getString());
                 compileFunction(compute(&ct, subs), o.name->argIndex, str, o.name->getString() + "_t");
-
+                
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = vec4(";
                 str << "F" << o.name->getString() << "(t), 1);\n}\n";
                 
-                printf("%s\n", str.str().c_str());
-                Shader s;
-                s.compile(GL_VERTEX_SHADER, str.str().c_str());
-                Program p;
-                uint shads[] = {curveFrag, s.ID};
-                p.link(shads, 2);
-                programs.push_back(std::make_unique<Program>(p));
-                o.program = p.ID;
-                p.ID = 0;
-
-                create1DGrid(10, o.intervals[0]);
-
-                o.array = arrays.back().get()->ID;
+                o.program.shaders.push_back(new Shader);
+                Shader *sh = o.program.shaders.back();
+                sh->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program.ID = glCreateProgram();
+                glAttachShader(o.program.ID, defaultFrag.ID);
+                o.program.link();
+                o.array.create1DGrid(20, o.intervals[0]);
             }
+
             if(o.type == surface)
             {
                 if(argList[o.name->argIndex].size() != 2)
@@ -1018,7 +976,29 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
                 if(o.nTuple != 2 && o.nTuple != 3)
                     throw std::string("Points must be in 2d or 3d space");
+
+                if(o.nTuple != 3) return;
+                str << "#version 460 core\n" << hdr.str();
+
                 compileFunction(o.compSub[0], -1, str, o.name->getString());
+
+                str << "void main()\n{\n";
+                str << "gl_Position = vec4(";
+                str << "F" << o.name->getString() << "(), 1);\n}\n";
+
+                o.program.shaders.push_back(new Shader);
+                o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program.shaders.push_back(new Shader);
+                o.program.shaders[1]->compile(GL_FRAGMENT_SHADER, 
+                "#version 460 core\n"
+                "layout (location = 0) out vec4 color;\n"
+                "void main()\n{\n"
+                "float k = 1;\n"
+                "if(length(gl_PointCoord - vec2(0.5, 0.5)) > 0.5) k = 0;\n"
+                "color = vec4(k, k, 1-k, 1);\n"
+                "\n}\n");
+
+                o.program.link();
             }
 
             if(o.type == vector)
@@ -1032,8 +1012,30 @@ namespace tcc
                     throw std::string("Vectors must be in 2d or 3d space");
                 if(o.compSub[1]->nTuple != o.nTuple)
                     throw std::string("Inconsistent space dimensions");
+
+                if(o.nTuple != 3) return;
+                str << "#version 460 core\n" << hdr.str();
+
                 compileFunction(o.compSub[0], -1, str, o.name->getString());
                 compileFunction(o.compSub[1], -1, str, o.name->getString()+"_org");
+
+                str << "layout (location = 0) in float t;\n";
+                str << "void main()\n{\n";
+                str << "gl_Position = vec4(";
+                str << "F" << o.name->getString() << "_org()+t*";
+                str << "F" << o.name->getString() << "(), 1);\n}\n";
+
+                o.program.shaders.push_back(new Shader);
+                o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program.shaders.push_back(new Shader);
+                o.program.shaders[1]->compile(GL_FRAGMENT_SHADER, 
+                "#version 460 core\n"
+                "layout (location = 0) out vec4 color;\n"
+                "void main()\n{\n"
+                "color = vec4(0, 0, 1, 1);\n"
+                "\n}\n");
+
+                o.program.link();
             }
         }
     }
@@ -1180,12 +1182,12 @@ namespace tcc
             case C(UMINUS):
             case C(UDIVIDE):
                 dependencies(e->sub[0], grids, allow);
+                break;
             case C(APP):
                 dependencies(e->sub[1], grids, allow);
                 break;
             case C(CONSTANT):
                 if(e->name->objIndex == -1) return;
-            case C(COMPONENT):
                 if(!allow)
                     throw std::string("Invalid dependency");
                 if(objects[e->name->objIndex].type == grid)
@@ -1194,6 +1196,17 @@ namespace tcc
                         if(k == e->name->objIndex)
                             return;
                     grids.push_back(e->name->objIndex);
+                }
+                break;
+            case C(COMPONENT):
+                if(!allow)
+                    throw std::string("Invalid dependency");
+                if(objects[e->sub[0]->name->objIndex].type == grid)
+                {
+                    for(int k : grids)
+                        if(k == e->sub[0]->name->objIndex)
+                            return;
+                    grids.push_back(e->sub[0]->name->objIndex);
                 }
                 break;
             case C(FUNCTION):
@@ -1208,7 +1221,8 @@ namespace tcc
 
     Framebuffer::~Framebuffer()
     {
-        printf("framebuffer %d gone\n", ID);
+        for(Texture *t : textures)
+            delete t;
         glDeleteFramebuffers(1, &ID);
     }
 
@@ -1229,15 +1243,14 @@ namespace tcc
 
     Shader::~Shader()
     {
-        printf("shader %d gone\n", ID);
         glDeleteShader(ID);
     }
 
-    void Program::link(uint shaders[], int size)
+    void Program::link()
     {
-        ID = glCreateProgram();
-        for(int k = 0; k < size; k++)
-            glAttachShader(ID, shaders[k]);
+        if(!ID) ID = glCreateProgram();
+        for(Shader *s : shaders)
+            glAttachShader(ID, s->ID);
         glLinkProgram(ID);
         int success;
         static char infoLog[512];
@@ -1251,7 +1264,8 @@ namespace tcc
 
     Program::~Program()
     {
-        printf("program %d gone\n", ID);
+        for(Shader *s : shaders)
+            delete s;
         glDeleteProgram(ID);
     }
 
@@ -1266,49 +1280,43 @@ namespace tcc
 
     Texture::~Texture()
     {
-        printf("texture %d gone\n", ID);
         glDeleteTextures(1, &ID);
     }
 
     Buffer::~Buffer()
     {
-        printf("buffer %d gone\n", ID);
         glDeleteBuffers(1, &ID);
     }
 
-    void Compiler::create2DGrid(uint nx, uint ny, Interval &i, Interval &j)
+    /*
+    void Array::create2DGrid(uint nx, uint ny, Interval &i, Interval &j)
     {
     }
+    */
 
-    void Compiler::create1DGrid(uint nx, Interval &i)
+    void Array::create1DGrid(uint nx, Interval &i)
     {
         float *data = new float[nx];
         for(uint x = 0; x < nx; x++)
-        {
             data[x] = i.min + (i.max-i.min)*x/(nx-1);
-        }
-
-        Array arr;
-        glGenVertexArrays(1, &arr.ID);
-        arrays.push_back(std::make_unique<Array>(arr));
-        Buffer buf;
-        glGenBuffers(1, &buf.ID);
-        buffers.push_back(std::make_unique<Buffer>(buf));
-        glBindVertexArray(arr.ID);
-        glBindBuffer(GL_ARRAY_BUFFER, buf.ID);
+        glGenVertexArrays(1, &ID);
+        buffers.push_back(new Buffer);
+        Buffer *buf = buffers.back();
+        glGenBuffers(1, &buf->ID);
+        glBindVertexArray(ID);
+        glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
         glBufferData(GL_ARRAY_BUFFER, nx*sizeof(float), data, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 1 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
         glBindVertexArray(0);
-        buf.ID = 0;
-        arr.ID = 0;
         i.number = nx;
         delete[] data;
     }
 
     Array::~Array()
     {
-        printf("array %d gone\n", ID);
+        for(Buffer *b : buffers)
+            delete b;
         glDeleteVertexArrays(1, &ID);
     }
 };
