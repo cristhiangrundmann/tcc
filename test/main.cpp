@@ -7,8 +7,12 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 using namespace tcc;
+using namespace glm;
 using std::vector;
 using std::unique_ptr;
 using std::make_unique;
@@ -33,10 +37,12 @@ void draw2(Obj &o)
 
     if(o.type == cmp->surface)
     {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glUseProgram(o.program.ID);
         glBindVertexArray(o.array.ID);
         uint count = o.intervals[0].number*o.intervals[1].number*6;
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     if(o.type == cmp->point)
@@ -208,6 +214,11 @@ int main(int, char**)
 
             if(cmp->compiled)
             {
+                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                mat4 id = identity<mat4>();
+                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &id);
+                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
                 glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
                 glViewport(0, 0, 512, 512);
                 glClearColor(0, 0, 0, 1);

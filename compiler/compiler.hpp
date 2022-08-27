@@ -105,7 +105,9 @@ namespace tcc
         int nTuple{};
 
         Program program{};
+        Program program2{};
         Array array{};
+        Framebuffer frame{};
     };
 
     struct Subst
@@ -128,6 +130,7 @@ namespace tcc
         Framebuffer frame{};
         Array quad{};
         Array line{};
+        Shader defaultVert{};
         Shader defaultFrag{};
 
         bool compiled = false;

@@ -865,10 +865,18 @@ namespace tcc
         "\n}\n"
         );
 
+        defaultVert.compile(GL_VERTEX_SHADER, 
+        "#version 460 core\n"
+        "layout (location = 0) in vec2 pos;\n"
+        "out vec2 opos;\n"
+        "void main()\n{\n"
+        "gl_Position = vec4(pos, 0, 1);\n"
+        "opos = pos;\n"
+        "\n}\n"
+        );
+
         for(int objIndex = 0; objIndex < (int)objects.size(); objIndex++)
         {
-            std::stringstream str;
-
             Obj &o = objects[objIndex];
             if(o.type == param)
             {
@@ -903,6 +911,7 @@ namespace tcc
             }
             if(o.type == curve)
             {
+                std::stringstream str;
                 if(argList[o.name->argIndex].size() != 1)
                     throw std::string("Curves should have 1 parameter");
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
@@ -921,13 +930,13 @@ namespace tcc
                 str << "#version 460 core\n" << hdr.str();
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
-                compileFunction(o.compSub[0], o.name->argIndex, str, o.name->getString());
-                compileFunction(compute(&ct, subs), o.name->argIndex, str, o.name->getString() + "_t");
+                compileFunction(o.compSub[0], o.name->argIndex, str, "c");
+                compileFunction(compute(&ct, subs), o.name->argIndex, str, "c_t");
                 
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(";
-                str << "F" << o.name->getString() << "(t), 1);\n}\n";
+                str << "c(t), 1);\n}\n";
                 
                 o.program.shaders.push_back(new Shader);
                 Shader *sh = o.program.shaders.back();
@@ -940,6 +949,7 @@ namespace tcc
 
             if(o.type == surface)
             {
+                std::stringstream str;
                 if(argList[o.name->argIndex].size() != 2)
                     throw std::string("Surface should have 2 parameters");
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
@@ -968,30 +978,71 @@ namespace tcc
                 SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
-                compileFunction(o.compSub[0], o.name->argIndex, str, o.name->getString());
-                compileFunction(compute(&s_u, subs), o.name->argIndex, str, o.name->getString() + "_u");
-                compileFunction(compute(&s_v, subs), o.name->argIndex, str, o.name->getString() + "_v");
-                compileFunction(compute(&s_uu, subs), o.name->argIndex, str, o.name->getString() + "_uu");
-                compileFunction(compute(&s_uv, subs), o.name->argIndex, str, o.name->getString() + "_uv");
-                compileFunction(compute(&s_vv, subs), o.name->argIndex, str, o.name->getString() + "_vv");
-
+                
+                compileFunction(o.compSub[0], o.name->argIndex, str, "s");
+                
                 str << "layout (location = 0) in vec2 uv;\n";
+                str << "out vec2 opos;\n";
                 str << "void main()\n{\n";
+                str << "opos = uv;\n";
                 str << "gl_Position = camera*vec4(";
-                str << "F" << o.name->getString() << "(uv.x, uv.y), 1);\n}\n";
+                str << "s(uv.x, uv.y), 1);\n}\n";
 
-                o.program.shaders.push_back(new Shader);
-                Shader *sh = o.program.shaders.back();
+                {
+                    o.program.shaders.push_back(new Shader);
+                    Shader *sh = o.program.shaders.back();
 
-                sh->compile(GL_VERTEX_SHADER, str.str().c_str());
-                o.program.ID = glCreateProgram();
-                glAttachShader(o.program.ID, defaultFrag.ID);
-                o.program.link();
-                o.array.create2DGrid(20, 20, o.intervals[0], o.intervals[1]);
+                    sh->compile(GL_VERTEX_SHADER, str.str().c_str());
+                    o.program.ID = glCreateProgram();
+                    glAttachShader(o.program.ID, defaultFrag.ID);
+                    o.program.link();
+                    o.array.create2DGrid(20, 20, o.intervals[0], o.intervals[1]);
+                }
+
+                /*str = std::stringstream();
+
+                str << "#version 460 core\n" << hdr.str();
+
+                compileFunction(o.compSub[0], o.name->argIndex, str, "s");
+                compileFunction(compute(&s_u, subs), o.name->argIndex, str,  "s_u");
+                compileFunction(compute(&s_v, subs), o.name->argIndex, str,  "s_v");
+                compileFunction(compute(&s_uu, subs), o.name->argIndex, str, "s_uu");
+                compileFunction(compute(&s_uv, subs), o.name->argIndex, str, "s_uv");
+                compileFunction(compute(&s_vv, subs), o.name->argIndex, str, "s_vv");
+
+                str << "float E(float u, float v)   {return dot(s_u(u,v),s_u(u,v));}\n";
+                str << "float E_u(float u, float v) {return 2*dot(s_u(u,v),s_uu(u,v));}\n";
+                str << "float E_v(float u, float v) {return 2*dot(s_u(u,v),s_uv(u,v));}\n";
+
+                str << "float F(float u, float v)   {return dot(s_u(u,v),s_v(u,v));}\n";
+                str << "float F_u(float u, float v) {return dot(s_uu(u,v),s_v(u,v)) + dot(s_u(u,v),s_uv(u,v));}\n";
+                str << "float F_v(float u, float v) {return dot(s_uv(u,v),s_v(u,v)) + dot(s_u(u,v),s_vv(u,v));}\n";
+
+                str << "float G(float u, float v)   {return dot(s_v(u,v),s_v(u,v));}\n";
+                str << "float G_u(float u, float v) {return 2*dot(s_v(u,v),s_uv(u,v));}\n";
+                str << "float G_v(float u, float v) {return 2*dot(s_v(u,v),s_vv(u,v));}\n";
+
+                str << "layout (location = 0) out vec4 color;\n";
+                str << "in vec2 opos;\n";
+                str << "void main()\n{\n";
+                str << ""
+
+
+                printf("%s\n", str.str().c_str());
+
+                {
+                    o.program2.shaders.push_back(new Shader);
+                    Shader *sh = o.program.shaders.back();
+                    sh->compile(GL_FRAGMENT_SHADER, str.str().c_str());
+                    o.program2.ID = glCreateProgram();
+                    glAttachShader(o.program2.ID, defaultVert.ID);
+                    o.program2.link();
+                }*/
             }
 
             if(o.type == point)
             {
+                std::stringstream str;
                 o.compSub[0] = compute(o.sub[0], subs);
                 dependencies(o.compSub[0], o.grids, true);
                 o.nTuple = o.compSub[0]->nTuple;
@@ -1001,11 +1052,11 @@ namespace tcc
                 if(o.nTuple != 3) return;
                 str << "#version 460 core\n" << hdr.str();
 
-                compileFunction(o.compSub[0], -1, str, o.name->getString());
+                compileFunction(o.compSub[0], -1, str, "p");
 
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(";
-                str << "F" << o.name->getString() << "(), 1);\n}\n";
+                str << "p(), 1);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1024,6 +1075,7 @@ namespace tcc
 
             if(o.type == vector)
             {
+                std::stringstream str;
                 o.compSub[0] = compute(o.sub[0], subs);
                 o.compSub[1] = compute(o.sub[1], subs);
                 dependencies(o.compSub[0], o.grids, true);
@@ -1037,14 +1089,12 @@ namespace tcc
                 if(o.nTuple != 3) return;
                 str << "#version 460 core\n" << hdr.str();
 
-                compileFunction(o.compSub[0], -1, str, o.name->getString());
-                compileFunction(o.compSub[1], -1, str, o.name->getString()+"_org");
+                compileFunction(o.compSub[0], -1, str, "v");
+                compileFunction(o.compSub[1], -1, str, "v_org");
 
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
-                str << "gl_Position = camera*vec4(";
-                str << "F" << o.name->getString() << "_org()+t*";
-                str << "F" << o.name->getString() << "(), 1);\n}\n";
+                str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1106,12 +1156,12 @@ namespace tcc
     void Compiler::declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly)
     {
         if(N == 1)
-            str << "float";
+            str << "float ";
         else if(N == 2 || N == 3)
-            str << "vec" << N;
+            str << "vec" << N << " ";
         else throw std::string("Cannot compile tuples of more than 4 components");
 
-        str << " F" << name << "(";
+        str << name << "(";
         if(argIndex != -1)
         {
             int args = argList[argIndex].size();
@@ -1244,7 +1294,8 @@ namespace tcc
     {
         for(Texture *t : textures)
             delete t;
-        glDeleteFramebuffers(1, &ID);
+        textures.clear();
+        if(ID) glDeleteFramebuffers(1, &ID);
     }
 
     void Shader::compile(uint type, const char *source)
@@ -1264,7 +1315,7 @@ namespace tcc
 
     Shader::~Shader()
     {
-        glDeleteShader(ID);
+        if(ID) glDeleteShader(ID);
     }
 
     void Program::link()
@@ -1287,7 +1338,8 @@ namespace tcc
     {
         for(Shader *s : shaders)
             delete s;
-        glDeleteProgram(ID);
+        shaders.clear();
+        if(ID) glDeleteProgram(ID);
     }
 
     void Texture::create(Size s, uint base, uint type)
@@ -1301,12 +1353,12 @@ namespace tcc
 
     Texture::~Texture()
     {
-        glDeleteTextures(1, &ID);
+        if(ID) glDeleteTextures(1, &ID);
     }
 
     Buffer::~Buffer()
     {
-        glDeleteBuffers(1, &ID);
+        if(ID) glDeleteBuffers(1, &ID);
     }
 
     
@@ -1387,7 +1439,8 @@ namespace tcc
     {
         for(Buffer *b : buffers)
             delete b;
-        glDeleteVertexArrays(1, &ID);
+        buffers.clear();
+        if(ID) glDeleteVertexArrays(1, &ID);
     }
 };
 
