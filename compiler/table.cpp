@@ -45,6 +45,7 @@ namespace tcc
             t->parent = this;
             t->character = c;
             t->length = length+1;
+            t->str = str + c;
         }
         return children[index].get();
     }
@@ -75,11 +76,5 @@ namespace tcc
         Table *t = procString(text, false);
         t->type = type;
         return t;
-    }
-
-    std::string Table::getString()
-    {
-        if(!character) return std::string("");
-        return parent->getString() + character;
     }
 }

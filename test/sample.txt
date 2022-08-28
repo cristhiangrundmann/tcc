@@ -1,0 +1,24 @@
+param r : [/2, 1];
+param o : [0, 2pi];
+curve c(t) = r(cost, sint, 0), t : [0, 2pi];
+grid k : [0, 2pi, 8];
+define k2 = k + o;
+point p = ck2;
+vector v = c'k2 @ p;
+
+
+param u : [0, 2pi];
+define r = (sinu+1)/4+/2;
+
+param o : [0, 2pi];
+define l = 5o;
+
+curve c(t) = r(cost, -sint, 0), t : [0, 2pi];
+
+vector vx = r(-cosl, 0, 0) @ cl;
+vector vy = r(0, sinl, 0) @ cl;
+
+vector xx = 2r(1, 0, 0) @ (-r, 0, 0);
+vector yy = 2r(0, 1, 0) @ (0, -r, 0);
+
+point p = cl;

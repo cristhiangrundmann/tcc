@@ -679,15 +679,15 @@ namespace tcc
                 str << "\tfloat v" << ++v << "=" << e->number << ";\n";
                 break;
             case C(VARIABLE):
-                str << "\tfloat v" << ++v << "=V" << e->name->getString() << ";\n";
+                str << "\tfloat v" << ++v << "=V" << e->name->str << ";\n";
                 break;
             case C(CONSTANT):
                 if(e->nTuple == 1)
-                    str << "\tfloat v" << ++v << "=C" << e->name->getString() << ";\n";
+                    str << "\tfloat v" << ++v << "=C" << e->name->str << ";\n";
                 else
                 {
                     for(int i = 0; i < e->nTuple; i++)
-                        str << "\tfloat v" << ++v << "=C" << e->name->getString() << "_" << i+1 << ";\n";                    
+                        str << "\tfloat v" << ++v << "=C" << e->name->str << "_" << i+1 << ";\n";                    
                 }
                 break;
             case C(COMPONENT):
@@ -698,7 +698,7 @@ namespace tcc
                 if(name->objIndex == -1) throw std::string("Invalid expression");
                 Obj o = objects[name->objIndex];
                 if(o.type != grid && o.type != param) throw std::string("Invalid expression");
-                str << "\tfloat v" << ++v << "=C" << e->sub[0]->name->getString() << "_" << e->number << ";\n";
+                str << "\tfloat v" << ++v << "=C" << e->sub[0]->name->str << "_" << e->number << ";\n";
                 break;
             }
             case C(PLUS):
@@ -749,7 +749,7 @@ namespace tcc
                 compile(e->sub[1], str, v);
                 int a = v;
                 if(e->sub[0]->name == id) break;
-                str << "\tfloat v" << ++v << "=" << e->sub[0]->name->getString() << "(v"
+                str << "\tfloat v" << ++v << "=" << e->sub[0]->name->str << "(v"
                     << a << ");\n";
                 break;
             }
@@ -819,7 +819,6 @@ namespace tcc
         glBindBuffer(GL_UNIFORM_BUFFER, block.ID);
         glBufferData(GL_UNIFORM_BUFFER, blockSize, NULL, GL_DYNAMIC_DRAW);
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, block.ID);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         {
             glGenVertexArrays(1, &quad.ID);
@@ -859,9 +858,10 @@ namespace tcc
 
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
         "#version 460 core\n"
+        "layout (location = 0) uniform vec4 col;\n"
         "layout (location = 0) out vec4 color;\n"
         "void main()\n{\n"
-        "color = vec4(1, 1, 1, 1);\n"
+        "color = col;\n"
         "\n}\n"
         );
 
@@ -890,6 +890,7 @@ namespace tcc
                     i.max = calculate(i.compSub[1], subs);
                     if(i.max < i.min) throw std::string("Degenerate interval");
                     i.number = i.min;
+                    glBufferSubData(GL_UNIFORM_BUFFER, i.offset, 4, &i.number);
                 }
             }
             if(o.type == grid)
@@ -945,6 +946,12 @@ namespace tcc
                 glAttachShader(o.program.ID, defaultFrag.ID);
                 o.program.link();
                 o.array.create1DGrid(20, o.intervals[0]);
+                o.col[0] = 1;
+                o.col[1] = 0;
+                o.col[2] = 0;
+                o.col[3] = 1;
+                glUseProgram(o.program.ID);
+                glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
 
             if(o.type == surface)
@@ -997,6 +1004,13 @@ namespace tcc
                     glAttachShader(o.program.ID, defaultFrag.ID);
                     o.program.link();
                     o.array.create2DGrid(20, 20, o.intervals[0], o.intervals[1]);
+
+                    o.col[0] = 0;
+                    o.col[1] = 0;
+                    o.col[2] = 1;
+                    o.col[3] = 1;
+                    glUseProgram(o.program.ID);
+                    glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
                 }
 
                 /*str = std::stringstream();
@@ -1060,17 +1074,18 @@ namespace tcc
 
                 o.program.shaders.push_back(new Shader);
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
-                o.program.shaders.push_back(new Shader);
-                o.program.shaders[1]->compile(GL_FRAGMENT_SHADER, 
-                "#version 460 core\n"
-                "layout (location = 0) out vec4 color;\n"
-                "void main()\n{\n"
-                "float k = 1;\n"
-                "if(length(gl_PointCoord - vec2(0.5, 0.5)) > 0.5) k = 0;\n"
-                "color = vec4(k, k, 1-k, 1);\n"
-                "\n}\n");
+
+                o.program.ID = glCreateProgram();
+                glAttachShader(o.program.ID, defaultFrag.ID);
 
                 o.program.link();
+
+                o.col[0] = 1;
+                o.col[1] = 1;
+                o.col[2] = 0;
+                o.col[3] = 1;
+                glUseProgram(o.program.ID);
+                glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
 
             if(o.type == vector)
@@ -1098,15 +1113,18 @@ namespace tcc
 
                 o.program.shaders.push_back(new Shader);
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
-                o.program.shaders.push_back(new Shader);
-                o.program.shaders[1]->compile(GL_FRAGMENT_SHADER, 
-                "#version 460 core\n"
-                "layout (location = 0) out vec4 color;\n"
-                "void main()\n{\n"
-                "color = vec4(0, 0, 1, 1);\n"
-                "\n}\n");
+
+                o.program.ID = glCreateProgram();
+                glAttachShader(o.program.ID, defaultFrag.ID);
 
                 o.program.link();
+
+                o.col[0] = 1;
+                o.col[1] = 0;
+                o.col[2] = 1;
+                o.col[3] = 1;
+                glUseProgram(o.program.ID);
+                glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
         }
     }
@@ -1122,7 +1140,7 @@ namespace tcc
             {
                 for(int i = 0; i < (int)o.intervals.size(); i++)
                 {
-                    str << "\tfloat C" << o.name->getString();
+                    str << "\tfloat C" << o.name->str;
                     if((int)o.intervals.size() != 1)
                         str << "_" << i+1;
                     str  << ";\n";
@@ -1167,7 +1185,7 @@ namespace tcc
             int args = argList[argIndex].size();
             for(int i = 0; i < args; i++)
             {
-                str << "float V" << argList[argIndex][i]->getString();
+                str << "float V" << argList[argIndex][i]->str;
                 if(i < args-1) str << ", ";
             }
         }

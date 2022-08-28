@@ -31,11 +31,11 @@ namespace tcc
         int length = 0;
         TokenType type = TokenType::UNDEFINED;
         char character{};
+        std::string str{};
 
         Table *next(char c);
         Table *procString(const char *str, bool match);
         Table *initString(const char *str, TokenType type);
-        std::string getString();
     };
 
 }

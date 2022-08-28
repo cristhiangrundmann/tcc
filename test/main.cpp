@@ -125,7 +125,7 @@ int main(int, char**)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "tcc", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
@@ -169,18 +169,7 @@ int main(int, char**)
         ImGui::NewFrame();
 
 		{
-
-            static bool use_work_area = true;
-            static ImGuiWindowFlags flags = 
-                //ImGuiWindowFlags_NoDecoration | 
-                ImGuiWindowFlags_NoMove | 
-                ImGuiWindowFlags_NoResize | 
-                ImGuiWindowFlags_NoSavedSettings;
-
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(use_work_area ? viewport->WorkPos : viewport->Pos);
-            ImGui::SetNextWindowSize(use_work_area ? viewport->WorkSize : viewport->Size);
-			ImGui::Begin("Function Test", nullptr, flags);
+			ImGui::Begin("Function Test");
 			static char text[1024 * 16];
             ImGui::PushFont(f2);
             ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
@@ -211,63 +200,99 @@ int main(int, char**)
             }
 
             ImGui::Text("Status: %s", msg);
+            ImGui::End();
+		}
 
-            if(cmp->compiled)
+        static float _t = 0;
+        float _t2 = ImGui::GetTime();
+
+        if(cmp->compiled)
+        {
+            ImGui::Begin("Settings");
+            glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+            mat4 id = identity<mat4>();
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &id);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+            glViewport(0, 0, 512, 512);
+            glClearColor(0, 0, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            for(Obj &o : cmp->objects)
             {
-                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-                mat4 id = identity<mat4>();
-                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &id);
-                glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-                glViewport(0, 0, 512, 512);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                for(Obj &o : cmp->objects)
+                std::vector<Subst> subs;
+                if(o.type == cmp->param)
                 {
-                    std::vector<Subst> subs;
-                    if(o.type == cmp->param)
+                    ImGui::PushID(o.name);
+                    for(int i = 0; i < (int)o.intervals.size(); i++)
                     {
-                        ImGui::PushID(o.name);
-                        for(int i = 0; i < (int)o.intervals.size(); i++)
+                        ImGui::PushID(i);
+                        std::string str = o.name->str;
+                        if(o.intervals.size() > 1)
                         {
-                            ImGui::PushID(i);
-                            std::string str = o.name->getString();
-                            if(o.intervals.size() > 1)
-                            {
-                                str += "_";
-                                str += std::to_string(i+1);
-                            }
-                            float cur = o.intervals[i].number;
-                            ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
-                                o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-                            if(cur != o.intervals[i].number)
-                            {
-                                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-                                glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
-                                glBindBuffer(GL_UNIFORM_BUFFER, 0);
-                            }
-                            ImGui::PopID();
+                            str += "_";
+                            str += std::to_string(i+1);
+                        }
+                        float cur = o.intervals[i].number;
+                        ImGui::Checkbox("Animate", &o.intervals[i].animate);
+                        ImGui::SameLine();
+                        if(o.intervals[i].animate)
+                        {
+                            float t = o.intervals[i].number + (_t2 - _t);
+                            if(t > o.intervals[i].max) t = o.intervals[i].min;
+                            o.intervals[i].number = t;
+                        }
+        
+                        ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
+                            o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+                        if(cur != o.intervals[i].number)
+                        {
+                            glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                            glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
                         }
                         ImGui::PopID();
                     }
-                    if(o.type == cmp->curve)
-                        draw(o);
-                    if(o.type == cmp->surface)
-                        draw(o);
-                    if(o.type == cmp->point)
-                        draw(o);
-                    if(o.type == cmp->vector)
-                        draw(o);
+                    ImGui::PopID();
                 }
 
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(512, 512));
+                if(o.type == cmp->curve ||
+                o.type == cmp->surface ||
+                o.type == cmp->point ||
+                o.type == cmp->vector)
+                {
+                    Color col = {o.col[0], o.col[1], o.col[2], o.col[3]};
+                    ImGui::PushID(o.name);
+                    ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs);
+                    ImGui::PopID();
+
+                    if(col[0] != o.col[0] ||
+                    col[1] != o.col[1] ||
+                    col[2] != o.col[2] ||
+                    col[3] != o.col[3])
+                    {
+                        glUseProgram(o.program.ID);
+                        glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+                    }
+
+                    draw(o);
+                }
             }
 
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
             ImGui::End();
-		}
+        }
+
+        _t = _t2;
+
+
+        if(cmp->compiled)
+        {
+            ImGui::Begin("Output");
+            ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(512, 512));
+            ImGui::End();
+        }
 
         // Rendering
         ImGui::Render();

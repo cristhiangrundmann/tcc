@@ -40,6 +40,7 @@ namespace tcc
         float number{};
         float min{}, max{};
         int offset{};
+        bool animate{};
     };
 
     typedef unsigned int uint;
@@ -94,6 +95,8 @@ namespace tcc
         ~Array();
     };
 
+    typedef float Color[4];
+
     struct Obj
     {
         Table *type{};
@@ -108,6 +111,8 @@ namespace tcc
         Program program2{};
         Array array{};
         Framebuffer frame{};
+
+        Color col{};
     };
 
     struct Subst
