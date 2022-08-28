@@ -47,6 +47,7 @@ void draw2(Obj &o)
 
     if(o.type == cmp->point)
     {
+        glPointSize(10);
         glUseProgram(o.program.ID);
         glBindVertexArray(cmp->line.ID);
         glDrawArrays(GL_POINTS, 0, 1);
@@ -54,9 +55,12 @@ void draw2(Obj &o)
 
     if(o.type == cmp->vector)
     {
-        glUseProgram(o.program.ID);
+        glPointSize(40);
         glBindVertexArray(cmp->line.ID);
+        glUseProgram(o.program.ID);
         glDrawArrays(GL_LINES, 0, 2);
+        glUseProgram(o.program2.ID);
+        glDrawArrays(GL_POINTS, 1, 1);
     }
 }
 
@@ -153,9 +157,7 @@ int main(int, char**)
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     glEnable(GL_LINE_SMOOTH);
-    glLineWidth(10);
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10);
+    glLineWidth(20);
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -267,15 +269,23 @@ int main(int, char**)
                     ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs);
                     ImGui::PopID();
 
+                    glUseProgram(o.program.ID);
+
                     if(col[0] != o.col[0] ||
                     col[1] != o.col[1] ||
                     col[2] != o.col[2] ||
                     col[3] != o.col[3])
                     {
-                        glUseProgram(o.program.ID);
                         glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+
+                        if(o.type == cmp->vector)
+                        {
+                            glUseProgram(o.program2.ID);
+                            glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+                        }
                     }
 
+                    glUseProgram(o.program.ID);
                     draw(o);
                 }
             }

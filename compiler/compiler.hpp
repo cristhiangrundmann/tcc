@@ -136,6 +136,8 @@ namespace tcc
         Array quad{};
         Array line{};
         Shader defaultVert{};
+        Shader pointFrag{};
+        Shader arrowFrag{};
         Shader defaultFrag{};
 
         bool compiled = false;

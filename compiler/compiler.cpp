@@ -378,7 +378,7 @@ namespace tcc
                 CompExpr *c = op(C(TUPLE));
                 c->nTuple = c0->nTuple;
                 for(int i = 0; i < c->nTuple; i++)
-                    c->sub.push_back(op(type, _comp(c0, i+1, subs), _comp(c0, i+1, subs)));
+                    c->sub.push_back(op(type, _comp(c0, i+1, subs), _comp(c1, i+1, subs)));
                 return c;
             }
             case S(JUX):
@@ -407,16 +407,20 @@ namespace tcc
                     throw std::string("Inconsistent tuple size");
 
                 std::vector<CompExpr*> terms;
+    
                 for(int i = 0; i < c0->nTuple; i++)
-                    terms.push_back(op(C(TIMES), _comp(c0, i+1, subs), _comp(c1, i+1, subs)));
-
+                {
+                    CompExpr *res = op(C(TIMES), _comp(c0, i+1, subs), _comp(c1, i+1, subs));
+                    if(res->nTuple != 1) throw std::string("Invalid juxtaposition");
+                    terms.push_back(res);
+                }
                 CompExpr *sum = terms[0];
                 for(int i = 1; i < c0->nTuple; i++)
                 {
                     CompExpr *nSum = op(C(PLUS), sum, terms[i]);
                     sum = nSum;
                 }
-                sum->nTuple = c0->nTuple;
+                sum->nTuple = 1;
                 return sum;
             }
             case S(TIMES):
@@ -865,6 +869,30 @@ namespace tcc
         "\n}\n"
         );
 
+        pointFrag.compile(GL_FRAGMENT_SHADER, 
+        "#version 460 core\n"
+        "layout (location = 0) uniform vec4 col;\n"
+        "layout (location = 0) out vec4 color;\n"
+        "void main()\n{\n"
+        "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
+        "if(length(p) > 0.5) discard;\n"
+        "color = col;\n"
+        "\n}\n"
+        );
+
+        arrowFrag.compile(GL_FRAGMENT_SHADER, 
+        "#version 460 core\n"
+        "layout (location = 0) uniform vec4 col;\n"
+        "in float angle;\n"
+        "layout (location = 0) out vec4 color;\n"
+        "void main()\n{\n"
+        "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
+        "p = mat2(cos(angle), sin(angle), -sin(angle), cos(angle))*p;"
+        "if(abs(p.x) > -p.y) discard;\n"
+        "if(p.y < -0.25) discard;\n"
+        "color = col;\n"
+        "\n}\n");
+
         defaultVert.compile(GL_VERTEX_SHADER, 
         "#version 460 core\n"
         "layout (location = 0) in vec2 pos;\n"
@@ -945,7 +973,7 @@ namespace tcc
                 o.program.ID = glCreateProgram();
                 glAttachShader(o.program.ID, defaultFrag.ID);
                 o.program.link();
-                o.array.create1DGrid(20, o.intervals[0]);
+                o.array.create1DGrid(100, o.intervals[0]);
                 o.col[0] = 1;
                 o.col[1] = 0;
                 o.col[2] = 0;
@@ -1076,7 +1104,7 @@ namespace tcc
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
                 o.program.ID = glCreateProgram();
-                glAttachShader(o.program.ID, defaultFrag.ID);
+                glAttachShader(o.program.ID, pointFrag.ID);
 
                 o.program.link();
 
@@ -1108,8 +1136,11 @@ namespace tcc
                 compileFunction(o.compSub[1], -1, str, "v_org");
 
                 str << "layout (location = 0) in float t;\n";
+                str << "out float angle;\n";
                 str << "void main()\n{\n";
-                str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n}\n";
+                str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n";
+                str << "vec4 diff = camera*vec4(v(), 1);\n";
+                str << "angle = atan(diff.x, -diff.y);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
                 o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1119,11 +1150,19 @@ namespace tcc
 
                 o.program.link();
 
+                o.program2.ID = glCreateProgram();
+                glAttachShader(o.program2.ID, arrowFrag.ID);
+                glAttachShader(o.program2.ID, o.program.shaders[0]->ID);
+                o.program2.link();
+
                 o.col[0] = 1;
                 o.col[1] = 0;
                 o.col[2] = 1;
                 o.col[3] = 1;
                 glUseProgram(o.program.ID);
+                glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+
+                glUseProgram(o.program2.ID);
                 glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
         }
