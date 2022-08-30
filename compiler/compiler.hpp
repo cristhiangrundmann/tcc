@@ -54,7 +54,7 @@ namespace tcc
     struct Texture
     {
         uint ID{};
-        void create(Size size, uint base, uint type);
+        void create(Size size, uint base, uint format, uint type);
         ~Texture();
     };
 
@@ -129,16 +129,18 @@ namespace tcc
         std::vector<SymbExpr*> expStack;
         std::vector<Interval> intStack;
         std::vector<Obj> objects;
+        Size frameSize = {512, 512};
 
         Buffer block{};
         uint blockSize{};
-        Framebuffer frame{};
+        Framebuffer frame{}, uvFrame{};
         Array quad{};
         Array line{};
         Shader defaultVert{};
         Shader pointFrag{};
         Shader arrowFrag{};
         Shader defaultFrag{};
+        Shader uvFrag{};
 
         bool compiled = false;
 

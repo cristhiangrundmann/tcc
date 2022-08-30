@@ -22,6 +22,7 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+int selection = -1;
 Compiler *cmp{};
 
 void draw2(Obj &o)
@@ -37,12 +38,25 @@ void draw2(Obj &o)
 
     if(o.type == cmp->surface)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glUseProgram(o.program.ID);
         glBindVertexArray(o.array.ID);
         uint count = o.intervals[0].number*o.intervals[1].number*6;
+
+        glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+        if(selection != -1)
+            if(cmp->objects[selection].name == o.name)
+                glUniform4f(0, 1, 1, 1, 1);
+
+        glEnable(GL_DEPTH_TEST);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+
+        glUseProgram(o.program2.ID);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
     }
 
     if(o.type == cmp->point)
@@ -115,6 +129,18 @@ void draw(Obj &o)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+void tri(vec2 angle, vec3 vecs[3])
+{
+    vecs[0] = vec3(sin(-angle.y)*cos(angle.x), sin(-angle.y)*sin(angle.x), cos(-angle.y));
+    vecs[1] = vec3(-sin(angle.x), cos(angle.x), 0);
+    vecs[2] = cross(vecs[0], vecs[1]);
+}
+
+mat4 persp;
+mat4 look;
+vec3 center = vec3(0, 0, 0);
+vec2 angle = vec2(0, 0);
+
 int main(int, char**)
 {
     cmp = new Compiler;
@@ -156,8 +182,9 @@ int main(int, char**)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_DEPTH_TEST);
     glLineWidth(20);
+    glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -189,8 +216,17 @@ int main(int, char**)
                 }
                 try
                 {
+                    cmp->frameSize = {1024, 1024};
                     cmp->compile(text);
                     msg = "OK";
+                    persp = glm::perspective<float>(120, 1, 0.1, 10);
+                    vec3 vecs[3];
+                    tri(angle, vecs);
+                    look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
+                    mat4 camera = persp * look;
+                    glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
+                    glBindBuffer(GL_UNIFORM_BUFFER, 0);
                 }
                 catch(std::string err)
                 {
@@ -211,15 +247,16 @@ int main(int, char**)
         if(cmp->compiled)
         {
             ImGui::Begin("Settings");
-            glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-            mat4 id = identity<mat4>();
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &id);
-            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
+            glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
+            glClearColor(0, 0, -1, 1);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-            glViewport(0, 0, 512, 512);
+            glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
             glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             for(Obj &o : cmp->objects)
             {
@@ -300,7 +337,55 @@ int main(int, char**)
         if(cmp->compiled)
         {
             ImGui::Begin("Output");
-            ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(512, 512));
+            ImVec2 pos = ImGui::GetCursorScreenPos();
+            ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
+            bool held = ImGui::IsItemActive();
+            bool hover = ImGui::IsItemHovered();
+
+            if(hover)
+            {
+                int x = io.MousePos.x - pos.x;
+                int y = io.MousePos.y - pos.y;
+
+                if(x >= 0)
+                if(y >= 0)
+                if(x < (int)cmp->frameSize.width)
+                if(y < (int)cmp->frameSize.height)
+                {
+                    float data[3] = {0, 0, -1};
+                    glBindFramebuffer(GL_READ_FRAMEBUFFER, cmp->uvFrame.ID);
+                    glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, data);
+                    selection = data[2];
+                    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+                }
+            }
+
+            if(held)
+            {
+                ImGuiIO& io = ImGui::GetIO();
+                vec2 delta = vec2(io.MouseDelta.x, io.MouseDelta.y);
+                angle += delta/512.0f*6.0f;
+                vec3 vecs[3];
+                if(angle[0] < 0) angle[0] = Parser::CPI*2;
+                if(angle[0] > Parser::CPI*2) angle[0] = 0;
+                if(angle[1] < 0) angle[1] = 0;
+                if(angle[1] > Parser::CPI) angle[1] = Parser::CPI;
+                tri(angle, vecs);
+                float w = ImGui::IsKeyDown('W') ? 1 : 0;
+                float s = ImGui::IsKeyDown('S') ? 1 : 0;
+                float a = ImGui::IsKeyDown('A') ? 1 : 0;
+                float d = ImGui::IsKeyDown('D') ? 1 : 0;
+                
+                center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
+                look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
+                mat4 camera = persp * look;
+                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
+                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+            }
+
+            ImGui::SetCursorScreenPos(pos);
+            ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(cmp->frameSize.width, cmp->frameSize.height));
             ImGui::End();
         }
 

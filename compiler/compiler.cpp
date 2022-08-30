@@ -850,15 +850,37 @@ namespace tcc
             glBindVertexArray(0);
         }
         
-        glGenFramebuffers(1, &frame.ID);
-        frame.textures.push_back(new Texture);
-        Texture *tex = frame.textures.back();
-        tex->create({512, 512}, GL_RGB, GL_UNSIGNED_BYTE);
-        glBindFramebuffer(GL_FRAMEBUFFER, frame.ID);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
-        uint b = GL_COLOR_ATTACHMENT0;
-        glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        {
+            glGenFramebuffers(1, &frame.ID);
+            frame.textures.push_back(new Texture);
+            Texture *tex = frame.textures.back();
+            tex->create(frameSize, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+            glBindFramebuffer(GL_FRAMEBUFFER, frame.ID);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+            frame.textures.push_back(new Texture);
+            tex = frame.textures.back();
+            tex->create(frameSize, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->ID, 0);
+            uint b = GL_COLOR_ATTACHMENT0;
+            glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        {
+            glGenFramebuffers(1, &uvFrame.ID);
+            uvFrame.textures.push_back(new Texture);
+            Texture *tex = uvFrame.textures.back();
+            tex->create(frameSize, GL_RGB32F, GL_RGB, GL_FLOAT);
+            glBindFramebuffer(GL_FRAMEBUFFER, uvFrame.ID);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+            uvFrame.textures.push_back(new Texture);
+            tex = uvFrame.textures.back();
+            tex->create(frameSize, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->ID, 0);
+            uint b = GL_COLOR_ATTACHMENT0;
+            glNamedFramebufferDrawBuffers(uvFrame.ID, 1, &b);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
 
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
         "#version 460 core\n"
@@ -866,6 +888,16 @@ namespace tcc
         "layout (location = 0) out vec4 color;\n"
         "void main()\n{\n"
         "color = col;\n"
+        "\n}\n"
+        );
+
+        uvFrag.compile(GL_FRAGMENT_SHADER, 
+        "#version 460 core\n"
+        "layout (location = 0) out vec4 color;\n"
+        "in vec2 opos;\n"
+        "flat in int index;\n"
+        "void main()\n{\n"
+        "color = vec4(opos, index, 1);\n"
         "\n}\n"
         );
 
@@ -1018,20 +1050,22 @@ namespace tcc
                 
                 str << "layout (location = 0) in vec2 uv;\n";
                 str << "out vec2 opos;\n";
+                str << "flat out int index;\n";
                 str << "void main()\n{\n";
+                str << "index = " << objIndex << ";\n";
                 str << "opos = uv;\n";
                 str << "gl_Position = camera*vec4(";
                 str << "s(uv.x, uv.y), 1);\n}\n";
 
-                {
-                    o.program.shaders.push_back(new Shader);
-                    Shader *sh = o.program.shaders.back();
+                o.program.shaders.push_back(new Shader);
+                Shader *sh = o.program.shaders.back();
 
+                {
                     sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                     o.program.ID = glCreateProgram();
                     glAttachShader(o.program.ID, defaultFrag.ID);
                     o.program.link();
-                    o.array.create2DGrid(20, 20, o.intervals[0], o.intervals[1]);
+                    o.array.create2DGrid(200, 200, o.intervals[0], o.intervals[1]);
 
                     o.col[0] = 0;
                     o.col[1] = 0;
@@ -1039,6 +1073,13 @@ namespace tcc
                     o.col[3] = 1;
                     glUseProgram(o.program.ID);
                     glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+                }
+
+                {
+                    o.program2.ID = glCreateProgram();
+                    glAttachShader(o.program2.ID, sh->ID);
+                    glAttachShader(o.program2.ID, uvFrag.ID);
+                    o.program2.link();
                 }
 
                 /*str = std::stringstream();
@@ -1139,7 +1180,7 @@ namespace tcc
                 str << "out float angle;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n";
-                str << "vec4 diff = camera*vec4(v(), 1);\n";
+                str << "vec4 diff = camera*vec4(v(), 0);\n";
                 str << "angle = atan(diff.x, -diff.y);\n}\n";
 
                 o.program.shaders.push_back(new Shader);
@@ -1399,11 +1440,11 @@ namespace tcc
         if(ID) glDeleteProgram(ID);
     }
 
-    void Texture::create(Size s, uint base, uint type)
+    void Texture::create(Size s, uint base, uint format, uint type)
     {
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
-        glTexImage2D(GL_TEXTURE_2D, 0, base, s.width, s.height, 0, base, type, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, base, s.width, s.height, 0, format, type, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
