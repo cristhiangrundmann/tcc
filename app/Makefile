@@ -33,13 +33,20 @@ IMGUI += imgui/backends/imgui_impl_opengl3.o
 imgui.a: $(IMGUI)
 	$(AR) -crv imgui.a $(IMGUI)
 
+STB_IMAGE += stb_image/stb_image.o
+
+stb_image.a: $(STB_IMAGE)
+	$(AR) -crv stb_image.a $(STB_IMAGE)
+
+
 test/main.o: compiler/compiler.hpp
 
-prog.out: compiler.a imgui.a test/main.o
+prog.out: compiler.a imgui.a stb_image.a test/main.o
 	$(CC) $(CPPFLAGS) test/main.o compiler.a imgui.a -o prog.out $(LIBS)
 
 clean:
 	-rm $(IMGUI) imgui.a
 	-rm $(COMPILER) compiler.a
+	-rm $(STB_IMAGE) stb_image.a
 	-rm test/main.o
 	-rm prog.out
