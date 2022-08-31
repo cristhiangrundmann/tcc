@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -g -Iimgui -Icompiler
+CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -O3 -Iimgui -Icompiler -Istb_image
 LIBS = -lglfw -ldl -lGL -lGLEW -lm
 CC = clang++
 
@@ -35,18 +35,17 @@ imgui.a: $(IMGUI)
 
 STB_IMAGE += stb_image/stb_image.o
 
-stb_image.a: $(STB_IMAGE)
-	$(AR) -crv stb_image.a $(STB_IMAGE)
-
+stb_image.o: $(STB_IMAGE)
+	cp $(STB_IMAGE) stb_image.o
 
 test/main.o: compiler/compiler.hpp
 
-prog.out: compiler.a imgui.a stb_image.a test/main.o
-	$(CC) $(CPPFLAGS) test/main.o compiler.a imgui.a -o prog.out $(LIBS)
+prog.out: compiler.a imgui.a stb_image.o test/main.o
+	$(CC) $(CPPFLAGS) test/main.o compiler.a imgui.a stb_image.o -o prog.out $(LIBS)
 
 clean:
 	-rm $(IMGUI) imgui.a
 	-rm $(COMPILER) compiler.a
-	-rm $(STB_IMAGE) stb_image.a
+	-rm $(STB_IMAGE) stb_image.o
 	-rm test/main.o
 	-rm prog.out
