@@ -9,10 +9,10 @@ prog.out: main.o compiler imgui
 	clang++ $(CPPFLAGS) main.o $(IMGUI) $(COMPILER) -o prog.out $(LIBS)
 
 compiler:
-	make -C ../compiler
+	cd ../compiler && $(MAKE)
 
 imgui:
-	make -C ../imgui
+	cd ../compiler && $(MAKE)
 
 %.o: %.cpp
 	clang++ $(CPPFLAGS) -c -o $@ $<
