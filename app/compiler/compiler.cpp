@@ -891,6 +891,16 @@ namespace tcc
         "\n}\n"
         );
 
+        texFrag.compile(GL_FRAGMENT_SHADER, 
+        "#version 460 core\n"
+        "uniform sampler2D tex;\n"
+        "layout (location = 0) out vec4 color;\n"
+        "in vec2 opos;\n"
+        "void main()\n{\n"
+        "color = texture(tex, opos);\n"
+        "\n}\n"
+        );
+
         uvFrag.compile(GL_FRAGMENT_SHADER, 
         "#version 460 core\n"
         "layout (location = 0) out vec4 color;\n"
@@ -1063,7 +1073,7 @@ namespace tcc
                 {
                     sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                     o.program.ID = glCreateProgram();
-                    glAttachShader(o.program.ID, defaultFrag.ID);
+                    glAttachShader(o.program.ID, texFrag.ID);
                     o.program.link();
                     o.array.create2DGrid(200, 200, o.intervals[0], o.intervals[1]);
 

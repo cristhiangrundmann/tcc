@@ -140,6 +140,7 @@ namespace tcc
         Shader pointFrag{};
         Shader arrowFrag{};
         Shader defaultFrag{};
+        Shader texFrag{};
         Shader uvFrag{};
 
         bool compiled = false;

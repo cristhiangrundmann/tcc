@@ -1,6 +1,6 @@
-CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -O3 -Iimgui -Icompiler -Istb_image
+CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -g -Iimgui -Icompiler -Istb_image
 LIBS = -lglfw -ldl -lGL -lGLEW -lm
-CC = clang++
+CXX = clang++
 
 .phony: clean
 
@@ -8,7 +8,7 @@ all: prog.out
 	./prog.out
 
 %.o: %.cpp %.hpp
-	$(CC) $(CPPFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) -c -o $@ $<
 
 COMPILER += compiler/compiler.o
 COMPILER += compiler/parser.o
@@ -41,7 +41,7 @@ stb_image.o: $(STB_IMAGE)
 test/main.o: compiler/compiler.hpp
 
 prog.out: compiler.a imgui.a stb_image.o test/main.o
-	$(CC) $(CPPFLAGS) test/main.o compiler.a imgui.a stb_image.o -o prog.out $(LIBS)
+	$(CXX) $(CPPFLAGS) test/main.o compiler.a imgui.a stb_image.o -o prog.out $(LIBS)
 
 clean:
 	-rm $(IMGUI) imgui.a

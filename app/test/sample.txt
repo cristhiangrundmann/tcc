@@ -56,3 +56,6 @@ surface s(u,v) = (
 
 surface h(u,v) = 
 ( (2 + sin v)cos u, (2 + sin v)sin u, u + cos v ), u : [-5, 5], v : [0, 2pi];
+
+surface s(u,v) = (sin(piv)cos(2piu), sin(piv)sin(2piu), cos(piv)), 
+u : [0, 1], v : [0, 1];

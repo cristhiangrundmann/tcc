@@ -2,6 +2,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#include <stb_image.hpp>
+
 #include "compiler.hpp"
 
 #include <stdio.h>
@@ -25,6 +27,11 @@ static void glfw_error_callback(int error, const char* description)
 int selection = -1;
 Compiler *cmp{};
 
+
+int imgWidth, imgHeight, imgNrChannels;
+unsigned char *data;
+uint imgID;
+
 void draw2(Obj &o)
 {
     if(!o.program.ID) return;
@@ -42,17 +49,14 @@ void draw2(Obj &o)
         glBindVertexArray(o.array.ID);
         uint count = o.intervals[0].number*o.intervals[1].number*6;
 
-        glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
-        if(selection != -1)
-            if(cmp->objects[selection].name == o.name)
-                glUniform4f(0, 1, 1, 1, 1);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, imgID);
 
         glEnable(GL_DEPTH_TEST);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
         glUseProgram(o.program2.ID);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
@@ -185,6 +189,18 @@ int main(int, char**)
     glEnable(GL_DEPTH_TEST);
     glLineWidth(20);
     glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
+
+    data = stbi_load("test.jpg", &imgWidth, &imgHeight, &imgNrChannels, 0);
+    if(!data) throw std::string("Failed to load image");
+    glGenTextures(1, &imgID);
+    glBindTexture(GL_TEXTURE_2D, imgID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
 
     // Main loop
     while (!glfwWindowShouldClose(window))
