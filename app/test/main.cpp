@@ -15,48 +15,40 @@
 
 using namespace tcc;
 using namespace glm;
-using std::vector;
-using std::unique_ptr;
-using std::make_unique;
 
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-int selection = -1;
 Compiler *cmp{};
-
-
-int imgWidth, imgHeight, imgNrChannels;
-unsigned char *data;
-uint imgID;
+Texture *tex{};
 
 void draw2(Obj &o)
 {
-    if(!o.program.ID) return;
+    if(!o.program[0].ID) return;
     
     if(o.type == cmp->curve)
     {
-        glUseProgram(o.program.ID);
+        glUseProgram(o.program[0].ID);
         glBindVertexArray(o.array.ID);
         glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
     }
 
     if(o.type == cmp->surface)
     {
-        glUseProgram(o.program.ID);
+        glUseProgram(o.program[0].ID);
         glBindVertexArray(o.array.ID);
         uint count = o.intervals[0].number*o.intervals[1].number*6;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, imgID);
+        glBindTexture(GL_TEXTURE_2D, tex->ID);
 
         glEnable(GL_DEPTH_TEST);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
-        glUseProgram(o.program2.ID);
+        glUseProgram(o.program[1].ID);
         glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
@@ -66,7 +58,7 @@ void draw2(Obj &o)
     if(o.type == cmp->point)
     {
         glPointSize(10);
-        glUseProgram(o.program.ID);
+        glUseProgram(o.program[0].ID);
         glBindVertexArray(cmp->line.ID);
         glDrawArrays(GL_POINTS, 0, 1);
     }
@@ -75,9 +67,9 @@ void draw2(Obj &o)
     {
         glPointSize(40);
         glBindVertexArray(cmp->line.ID);
-        glUseProgram(o.program.ID);
+        glUseProgram(o.program[0].ID);
         glDrawArrays(GL_LINES, 0, 2);
-        glUseProgram(o.program2.ID);
+        glUseProgram(o.program[1].ID);
         glDrawArrays(GL_POINTS, 1, 1);
     }
 }
@@ -148,6 +140,7 @@ vec2 angle = vec2(0, 0);
 int main(int, char**)
 {
     cmp = new Compiler;
+    tex = new Texture;
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return 1;
@@ -155,32 +148,25 @@ int main(int, char**)
     const char* glsl_version = "#version 460";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    // Create window with graphics context
     GLFWwindow* window = glfwCreateWindow(1280, 720, "tcc", NULL, NULL);
-    if (window == NULL) return 1;
+    if(!window) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1);
 
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
-	{
 		printf("Error: %s\n", glewGetErrorString(err));
-	}
 
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    ImGuiIO& io = ImGui::GetIO();
 
     io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 18);
     ImFont * f2 = io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 24);
 
-    //ImGui::StyleColorsDark();
     ImGui::StyleColorsClassic();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -190,31 +176,18 @@ int main(int, char**)
     glLineWidth(20);
     glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 
-    data = stbi_load("test.jpg", &imgWidth, &imgHeight, &imgNrChannels, 0);
-    if(!data) throw std::string("Failed to load image");
-    glGenTextures(1, &imgID);
-    glBindTexture(GL_TEXTURE_2D, imgID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
+    tex->load("test.jpg");
 
-    // Main loop
     while (!glfwWindowShouldClose(window))
     {
-
         glfwPollEvents();
 
-        // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
 		{
-			ImGui::Begin("Function Test");
+			ImGui::Begin("Program");
 			static char text[1024 * 16];
             ImGui::PushFont(f2);
             ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
@@ -232,7 +205,7 @@ int main(int, char**)
                 }
                 try
                 {
-                    cmp->frameSize = {1024, 1024};
+                    cmp->frameSize = {800, 800};
                     cmp->compile(text);
                     msg = "OK";
                     persp = glm::perspective<float>(120, 1, 0.1, 10);
@@ -322,7 +295,7 @@ int main(int, char**)
                     ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs);
                     ImGui::PopID();
 
-                    glUseProgram(o.program.ID);
+                    glUseProgram(o.program[0].ID);
 
                     if(col[0] != o.col[0] ||
                     col[1] != o.col[1] ||
@@ -333,25 +306,18 @@ int main(int, char**)
 
                         if(o.type == cmp->vector)
                         {
-                            glUseProgram(o.program2.ID);
+                            glUseProgram(o.program[1].ID);
                             glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
                         }
                     }
 
-                    glUseProgram(o.program.ID);
+                    glUseProgram(o.program[0].ID);
                     draw(o);
                 }
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
             ImGui::End();
-        }
-
-        _t = _t2;
-
-
-        if(cmp->compiled)
-        {
+    
             ImGui::Begin("Output");
             ImVec2 pos = ImGui::GetCursorScreenPos();
             ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
@@ -371,7 +337,6 @@ int main(int, char**)
                     float data[3] = {0, 0, -1};
                     glBindFramebuffer(GL_READ_FRAMEBUFFER, cmp->uvFrame.ID);
                     glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, data);
-                    selection = data[2];
                     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
                 }
             }
@@ -405,7 +370,10 @@ int main(int, char**)
             ImGui::End();
         }
 
-        // Rendering
+        _t = _t2;
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -418,8 +386,8 @@ int main(int, char**)
     }
 
     delete cmp;
+    delete tex;
 
-    // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

@@ -1,6 +1,7 @@
 #include "compiler.hpp"
 #include <cmath>
 #include <GL/glew.h>
+#include "stb_image.hpp"
 
 #define S(x) Parser::ExprType::x
 #define C(x) CompExpr::ExprType::x
@@ -673,6 +674,121 @@ namespace tcc
         }
     }
 
+    float Compiler::calculate(CompExpr *e, std::vector<Subst> &subs)
+    {
+        switch(e->type)
+        {
+            case C(PLUS): return calculate(e->sub[0], subs) + calculate(e->sub[1], subs);
+            case C(MINUS): return calculate(e->sub[0], subs) - calculate(e->sub[1], subs);
+            case C(TIMES): return calculate(e->sub[0], subs) * calculate(e->sub[1], subs);
+            case C(DIVIDE): return calculate(e->sub[0], subs) / calculate(e->sub[1], subs);
+            case C(UPLUS): return +calculate(e->sub[0], subs);
+            case C(UMINUS): return -calculate(e->sub[0], subs);
+            case C(UDIVIDE): return 1.0/calculate(e->sub[0], subs);
+            case C(APP):
+            {
+                if(e->sub[0]->type != C(FUNCTION))
+                    throw std::string("Expected a function");
+                Table *name = e->sub[0]->name;
+                if(name == sin) return std::sin(calculate(e->sub[1], subs));
+                if(name == cos) return std::cos(calculate(e->sub[1], subs));
+                if(name == tan) return std::tan(calculate(e->sub[1], subs));
+                if(name == exp) return std::exp(calculate(e->sub[1], subs));
+                if(name == log) return std::log(calculate(e->sub[1], subs));
+                if(name == sqrt) return std::sqrt(calculate(e->sub[1], subs));
+                if(name == id) return calculate(e->sub[1], subs);
+                throw std::string("Invalid function");
+            }
+            case C(POW): return std::pow(calculate(e->sub[0], subs), calculate(e->sub[1], subs));
+            case C(COMPONENT):
+            {
+                if(e->sub[0]->type != C(CONSTANT)) throw std::string("Invalid component");
+                CompExpr *c = e->sub[0];
+                if(c->name->objIndex == -1)
+                    throw std::string("Invalid constant");
+                Obj &o = objects[c->name->objIndex];
+                if(o.type == param || o.type == grid)
+                    return o.intervals[e->number-1].number;
+                throw std::string("Invalid constant");   
+            }
+            case C(CONSTANT):
+            {
+                if(e->name->objIndex == -1)
+                {
+                    if(e->name == this->e) return Parser::CE;
+                    if(e->name == this->pi) return Parser::CPI;
+                    throw std::string("Invalid constant");
+                }
+                Obj &o = objects[e->name->objIndex];
+                if(o.type == param || o.type == grid)
+                    return o.intervals[0].number;
+                throw std::string("Invalid constant");
+            }
+            case C(NUMBER): return e->number;
+            case C(VARIABLE):
+            {
+                for(Subst &s : subs)
+                    if(s.var == e->name) return s.number;
+                throw std::string("Variable definition missing");
+            }
+            default:
+                throw std::string("Invalid type");
+        }
+    }
+
+    void Compiler::dependencies(CompExpr *e, std::vector<int> &grids, bool allow)
+    {
+        switch(e->type)
+        {
+            case C(PLUS):
+            case C(MINUS):
+            case C(TIMES):
+            case C(DIVIDE):
+            case C(POW):
+                dependencies(e->sub[0], grids, allow);
+                dependencies(e->sub[1], grids, allow);
+                break;
+            case C(UPLUS):
+            case C(UMINUS):
+            case C(UDIVIDE):
+                dependencies(e->sub[0], grids, allow);
+                break;
+            case C(APP):
+                dependencies(e->sub[1], grids, allow);
+                break;
+            case C(CONSTANT):
+                if(e->name->objIndex == -1) return;
+                if(!allow)
+                    throw std::string("Invalid dependency");
+                if(objects[e->name->objIndex].type == grid)
+                {
+                    for(int k : grids)
+                        if(k == e->name->objIndex)
+                            return;
+                    grids.push_back(e->name->objIndex);
+                }
+                break;
+            case C(COMPONENT):
+                if(!allow)
+                    throw std::string("Invalid dependency");
+                if(objects[e->sub[0]->name->objIndex].type == grid)
+                {
+                    for(int k : grids)
+                        if(k == e->sub[0]->name->objIndex)
+                            return;
+                    grids.push_back(e->sub[0]->name->objIndex);
+                }
+                break;
+            case C(FUNCTION):
+            case C(VARIABLE):
+            case C(NUMBER): break;
+            case C(TUPLE):
+                for(CompExpr *c : e->sub)
+                    dependencies(c, grids, allow);
+                break;
+        }
+    }
+
     #undef FUN
 
     void Compiler::compile(CompExpr *e, std::stringstream &str, int &v)
@@ -963,6 +1079,7 @@ namespace tcc
                     glBufferSubData(GL_UNIFORM_BUFFER, i.offset, 4, &i.number);
                 }
             }
+
             if(o.type == grid)
             {
                 for(Interval &i : o.intervals)
@@ -980,6 +1097,7 @@ namespace tcc
                     if(i.number < 1) throw std::string("Grids must have at least 1 point");
                 }
             }
+            
             if(o.type == curve)
             {
                 std::stringstream str;
@@ -1002,25 +1120,25 @@ namespace tcc
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
                 compileFunction(o.compSub[0], o.name->argIndex, str, "c");
-                compileFunction(compute(&ct, subs), o.name->argIndex, str, "c_t");
+                //compileFunction(compute(&ct, subs), o.name->argIndex, str, "c_t");
                 
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(";
                 str << "c(t), 1);\n}\n";
                 
-                o.program.shaders.push_back(new Shader);
-                Shader *sh = o.program.shaders.back();
+                o.program[0].shaders.push_back(new Shader);
+                Shader *sh = o.program[0].shaders.back();
                 sh->compile(GL_VERTEX_SHADER, str.str().c_str());
-                o.program.ID = glCreateProgram();
-                glAttachShader(o.program.ID, defaultFrag.ID);
-                o.program.link();
+                o.program[0].ID = glCreateProgram();
+                glAttachShader(o.program[0].ID, defaultFrag.ID);
+                o.program[0].link();
                 o.array.create1DGrid(100, o.intervals[0]);
                 o.col[0] = 1;
                 o.col[1] = 0;
                 o.col[2] = 0;
                 o.col[3] = 1;
-                glUseProgram(o.program.ID);
+                glUseProgram(o.program[0].ID);
                 glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
 
@@ -1055,6 +1173,12 @@ namespace tcc
                 SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
+
+                o.compSub[1] = compute(&s_u, subs);
+                o.compSub[2] = compute(&s_v, subs);
+                o.compSub[3] = compute(&s_uu, subs);
+                o.compSub[4] = compute(&s_uv, subs);
+                o.compSub[5] = compute(&s_vv, subs);
                 
                 compileFunction(o.compSub[0], o.name->argIndex, str, "s");
                 
@@ -1067,29 +1191,29 @@ namespace tcc
                 str << "gl_Position = camera*vec4(";
                 str << "s(uv.x, uv.y), 1);\n}\n";
 
-                o.program.shaders.push_back(new Shader);
-                Shader *sh = o.program.shaders.back();
+                o.program[0].shaders.push_back(new Shader);
+                Shader *sh = o.program[0].shaders.back();
 
                 {
                     sh->compile(GL_VERTEX_SHADER, str.str().c_str());
-                    o.program.ID = glCreateProgram();
-                    glAttachShader(o.program.ID, texFrag.ID);
-                    o.program.link();
+                    o.program[0].ID = glCreateProgram();
+                    glAttachShader(o.program[0].ID, texFrag.ID);
+                    o.program[0].link();
                     o.array.create2DGrid(200, 200, o.intervals[0], o.intervals[1]);
 
                     o.col[0] = 0;
                     o.col[1] = 0;
                     o.col[2] = 1;
                     o.col[3] = 1;
-                    glUseProgram(o.program.ID);
+                    glUseProgram(o.program[0].ID);
                     glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
                 }
 
                 {
-                    o.program2.ID = glCreateProgram();
-                    glAttachShader(o.program2.ID, sh->ID);
-                    glAttachShader(o.program2.ID, uvFrag.ID);
-                    o.program2.link();
+                    o.program[1].ID = glCreateProgram();
+                    glAttachShader(o.program[1].ID, sh->ID);
+                    glAttachShader(o.program[1].ID, uvFrag.ID);
+                    o.program[1].link();
                 }
 
                 /*str = std::stringstream();
@@ -1116,6 +1240,9 @@ namespace tcc
                 str << "float G_v(float u, float v) {return 2*dot(s_v(u,v),s_vv(u,v));}\n";
 
                 str << "layout (location = 0) out vec4 color;\n";
+                str << "layout (location = 0) uniform vec2 center;\n";
+                str << "layout (location = 1) uniform vec2 front;\n";
+                str << "layout (location = 1) uniform vec2 right;\n";
                 str << "in vec2 opos;\n";
                 str << "void main()\n{\n";
                 str << ""
@@ -1124,12 +1251,12 @@ namespace tcc
                 printf("%s\n", str.str().c_str());
 
                 {
-                    o.program2.shaders.push_back(new Shader);
-                    Shader *sh = o.program.shaders.back();
+                    o.program3.shaders.push_back(new Shader);
+                    Shader *sh = o.program3.shaders.back();
                     sh->compile(GL_FRAGMENT_SHADER, str.str().c_str());
-                    o.program2.ID = glCreateProgram();
-                    glAttachShader(o.program2.ID, defaultVert.ID);
-                    o.program2.link();
+                    o.program3.ID = glCreateProgram();
+                    glAttachShader(o.program3.ID, defaultVert.ID);
+                    o.program3.link();
                 }*/
             }
 
@@ -1151,19 +1278,19 @@ namespace tcc
                 str << "gl_Position = camera*vec4(";
                 str << "p(), 1);\n}\n";
 
-                o.program.shaders.push_back(new Shader);
-                o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program[0].shaders.push_back(new Shader);
+                o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
-                o.program.ID = glCreateProgram();
-                glAttachShader(o.program.ID, pointFrag.ID);
+                o.program[0].ID = glCreateProgram();
+                glAttachShader(o.program[0].ID, pointFrag.ID);
 
-                o.program.link();
+                o.program[0].link();
 
                 o.col[0] = 1;
                 o.col[1] = 1;
                 o.col[2] = 0;
                 o.col[3] = 1;
-                glUseProgram(o.program.ID);
+                glUseProgram(o.program[0].ID);
                 glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
 
@@ -1193,27 +1320,27 @@ namespace tcc
                 str << "vec4 diff = camera*vec4(v(), 0);\n";
                 str << "angle = atan(diff.x, -diff.y);\n}\n";
 
-                o.program.shaders.push_back(new Shader);
-                o.program.shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
+                o.program[0].shaders.push_back(new Shader);
+                o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
-                o.program.ID = glCreateProgram();
-                glAttachShader(o.program.ID, defaultFrag.ID);
+                o.program[0].ID = glCreateProgram();
+                glAttachShader(o.program[0].ID, defaultFrag.ID);
 
-                o.program.link();
+                o.program[0].link();
 
-                o.program2.ID = glCreateProgram();
-                glAttachShader(o.program2.ID, arrowFrag.ID);
-                glAttachShader(o.program2.ID, o.program.shaders[0]->ID);
-                o.program2.link();
+                o.program[1].ID = glCreateProgram();
+                glAttachShader(o.program[1].ID, arrowFrag.ID);
+                glAttachShader(o.program[1].ID, o.program[0].shaders[0]->ID);
+                o.program[1].link();
 
                 o.col[0] = 1;
                 o.col[1] = 0;
                 o.col[2] = 1;
                 o.col[3] = 1;
-                glUseProgram(o.program.ID);
+                glUseProgram(o.program[0].ID);
                 glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
 
-                glUseProgram(o.program2.ID);
+                glUseProgram(o.program[1].ID);
                 glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
             }
         }
@@ -1283,121 +1410,6 @@ namespace tcc
         if(declareOnly) str << ";\n";
     }
 
-    float Compiler::calculate(CompExpr *e, std::vector<Subst> &subs)
-    {
-        switch(e->type)
-        {
-            case C(PLUS): return calculate(e->sub[0], subs) + calculate(e->sub[1], subs);
-            case C(MINUS): return calculate(e->sub[0], subs) - calculate(e->sub[1], subs);
-            case C(TIMES): return calculate(e->sub[0], subs) * calculate(e->sub[1], subs);
-            case C(DIVIDE): return calculate(e->sub[0], subs) / calculate(e->sub[1], subs);
-            case C(UPLUS): return +calculate(e->sub[0], subs);
-            case C(UMINUS): return -calculate(e->sub[0], subs);
-            case C(UDIVIDE): return 1.0/calculate(e->sub[0], subs);
-            case C(APP):
-            {
-                if(e->sub[0]->type != C(FUNCTION))
-                    throw std::string("Expected a function");
-                Table *name = e->sub[0]->name;
-                if(name == sin) return std::sin(calculate(e->sub[1], subs));
-                if(name == cos) return std::cos(calculate(e->sub[1], subs));
-                if(name == tan) return std::tan(calculate(e->sub[1], subs));
-                if(name == exp) return std::exp(calculate(e->sub[1], subs));
-                if(name == log) return std::log(calculate(e->sub[1], subs));
-                if(name == sqrt) return std::sqrt(calculate(e->sub[1], subs));
-                if(name == id) return calculate(e->sub[1], subs);
-                throw std::string("Invalid function");
-            }
-            case C(POW): return std::pow(calculate(e->sub[0], subs), calculate(e->sub[1], subs));
-            case C(COMPONENT):
-            {
-                if(e->sub[0]->type != C(CONSTANT)) throw std::string("Invalid component");
-                CompExpr *c = e->sub[0];
-                if(c->name->objIndex == -1)
-                    throw std::string("Invalid constant");
-                Obj &o = objects[c->name->objIndex];
-                if(o.type == param || o.type == grid)
-                    return o.intervals[e->number-1].number;
-                throw std::string("Invalid constant");   
-            }
-            case C(CONSTANT):
-            {
-                if(e->name->objIndex == -1)
-                {
-                    if(e->name == this->e) return Parser::CE;
-                    if(e->name == this->pi) return Parser::CPI;
-                    throw std::string("Invalid constant");
-                }
-                Obj &o = objects[e->name->objIndex];
-                if(o.type == param || o.type == grid)
-                    return o.intervals[0].number;
-                throw std::string("Invalid constant");
-            }
-            case C(NUMBER): return e->number;
-            case C(VARIABLE):
-            {
-                for(Subst &s : subs)
-                    if(s.var == e->name) return s.number;
-                throw std::string("Variable definition missing");
-            }
-            default:
-                throw std::string("Invalid type");
-        }
-    }
-
-    void Compiler::dependencies(CompExpr *e, std::vector<int> &grids, bool allow)
-    {
-        switch(e->type)
-        {
-            case C(PLUS):
-            case C(MINUS):
-            case C(TIMES):
-            case C(DIVIDE):
-            case C(POW):
-                dependencies(e->sub[0], grids, allow);
-                dependencies(e->sub[1], grids, allow);
-                break;
-            case C(UPLUS):
-            case C(UMINUS):
-            case C(UDIVIDE):
-                dependencies(e->sub[0], grids, allow);
-                break;
-            case C(APP):
-                dependencies(e->sub[1], grids, allow);
-                break;
-            case C(CONSTANT):
-                if(e->name->objIndex == -1) return;
-                if(!allow)
-                    throw std::string("Invalid dependency");
-                if(objects[e->name->objIndex].type == grid)
-                {
-                    for(int k : grids)
-                        if(k == e->name->objIndex)
-                            return;
-                    grids.push_back(e->name->objIndex);
-                }
-                break;
-            case C(COMPONENT):
-                if(!allow)
-                    throw std::string("Invalid dependency");
-                if(objects[e->sub[0]->name->objIndex].type == grid)
-                {
-                    for(int k : grids)
-                        if(k == e->sub[0]->name->objIndex)
-                            return;
-                    grids.push_back(e->sub[0]->name->objIndex);
-                }
-                break;
-            case C(FUNCTION):
-            case C(VARIABLE):
-            case C(NUMBER): break;
-            case C(TUPLE):
-                for(CompExpr *c : e->sub)
-                    dependencies(c, grids, allow);
-                break;
-        }
-    }
-
     Framebuffer::~Framebuffer()
     {
         for(Texture *t : textures)
@@ -1457,6 +1469,22 @@ namespace tcc
         glTexImage2D(GL_TEXTURE_2D, 0, base, s.width, s.height, 0, format, type, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+
+    void Texture::load(const char *file)
+    {
+        int width, height, nrChannels;
+        unsigned char *data = stbi_load(file, &width, &height, &nrChannels, 0);
+        if(!data) throw std::string("Failed to load image");
+        glGenTextures(1, &ID);
+        glBindTexture(GL_TEXTURE_2D, ID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
     }
 
     Texture::~Texture()

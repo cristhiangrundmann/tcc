@@ -55,6 +55,7 @@ namespace tcc
     {
         uint ID{};
         void create(Size size, uint base, uint format, uint type);
+        void load(const char *file);
         ~Texture();
     };
 
@@ -102,15 +103,15 @@ namespace tcc
         Table *type{};
         Table *name{};
         SymbExpr *sub[2]{};
-        CompExpr *compSub[2]{};
+        CompExpr *compSub[6]{};
         std::vector<Interval> intervals;
         std::vector<int> grids;
         int nTuple{};
 
-        Program program{};
-        Program program2{};
+        Program program[4]{};
         Array array{};
         Framebuffer frame{};
+        Texture image{};
 
         Color col{};
     };
@@ -148,6 +149,7 @@ namespace tcc
         void actInt(ExprType type);
         void actOp(ExprType type);
         void actDecl();
+        
         SymbExpr *newExpr(SymbExpr &e);
         CompExpr *newExpr(CompExpr &e);
         SymbExpr op(Parser::ExprType type, SymbExpr *a = nullptr, SymbExpr *b = nullptr, float number = 0, Table *name = nullptr);
@@ -156,13 +158,14 @@ namespace tcc
         CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
         CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
         CompExpr *derivative(CompExpr *e, Table *var);
+        float calculate(CompExpr *e, std::vector<Subst> &subs);
+        void dependencies(CompExpr *e, std::vector<int> &grids, bool allow = false);
+
         void compile(CompExpr *e, std::stringstream &str, int &v);
         void compile(const char *source);
         void header(std::stringstream &str);
         void compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name);
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
-        float calculate(CompExpr *e, std::vector<Subst> &subs);
-        void dependencies(CompExpr *e, std::vector<int> &grids, bool allow = false);
     };
 
 }
