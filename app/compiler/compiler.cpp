@@ -290,7 +290,7 @@ namespace tcc
                 Obj &o = objects[e->name->objIndex];
                 if(o.type == param || o.type == grid)
                 {
-                    if(o.intervals.size() < index) throw std::string("Invalid index");
+                    if(o.intervals.size() < index || (o.intervals.size() == 1)) throw std::string("Invalid index");
                     return op(C(COMPONENT), e, nullptr, index);
                 }
                 else throw std::string("Invalid type");
@@ -588,6 +588,7 @@ namespace tcc
                 Obj &o = objects[e->name->objIndex];
                 if(o.type == param || o.type == grid)
                 {
+                    if(o.intervals.size() == 1) return z;
                     CompExpr *c = op(C(TUPLE));
                     c->nTuple = (int)o.intervals.size();
                     for(int i = 0; i < c->nTuple; i++)
@@ -1349,6 +1350,8 @@ namespace tcc
     void Compiler::header(std::stringstream &str)
     {
         blockSize = 64;
+        str << "float Cpi = " << Parser::CPI << ";\n";
+        str << "float Ce = " << Parser::CE << ";\n";
         str << "layout (std140, binding = 0) uniform Header\n{\n\tmat4 camera;\n";
     
         for(Obj &o : objects)
