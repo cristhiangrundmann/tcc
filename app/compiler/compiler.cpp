@@ -1318,7 +1318,9 @@ namespace tcc
                 str << "out float angle;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n";
-                str << "vec4 diff = camera*vec4(v(), 0);\n";
+                str << "vec4 b = camera*vec4(v_org()+v(), 1);\n";
+                str << "vec4 a = camera*vec4(v_org(), 1);\n";
+                str << "vec4 diff = b/abs(b.w)-a/abs(a.w);\n";
                 str << "angle = atan(diff.x, -diff.y);\n}\n";
 
                 o.program[0].shaders.push_back(new Shader);
