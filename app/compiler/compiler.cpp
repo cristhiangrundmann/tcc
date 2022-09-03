@@ -911,7 +911,6 @@ namespace tcc
         }
     }
 
-
     static float quadData[] = 
     {
         -1.0f, -1.0f,
@@ -1171,15 +1170,30 @@ namespace tcc
 
                 SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_v = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][1]);
-                SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
-                SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
-                SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
+                //SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
+                //SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
+                //SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_E = op(S(JUX), &s_u, &s_u);
+                SymbExpr s_F = op(S(JUX), &s_u, &s_v);
+                SymbExpr s_G = op(S(JUX), &s_v, &s_v);
+                SymbExpr s_Eu = op(S(PARTIAL), &s_E, nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_Ev = op(S(PARTIAL), &s_E, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_Fu = op(S(PARTIAL), &s_F, nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_Fv = op(S(PARTIAL), &s_F, nullptr, 0, argList[o.name->argIndex][1]);
+                SymbExpr s_Gu = op(S(PARTIAL), &s_G, nullptr, 0, argList[o.name->argIndex][0]);
+                SymbExpr s_Gv = op(S(PARTIAL), &s_G, nullptr, 0, argList[o.name->argIndex][1]);
 
                 o.compSub[1] = compute(&s_u, subs);
                 o.compSub[2] = compute(&s_v, subs);
-                o.compSub[3] = compute(&s_uu, subs);
-                o.compSub[4] = compute(&s_uv, subs);
-                o.compSub[5] = compute(&s_vv, subs);
+                o.compSub[3] = compute(&s_E, subs);
+                o.compSub[4] = compute(&s_F, subs);
+                o.compSub[5] = compute(&s_G, subs);
+                o.compSub[6] = compute(&s_Eu, subs);
+                o.compSub[7] = compute(&s_Ev, subs);
+                o.compSub[8] = compute(&s_Fu, subs);
+                o.compSub[9] = compute(&s_Fv, subs);
+                o.compSub[10] = compute(&s_Gu, subs);
+                o.compSub[11] = compute(&s_Gv, subs);
                 
                 compileFunction(o.compSub[0], o.name->argIndex, str, "s");
                 
@@ -1217,48 +1231,91 @@ namespace tcc
                     o.program[1].link();
                 }
 
-                /*str = std::stringstream();
+                {
+                    glGenFramebuffers(1, &o.frame.ID);
+                    o.frame.textures.push_back(new Texture);
+                    Texture *tex = o.frame.textures.back();
+                    tex->create(frameSize, GL_RGB32F, GL_RGB, GL_FLOAT);
+                    glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+                    o.frame.textures.push_back(new Texture);
+                    tex = o.frame.textures.back();
+                    tex->create(frameSize, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE);
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, tex->ID, 0);
+                    uint bs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+                    glNamedFramebufferDrawBuffers(o.frame.ID, 2, bs);
+                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                }
+
+                str = std::stringstream();
 
                 str << "#version 460 core\n" << hdr.str();
 
-                compileFunction(o.compSub[0], o.name->argIndex, str, "s");
-                compileFunction(compute(&s_u, subs), o.name->argIndex, str,  "s_u");
-                compileFunction(compute(&s_v, subs), o.name->argIndex, str,  "s_v");
-                compileFunction(compute(&s_uu, subs), o.name->argIndex, str, "s_uu");
-                compileFunction(compute(&s_uv, subs), o.name->argIndex, str, "s_uv");
-                compileFunction(compute(&s_vv, subs), o.name->argIndex, str, "s_vv");
+                compileFunction(compute(&s_E, subs), o.name->argIndex, str,  "s_E");
+                compileFunction(compute(&s_F, subs), o.name->argIndex, str,  "s_F");
+                compileFunction(compute(&s_G, subs), o.name->argIndex, str,  "s_G");
+                compileFunction(compute(&s_Eu, subs), o.name->argIndex, str,  "s_Eu");
+                compileFunction(compute(&s_Ev, subs), o.name->argIndex, str,  "s_Ev");
+                compileFunction(compute(&s_Fu, subs), o.name->argIndex, str,  "s_Fu");
+                compileFunction(compute(&s_Fv, subs), o.name->argIndex, str,  "s_Fv");
+                compileFunction(compute(&s_Gu, subs), o.name->argIndex, str,  "s_Gu");
+                compileFunction(compute(&s_Gv, subs), o.name->argIndex, str,  "s_Gv");
 
-                str << "float E(float u, float v)   {return dot(s_u(u,v),s_u(u,v));}\n";
-                str << "float E_u(float u, float v) {return 2*dot(s_u(u,v),s_uu(u,v));}\n";
-                str << "float E_v(float u, float v) {return 2*dot(s_u(u,v),s_uv(u,v));}\n";
+                str << "vec2 accel(float u, float v, float du, float dv)\n{\n";
+                str << "float _E = s_E(u, v);\n";
+                str << "float _F = s_F(u, v);\n";
+                str << "float _G = s_G(u, v);\n";
+                str << "float Eu = s_Eu(u,v);\n";
+                str << "float Ev = s_Ev(u,v);\n";
+                str << "float Fu = s_Fu(u,v);\n";
+                str << "float Fv = s_Fv(u,v);\n";
+                str << "float Gu = s_Gu(u,v);\n";
+                str << "float Gv = s_Gv(u,v);\n";
+                str << "float A = (Gu/2-Fv)*dv*dv-(Eu/2*du+Ev*dv)*du;\n";
+                str << "float B = (Ev/2-Fu)*du*du-(Gv/2*dv+Gu*du)*dv;\n";
+                str << "float R = _E*_G - _F*_F;\n";
+                str << "return mat2(_G, -_F, -_F, _E)*vec2(A, B)/R;\n";
+                str << "}\n";
 
-                str << "float F(float u, float v)   {return dot(s_u(u,v),s_v(u,v));}\n";
-                str << "float F_u(float u, float v) {return dot(s_uu(u,v),s_v(u,v)) + dot(s_u(u,v),s_uv(u,v));}\n";
-                str << "float F_v(float u, float v) {return dot(s_uv(u,v),s_v(u,v)) + dot(s_u(u,v),s_vv(u,v));}\n";
-
-                str << "float G(float u, float v)   {return dot(s_v(u,v),s_v(u,v));}\n";
-                str << "float G_u(float u, float v) {return 2*dot(s_v(u,v),s_uv(u,v));}\n";
-                str << "float G_v(float u, float v) {return 2*dot(s_v(u,v),s_vv(u,v));}\n";
-
-                str << "layout (location = 0) out vec4 color;\n";
+                str << "uniform sampler2D tex;\n";
+                str << "layout (location = 0) out vec4 uv;\n";
+                str << "layout (location = 1) out vec4 color;\n";
                 str << "layout (location = 0) uniform vec2 center;\n";
-                str << "layout (location = 1) uniform vec2 front;\n";
-                str << "layout (location = 1) uniform vec2 right;\n";
+                str << "layout (location = 1) uniform vec2 X;\n";
+                str << "layout (location = 2) uniform vec2 Y;\n";
                 str << "in vec2 opos;\n";
                 str << "void main()\n{\n";
-                str << ""
 
+                str << "int N = 64;\n";
+                str << "float h = 1.0f/N;\n";
+                str << "vec2 pos = center\n;";
+                str << "vec2 vel = opos.x*X + opos.y*Y;\n";
 
-                printf("%s\n", str.str().c_str());
+                str << "for(int i = 0; i < N; i++)\n{\n";
+                str << "vec2 k1_pos = h*vel;\n";
+                str << "vec2 k1_vel = h*accel(pos.x, pos.y, vel.x, vel.y);\n";
+                str << "vec2 k2_pos = h*(vel+k1_vel/2);\n";
+                str << "vec2 k2_vel = h*accel(pos.x+k1_pos.x/2, pos.y+k1_pos.y/2, vel.x+k1_vel.x/2, vel.y+k1_vel.y/2);\n";
+                str << "vec2 k3_pos = h*(vel+k2_vel/2);\n";
+                str << "vec2 k3_vel = h*accel(pos.x+k2_pos.x/2, pos.y+k2_pos.y/2, vel.x+k2_vel.x/2, vel.y+k2_vel.y/2);\n";
+                str << "vec2 k4_pos = h*(vel+k3_vel);\n";
+                str << "vec2 k4_vel = h*accel(pos.x+k3_pos.x, pos.y+k3_pos.y, vel.x+k3_vel.x, vel.y+k3_vel.y);\n";
+                str << "pos += (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)/6;\n";
+                str << "vel += (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)/6;\n";
+                str << "}\n";
+
+                str << "uv = vec4(pos, 0, 0);\n";
+                str << "color = texture(tex, pos);\n";
+                str << "}";
 
                 {
-                    o.program3.shaders.push_back(new Shader);
-                    Shader *sh = o.program3.shaders.back();
+                    o.program[2].shaders.push_back(new Shader);
+                    Shader *sh = o.program[2].shaders.back();
                     sh->compile(GL_FRAGMENT_SHADER, str.str().c_str());
-                    o.program3.ID = glCreateProgram();
-                    glAttachShader(o.program3.ID, defaultVert.ID);
-                    o.program3.link();
-                }*/
+                    o.program[2].ID = glCreateProgram();
+                    glAttachShader(o.program[2].ID, defaultVert.ID);
+                    o.program[2].link();
+                }
             }
 
             if(o.type == point)

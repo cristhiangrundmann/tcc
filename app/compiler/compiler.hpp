@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser.hpp"
+#include <glm/glm.hpp>
 #include <sstream>
 
 namespace tcc
@@ -103,7 +104,7 @@ namespace tcc
         Table *type{};
         Table *name{};
         SymbExpr *sub[2]{};
-        CompExpr *compSub[6]{};
+        CompExpr *compSub[12]{};
         std::vector<Interval> intervals;
         std::vector<int> grids;
         int nTuple{};
@@ -112,6 +113,13 @@ namespace tcc
         Array array{};
         Framebuffer frame{};
         Texture image{};
+
+        //GEO
+        glm::vec2 center = glm::vec2(0.5985, 0.2344);
+        glm::vec2 X = glm::vec2(0, 1);
+        glm::vec2 Y = glm::vec2(1, 0);
+        float ori = 1;
+        float zoom = 1;
 
         Color col{};
     };
