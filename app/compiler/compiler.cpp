@@ -1286,7 +1286,9 @@ namespace tcc
                 str << "in vec2 opos;\n";
                 str << "void main()\n{\n";
 
-                str << "int N = 64;\n";
+                str << "float l = length(opos);\n";
+                str << "if(l < 0.01) { uv = vec4(0); color = vec4(0); return;}\n";
+                str << "int N = int(l * 64);\n";
                 str << "float h = 1.0f/N;\n";
                 str << "vec2 pos = center\n;";
                 str << "vec2 vel = opos.x*X + opos.y*Y;\n";
