@@ -1,3 +1,4 @@
+#circle and tangents
 param r : [/2, 1];
 param o : [0, 2pi];
 curve c(t) = r(cost, sint, 0), t : [0, 2pi];
@@ -6,46 +7,14 @@ define k2 = k + o;
 point p = ck2;
 vector v = c'k2 @ p;
 
-grid gu : [0, pi, 8];
-grid gv : [0, 2pi, 16];
-
-surface s(u,v) = (cosu, sinucosv, sinusinv), 
-u : [0, pi], v : [0, 2pi];
-
-point p = s(gu, gv);
-function N(x) = x/sqrt*x;
-
-vector v = Ns(gu,gv)/2 @ p;
-
-
-param u : [0, 2pi];
-define r = (sinu+1)/4+/2;
-
-param o : [0, 2pi];
-define l = 5o;
-
-curve c(t) = r(cost, -sint, 0), t : [0, 2pi];
-
-vector vx = r(-cosl, 0, 0) @ cl;
-vector vy = r(0, sinl, 0) @ cl;
-
-vector xx = 2r(1, 0, 0) @ (-r, 0, 0);
-vector yy = 2r(0, 1, 0) @ (0, -r, 0);
-
-point p = cl;
-
-surface s(u,v) = (cosu, sinucosv, sinusinv), u : [0, pi], v : [0, 2pi];
-
-surface s1(u,v) = (u,v,0), u : [-1, 1], v : [-1, 1];
-surface s2(u,v) = (u,0,v), u : [-1, 1], v : [-1, 1];
-surface s3(u,v) = (0,u,v), u : [-1, 1], v : [-1, 1];
-
+#mobius strip
 surface m(u,v) = 
 (
 (1 + v/2cos(u/2))cos u, 
 (1 + v/2cos(u/2))sin u,
 v/2sin(u/2)), u : [0, 2pi], v : [-1, 1];
 
+#klein bottle
 surface s(u,v) = (
 -2/15 cos u (3cos v - 30 sin u + 90 cos^4 u sin u -
  60cos^6 u sin u + 5cos u cos v sin u),
@@ -54,8 +23,29 @@ surface s(u,v) = (
  80cos^7 u cos v sin u),
 2/15(3 + 5 cos u sin u) sin v ), u : [0, pi], v : [0, 2pi];
 
+#helix
 surface h(u,v) = 
 ( (2 + sin v)cos u, (2 + sin v)sin u, u + cos v ), u : [-5, 5], v : [0, 2pi];
 
-surface s(u,v) = (sin(piv)cos(2piu), sin(piv)sin(2piu), cos(piv)), 
+#torus
+surface s(u,v) = (-(2cos u + 3)cos v, -(2cos u + 3)sin v, -2sin u), u : [0, 2pi], v : [0, 2pi];
+
+#sphere and coordinates
+function f(u,v) = 
+	(sin(piv)cos(2piu), sin(piv)sin(2piu), cos(piv));
+
+param U : [0, 1];
+param V : [0, 1];
+
+point p = f(U,V);
+
+curve cu(t) = f(t, V), t : [0, 1];
+curve cv(t) = f(U, t), t : [0, 1];
+
+function N(x) = x/sqrt*x;
+
+vector vu = Nf_u(U,V) @ p;
+vector vv = Nf_v(U,V) @ p;
+
+surface s(u,v) = f(u,v)*0.99, 
 u : [0, 1], v : [0, 1];

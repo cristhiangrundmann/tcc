@@ -94,8 +94,7 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
 
 void draw2(Obj &o)
 {
-    if(!o.program[0].ID) return;
-    
+    glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
     if(o.type == cmp->curve)
     {
         glUseProgram(o.program[0].ID);
@@ -112,8 +111,6 @@ void draw2(Obj &o)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex->ID);
 
-        glEnable(GL_DEPTH_TEST);
-        glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
         glUseProgram(o.program[1].ID);
@@ -149,21 +146,20 @@ void draw2(Obj &o)
             o.Y = rotate(o, o.center, o.X, o.ori*Parser::CPI/2);
             step(o, o.center, o.Y, (s-w)*io.DeltaTime);
             o.X = rotate(o, o.center, o.Y, -o.ori*Parser::CPI/2);
-        }
 
-        glUseProgram(o.program[2].ID);
+            glUseProgram(o.program[2].ID);
     
-        glUniform2f(0, o.center.x, o.center.y);
-        glUniform2f(1, o.X.x, o.X.y);
-        glUniform2f(2, o.Y.x, o.Y.y);
+            glUniform2f(0, o.center.x, o.center.y);
+            glUniform2f(1, o.X.x, o.X.y);
+            glUniform2f(2, o.Y.x, o.Y.y);
 
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex->ID);
-        glBindVertexArray(cmp->quad.ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
-        glEnable(GL_TEXTURE_2D);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, tex->ID);
+            glBindVertexArray(cmp->quad.ID);
+            glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
+            glEnable(GL_TEXTURE_2D);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         ImGui::SetCursorScreenPos(pos);
         ImGui::Image((void*)(intptr_t)o.frame.textures[1]->ID, ImVec2(cmp->frameSize.width, cmp->frameSize.height));
@@ -289,7 +285,6 @@ int main(int, char**)
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     glEnable(GL_DEPTH_TEST);
-    glLineWidth(20);
     glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 
     tex->load("test.jpg");
@@ -427,8 +422,8 @@ int main(int, char**)
                         }
                     }
 
-                    glUseProgram(o.program[0].ID);
-                    draw(o);
+                    if(o.program[0].ID)
+                        draw(o);
                 }
             }
 

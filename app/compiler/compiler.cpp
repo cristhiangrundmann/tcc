@@ -1011,9 +1011,11 @@ namespace tcc
         "#version 460 core\n"
         "uniform sampler2D tex;\n"
         "layout (location = 0) out vec4 color;\n"
+        "layout (location = 0) uniform vec4 col;\n"
         "in vec2 opos;\n"
         "void main()\n{\n"
-        "color = texture(tex, opos);\n"
+        "vec4 c = texture(tex, opos);\n"
+        "color = vec4(c.x*col.x, c.y*col.y, c.z*col.z, 1);\n"
         "\n}\n"
         );
 
@@ -1216,8 +1218,8 @@ namespace tcc
                     o.program[0].link();
                     o.array.create2DGrid(200, 200, o.intervals[0], o.intervals[1]);
 
-                    o.col[0] = 0;
-                    o.col[1] = 0;
+                    o.col[0] = 1;
+                    o.col[1] = 1;
                     o.col[2] = 1;
                     o.col[3] = 1;
                     glUseProgram(o.program[0].ID);
