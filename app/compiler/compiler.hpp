@@ -35,7 +35,6 @@ namespace tcc
     {
         Parser::ExprType type{};
         Table *tag{};
-        char wrap{};
         SymbExpr *sub[3]{};
         CompExpr *compSub[3]{};
         float number{};

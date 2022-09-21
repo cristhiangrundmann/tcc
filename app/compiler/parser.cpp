@@ -40,18 +40,12 @@ namespace tcc
     {
         switch(type)
         {
-            wrap = 0;
             tag = {};
             case ExprType::TAGGED:
                 require(TokenType::UNDEFINED);
                 tag = lexer.node;
                 advance();
                 skip(':');
-                if(compare(charToken('+')) || compare(charToken('-')))
-                {
-                    wrap = (char)lexer.type;
-                    advance();
-                }
             case ExprType::INTERVAL:
                 skip('[');
                 parseExpr();

@@ -24,7 +24,6 @@ namespace tcc
         Table *objType{};
         Table *objName{};
         Table *tag{};
-        char wrap = 0;
         int tupleSize = 0;
 
         static constexpr float CE = 2.718281;

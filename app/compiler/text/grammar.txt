@@ -11,10 +11,9 @@ DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
 
 FDECL   = id "(" IDS ")" "=" EXPR ;
 IDS     = IDS "," id | id ;
-TAG     = "+" | "-" | ;
 INT     = [ EXPR "," EXPR ] ;
 GRID    = [ EXPR "," EXPR "," EXPR ] ;
-TINT    = id ":" TAG INT ;
+TINT    = id ":" INT ;
 INTS    = INTS "," INT | INT ;
 TINTS   = TINTS "," TINT | TINT ;
 GRIDS   = GRIDS "," GRID | GRID ;

@@ -19,10 +19,10 @@ namespace tcc
         {
             e[2] = expStack.back();
             expStack.pop_back();
-            i = {type, tag, wrap, {e[2], e[1], e[0]}};
+            i = {type, tag, {e[2], e[1], e[0]}};
         }
         else
-            i = {type, tag, wrap, {e[1], e[0], nullptr}};
+            i = {type, tag, {e[1], e[0], nullptr}};
         
         intStack.push_back(i);
     }
