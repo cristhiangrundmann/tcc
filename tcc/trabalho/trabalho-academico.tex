@@ -1,0 +1,332 @@
+% -----------------------------------
+% -----------------------------------
+% abnTeX2: Normas ABNT NBR 14724:2011 + sugestões FGV/EMAp. 
+
+% Autor: Lauro César Araujo
+% Adaptações EMAp: Lucas Machado Moschen 
+% Copyright 2012-2018 by abnTeX2 group at http://www.abntex.net.br/ 
+
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%   http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2005/12/01 or later.
+% ----------------------------------
+% ----------------------------------
+\documentclass[
+	% -- opções da classe memoir --
+	12pt,				% tamanho da fonte
+	%openright,			% capítulos começam em página ímpar (insere página vazia caso preciso)
+	oneside,			% para impressão em recto e verso. Oposto a oneside
+	a4paper,			% tamanho do papel. 
+	% -- opções da classe abntex2 --
+	%chapter=TITLE,		% títulos de capítulos convertidos em letras maiúsculas
+	%section=TITLE,		% títulos de seções convertidos em letras maiúsculas
+	%subsection=TITLE,	% títulos de subseções convertidos em letras maiúsculas
+	%subsubsection=TITLE,% títulos de subsubseções convertidos em letras maiúsculas
+	% -- opções do pacote babel --
+	english,			% idioma para inglês
+	brazil				% idioma para português
+	]{abntex2}
+
+%------------------------------------------------
+%-------------- Pacotes necessários -------------
+%------------------------------------------------
+
+% Escrita 
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype} % para melhorias de justificação
+\usepackage{indentfirst}
+
+\renewcommand{\ABNTEXchapterfont}{\fontfamily{ptm}\fontseries{b}\selectfont}
+
+% Gráficos 
+\usepackage{color}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\graphicspath{{../../images/}}
+
+% Matemáticos 
+\usepackage{amsthm, amssymb, amsmath, mathtools}
+
+% Outros 
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Código}
+\renewcommand{\lstlistlistingname}{Lista de códigos}
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true, numbers=left,
+inputencoding=utf8, extendedchars=true, frame=single,
+literate=%
+        {é}{{\'{e}}}1
+        {è}{{\`{e}}}1
+        {ê}{{\^{e}}}1
+        {ë}{{\¨{e}}}1
+        {É}{{\'{E}}}1
+        {Ê}{{\^{E}}}1
+        {û}{{\^{u}}}1
+        {ù}{{\`{u}}}1
+        {ú}{{\'{u}}}1
+        {â}{{\^{a}}}1
+        {à}{{\`{a}}}1
+        {á}{{\'{a}}}1
+        {ã}{{\~{a}}}1
+        {Á}{{\'{A}}}1
+        {Â}{{\^{A}}}1
+        {Ã}{{\~{A}}}1
+        {ç}{{\c{c}}}1
+        {Ç}{{\c{C}}}1
+        {õ}{{\~{o}}}1
+        {ó}{{\'{o}}}1
+        {ô}{{\^{o}}}1
+        {Õ}{{\~{O}}}1
+        {Ó}{{\'{O}}}1
+        {Ô}{{\^{O}}}1
+        {î}{{\^{i}}}1
+        {Î}{{\^{I}}}1
+        {í}{{\'{i}}}1
+        {Í}{{\~{Í}}}1
+}
+
+% Citações 
+%\usepackage[brazilian,hyperpageref]{backref}
+%\usepackage[alf]{abntex2cite}	% Citações padrão ABNT
+\usepackage[style=abnt]{biblatex}
+\addbibresource{biblio.bib}  
+
+% \renewcommand{\backrefpagesname}{Citado na(s) página(s):~}
+% % Texto padrão antes do número das páginas
+% \renewcommand{\backref}{}
+% % Define os textos da citação
+% \renewcommand*{\backrefalt}[4]{
+% 	\ifcase #1 %
+% 		Nenhuma citação no texto.%
+% 	\or
+% 		Citado na página #2.%
+% 	\else
+% 		Citado #1 vezes nas páginas #2.%
+% 	\fi}%
+% ---
+
+\input{files/capa_folha_rosto.tex}
+
+\titulo{Geodesic Tracing}
+\subtitulo{Visualização de curvas e superfícies através de geodésicas}
+\autor{Cristhian Grundmann}
+\orientador{Asla Medeiros e Sá}
+\local{Rio de Janeiro}
+\data{2022}
+\instituicao{%
+  Fundação Getulio Vargas \\
+  \par
+  Escola de Matemática Aplicada
+}
+\tipotrabalho{Trabalho de Conclusão de Curso}
+
+\preambulo{Trabalho de conclusão de curso apresentada para a Escola de
+Matemática Aplicada (FGV/EMAp) como requisito para o grau de bacharel em
+Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
+
+
+%---------------------------------------------
+%-------------------- PDF --------------------
+%---------------------------------------------
+
+% alterando o aspecto da cor azul
+\definecolor{blue}{RGB}{41,5,195}
+
+% informações do PDF
+\makeatletter
+\hypersetup{
+     	%pagebackref=true,
+		pdftitle={\@title}, 
+		pdfauthor={\@author},
+    	pdfsubject={\imprimirpreambulo},
+	    pdfcreator={LaTeX with abnTeX2},
+		pdfkeywords={abnt}{latex}{abntex}{abntex2}{trabalho acadêmico}, 
+		colorlinks=true,       		% false: boxed links; true: colored links
+    	linkcolor=blue,          	% color of internal links
+    	citecolor=blue,        		% color of links to bibliography
+    	filecolor=magenta,      		% color of file links
+		urlcolor=blue,
+		bookmarksdepth=4
+}
+\makeatother
+
+% Posiciona figuras e tabelas no topo da página quando adicionadas sozinhas
+% em um página em branco. Ver https://github.com/abntex/abntex2/issues/170
+\makeatletter
+\setlength{\@fptop}{5pt} % Set distance from top of page to first float
+\makeatother
+
+%---------------------------------------
+%--------- Mais configurações-----------
+%---------------------------------------
+
+% Possibilita criação de Quadros e Lista de quadros.
+% Ver https://github.com/abntex/abntex2/issues/176
+\newcommand{\quadroname}{Quadro}
+\newcommand{\listofquadrosname}{Lista de quadros}
+
+\newfloat[chapter]{quadro}{loq}{\quadroname}
+\newlistof{listofquadros}{loq}{\listofquadrosname}
+\newlistentry{quadro}{loq}{0}
+
+% configurações para atender às regras da ABNT
+\setfloatadjustment{quadro}{\centering}
+\counterwithout{quadro}{chapter}
+\renewcommand{\cftquadroname}{\quadroname\space} 
+\renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
+
+\setfloatlocations{quadro}{hbtp} % Ver https://github.com/abntex/abntex2/issues/176
+
+%-----------------------------------------------------
+%--------------------- Margens -----------------------
+%-----------------------------------------------------
+
+\setlrmarginsandblock{3cm}{2cm}{*}
+\setulmarginsandblock{3cm}{2cm}{*}
+\checkandfixthelayout
+
+%-----------------------------------------------------
+%------ Espaçamentos entre linhas e parágrafos -------
+%-----------------------------------------------------
+
+% O tamanho do parágrafo é dado por:
+\setlength{\parindent}{1.3cm}
+
+% Controle do espaçamento entre um parágrafo e outro:
+\setlength{\parskip}{0.2cm}  % tente também \onelineskip
+
+% compila o índice
+\makeindex
+
+%------------------------------------------------------
+%----------- Personal Definitions ---------------------
+%------------------------------------------------------
+
+\input{files/definitions.tex}
+
+%-------------------------------------------------
+%----------------- Document ----------------------
+%-------------------------------------------------
+
+\begin{document}
+
+\newcounter{num}
+% if num != 1, do not print the pre textual 
+\setcounter{num}{1}
+
+\selectlanguage{brazil}
+\frenchspacing 
+
+%----------------------------------------------
+%--------------- Pré-textuais -----------------
+%----------------------------------------------
+%\pretextual
+
+\imprimircapa
+
+\ifnum\value{num}=1
+{\imprimirfolhaderosto*
+
+%\input{files/ficha_catalografica.tex}
+
+%\input{files/errata.tex}
+
+%\input{files/folha_aprovacao.tex}
+
+%\input{files/dedicatoria_agradecimentos.tex}
+
+%\input{files/resumo.tex}
+
+%\pdfbookmark[0]{\listfigurename}{lof}
+%\listoffigures*
+%\cleardoublepage
+
+% \pdfbookmark[0]{\listofquadrosname}{loq}
+% \listofquadros*
+% \cleardoublepage
+
+%\pdfbookmark[0]{\listtablename}{lot}
+%\listoftables*
+%\cleardoublepage
+
+%\input{files/siglas_simbolos.tex}
+
+\pdfbookmark[0]{\listtablename}{loc}
+\lstlistoflistings
+\cleardoublepage
+
+}\fi
+
+\pdfbookmark[0]{\contentsname}{toc}
+%\tableofcontents*
+\cleardoublepage
+
+% ----------------------------------------------------------
+% ELEMENTOS TEXTUAIS
+% ----------------------------------------------------------
+\textual
+
+\input{files/compilador.tex}
+
+%\input{files/introducao.tex}
+
+% ----------------------------------------------------------
+% Finaliza a parte no bookmark do PDF
+% para que se inicie o bookmark na raiz
+% e adiciona espaço de parte no Sumário
+% ----------------------------------------------------------
+\phantompart
+
+%\input{files/desenvolvimento.tex}
+
+%\input{files/conclusao.tex}
+
+% -----------------------------------
+% ELEMENTOS PÓS-TEXTUAIS
+% -----------------------------------
+\postextual
+% ----------------------------------
+
+%\bibliography{biblio}
+\printbibliography
+
+%\glossary
+
+% ----------------------------------------------------------
+% Apêndices
+% ----------------------------------------------------------
+
+% ---
+% Inicia os apêndices
+% ---
+% \begin{apendicesenv}
+
+% % Imprime uma página indicando o início dos apêndices
+% \partapendices
+
+% \end{apendicesenv}
+% ---
+
+% ----------------------------------------------------------
+% Anexos
+% ----------------------------------------------------------
+
+% \begin{anexosenv}
+
+% \partanexos
+
+% \end{anexosenv}
+
+%---------------------------------------------------------------------
+% ÍNDICE REMISSIVO
+%---------------------------------------------------------------------
+\phantompart
+\printindex
+
+\end{document}

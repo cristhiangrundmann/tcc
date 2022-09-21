@@ -1,0 +1,112 @@
+\chapter{Programas}
+
+%exemplo
+O usuário se comunica com a interface através de um texto, chamado de programa, que contém as objetos de interesse.
+Por exemplo:
+\begin{lstlisting}[caption=Exemplo de objetos,label=code1]
+#circle and tangents
+param r : [/2, 1];
+param o : [0, 2pi];
+curve c(t) = r(cost, sint, 0), t : [0, 2pi];
+grid k : [0, 2pi, 8];
+define k2 = k + o;
+point p = ck2;
+vector v = c'k2 @ p;
+\end{lstlisting}
+
+O programa começa com uma linha de comentário, estilo Python.
+Os objetos \texttt{r} e \texttt{o} são parâmetros nos intervalos indicados e \texttt{c} é um círculo
+parametrizado por \texttt{t} no intervalo indicado($/2 = 1/2$).
+Os parâmetros podem ser alterados por controles deslizantes na interface.
+O objeto \texttt{k} é uma grade de 8 pontos igualmente espaçados no intervalo indicado.
+A definição \texttt{k2} serve apenas de conveniência, usada no ponto \texttt{p} e no vetor \texttt{v}.
+Note que \texttt{p = ck2} ($p = c(k2)$) usa uma notação sem parênteses para a aplicação de funções.
+Como o ponto \texttt{p} depende de \texttt{k}, 
+um ponto é desenhado para cada valor de \texttt{k} da grade.
+O mesmo ocorre para o vetor \texttt{v}. As grades são tratadas como constantes,
+e servem para desenhar múltiplas instâncias dos objetos desenháveis.
+
+%regras semânticas
+Os objetos só podem se referir aos objetos declarados anteriormente.
+Aplicações de funções devem ter a quantidade certa de argumentos.
+Operações com tuplas devem ter quantidades consistentes de elementos.
+Componentes devem ter índices corretos.
+Intervalos não podem depender de parâmetros ou grades.
+
+
+%gramática
+O programa deve seguir uma gramática formal que determina as estruturas sintáticas permitidas.
+A gramática especifica: o formato da declaração de cada tipo de objeto;
+e as operações matemáticas e suas ordens de precedência.
+A gramática é definida pelo código \ref{gram}.
+
+\newpage
+\begin{lstlisting}[caption=Gramática livre de contexto,label=gram]
+PROG    = DECL PROG | ;
+
+DECL    = "param"     id ":" INTS ";" ;
+DECL    = "grid"      id ":" GRIDS ";" ;
+DECL    = "define"    id "=" EXPR ";" ;
+DECL    = "curve"     FDECL "," TINTS ";" ;
+DECL    = "surface"   FDECL "," TINTS ";" ;
+DECL    = "function"  FDECL ";" ;
+DECL    = "point"     id "=" EXPR ";" ;
+DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
+
+FDECL   = id "(" IDS ")" "=" EXPR ;
+IDS     = IDS "," id | id ;
+INT     = [ EXPR "," EXPR ] ;
+GRID    = [ EXPR "," EXPR "," EXPR ] ;
+TINT    = id ":" INT ;
+INTS    = INTS "," INT | INT ;
+TINTS   = TINTS "," TINT | TINT ;
+GRIDS   = GRIDS "," GRID | GRID ;
+
+EXPR    = ADD;
+ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
+JUX     = JUX MULT2 | MULT ;
+MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
+MULT2   = MULT2 "*" UNARY | MULT2 "/" UNARY | APP ;
+UNARY   = "+" UNARY ;
+UNARY   = "-" UNARY ;
+UNARY   = "*" UNARY ;
+UNARY   = "/" UNARY ;
+UNARY   = APP ;
+APP     = FUNC UNARY | POW ;
+FUNC    = FUNC2 "^" UNARY | FUNC2 ;
+FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
+
+POW     = COMP "^" UNARY | COMP ;
+COMP    = COMP "_" num | FACT ;
+FACT    = const | num | var | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
+TUPLE   = ADD "," TUPLE | ADD ;
+\end{lstlisting}
+
+Os termos à esquerda de uma igualdade são os não-terminais, em maiúsculo, e \texttt{PROG} é o não-terminal inicial.
+Os termos em minúsculo são terminais, e representam um token.
+Os termos entre aspas representam literalmente o texto entre aspas.
+Por exemplo, \texttt{func} representa o nome de uma função. Termos
+O lado direito de uma igualdade especifica as possíveis formas sentenciais do 
+não-terminal à esquerda, separadas por \texttt{|}.
+Uma forma sentencial pode conter símbolos terminais e não-terminais.
+Uma sentença, ou programa, é gerado a partir de \texttt{PROG}.
+Iterativamente, se substitui um não-terminal por qualquer uma de suas formas sentenciais. 
+Note que a primeira substituição é a de \texttt{PROG}.
+A estrutura do programa é determinada por quais foram as substituições feitas.
+Observe na linha 10 a especificação de um vetor. A palavra chave \texttt{vector} é necessária, seu nome é representado por \texttt{id} (identificador),
+e os termos \texttt{EXPR} representam expressões matemáticas.
+
+O não-terminal \texttt{EXPR} está definido na linha 21, e representa uma expressão matemática.
+A linha 22 especifica os operadores do nível de precedência aditiva.
+
+%%%....
+Implementação de sintaxe que considera a estetica natural da escrita matemática que precisa ser traduzida para sintaxe de linguagem computacional. Isso é feito pelo parser.
+A justificativa para essa abordagem é motivada pela experiencia de especificar desenhos de objetos gráficos em bibliotecas de uso corrente, tais como sagemath, manin etc.
+Isso justifica a especificação de uma gramática livre de contexto. Explicitada a seguir.
+Trabalhos futuros: grade variável
+Sobre o texto que descreve a gramática
+Fazer referencia à calculadora C++
+Fazer referência ao site que valida a não ambiguidade da gramática
+Por ter influenciado na sintaxe proposta (como?)
+Tentar lembrar um exemplo de ambiguidade que foi resolvido para a versão atual da gramática.
+Descrever o LL1 como certificado de não ambiguidade.
