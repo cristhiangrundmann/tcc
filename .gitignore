@@ -7,6 +7,9 @@
 *.lol
 *.lot
 *.lof
+*.bcf
+*.idx
+*.run.xml
 
 # Minted
 _minted-text/
