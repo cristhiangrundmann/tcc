@@ -11,14 +11,14 @@ DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
 
 FDECL   = id "(" IDS ")" "=" EXPR ;
 IDS     = IDS "," id | id ;
-INT     = [ EXPR "," EXPR ] ;
-GRID    = [ EXPR "," EXPR "," EXPR ] ;
+INT     = "[" EXPR "," EXPR "]" ;
+GRID    = "[" EXPR "," EXPR "," EXPR "]" ;
 TINT    = id ":" INT ;
 INTS    = INTS "," INT | INT ;
 TINTS   = TINTS "," TINT | TINT ;
 GRIDS   = GRIDS "," GRID | GRID ;
 
-EXPR    = ADD;
+EXPR    = ADD ;
 ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
 JUX     = JUX MULT2 | MULT ;
 MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;

@@ -10,6 +10,11 @@
 *.bcf
 *.idx
 *.run.xml
+*.bbl
+*.blg
+
+# Images
+*.jpg
 
 # Minted
 _minted-text/

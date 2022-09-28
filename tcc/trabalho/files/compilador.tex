@@ -1,7 +1,8 @@
 \chapter{Programas}
 
 %exemplo
-O usuário se comunica com a interface através de um texto, chamado de programa, que contém as objetos de interesse.
+O usuário se comunica com a interface através de um texto, chamado de programa,
+que contém os objetos de interesse.
 Por exemplo:
 \begin{lstlisting}[caption=Exemplo de objetos,label=code1]
 #circle and tangents
@@ -12,32 +13,86 @@ grid k : [0, 2pi, 8];
 define k2 = k + o;
 point p = ck2;
 vector v = c'k2 @ p;
+
+#function and surface
+#function f(x, y) = x^2+y^2;
+#surface s(u,v) = (u,v,f(u,v)), u : [-1, 1], v : [-1, 1];
 \end{lstlisting}
 
-O programa começa com uma linha de comentário, estilo Python.
-Os objetos \texttt{r} e \texttt{o} são parâmetros nos intervalos indicados e \texttt{c} é um círculo
-parametrizado por \texttt{t} no intervalo indicado($/2 = 1/2$).
-Os parâmetros podem ser alterados por controles deslizantes na interface.
+O programa começa com uma linha de comentário, no estilo da linguagem Python.
+Os objetos \texttt{r} e \texttt{o} são parâmetros que podem ser alterados na interface.
+Seus valores devem estar nos intervalos indicados.
+
+O objeto \texttt{c} é uma curva parametrizada por \texttt{t}.
+O domínio da parametrização é o intervalo indicado.
+A curva depende do parâmetro \texttt{r}, que foi definido anteriormente.
+
 O objeto \texttt{k} é uma grade de 8 pontos igualmente espaçados no intervalo indicado.
-A definição \texttt{k2} serve apenas de conveniência, usada no ponto \texttt{p} e no vetor \texttt{v}.
-Note que \texttt{p = ck2} ($p = c(k2)$) usa uma notação sem parênteses para a aplicação de funções.
-Como o ponto \texttt{p} depende de \texttt{k}, 
-um ponto é desenhado para cada valor de \texttt{k} da grade.
-O mesmo ocorre para o vetor \texttt{v}. As grades são tratadas como constantes,
-e servem para desenhar múltiplas instâncias dos objetos desenháveis.
+Uma grade é tratada como uma constante, assim como um parâmetro.
+Se um objeto desenhável depende de uma grade, uma instância é desenhada para cada valor da grade.
+Um objeto pode depender de mais de uma grade.
 
-%regras semânticas
-Os objetos só podem se referir aos objetos declarados anteriormente.
-Aplicações de funções devem ter a quantidade certa de argumentos.
-Operações com tuplas devem ter quantidades consistentes de elementos.
-Componentes devem ter índices corretos.
-Intervalos não podem depender de parâmetros ou grades.
+O objeto \texttt{k2} é uma constante, e não pode ser alterada na interface.
+Esse tipo de objeto pode ser usado para deixar o programa mais legível.
 
+O objeto \texttt{p} é o ponto da curva \texttt{c} de parâmetro \texttt{t = k2}.
+Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes.
+
+O objeto \texttt{v} é o vetor tangente da curva \texttt{c} no ponto \texttt{p}
+e desenhado a partir do mesmo ponto.
+O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes.
+
+Os objetos \texttt{f} e \texttt{s} estão comentados, então não são considerados.
+Estão presentes apenas para o exemplo ter todos os tipos de objeto.
+
+Os objetos desenháveis são pontos, vetores, curvas e superfícies.
+Pontos e vetores podem ser usados como valores em outros objetos.
+Pontos representam suas posições e vetores seus deslocamentos.
+Curvas e superfícies podem ser usadas como funções, sem a restrição no domínio.
+
+Há duas constantes pré-definidas: \texttt{pi} e \texttt{e}; e diversas funções pré-definidas:
+\texttt{sin}, \texttt{cos}, \texttt{tan},
+\texttt{exp}, \texttt{log}, \texttt{sqrt} e \texttt{id}.
+A função \texttt{id} é a identidade é útil apenas no funcionamento interno do sistema.
+
+As operações metemáticas e suas precedências estão descritas no código \ref{order}.
+
+\newpage
+\begin{lstlisting}[caption=Ordem das operações,label=order]
+    0) (), [] e {}
+    1) , (construção de tupla)
+    2) + e - (associativas à esquerda)
+    3) multiplicação por justaposição (associativa à esquerda)
+    4) * e / (associativas à esquerda)
+    5) +, -, * e / (unárias)
+    6) aplicação de função
+    7) ^ (associativa à direita)
+    8) _ (elemento de tupla) (associativa à esquerda)
+    9) ' e _ (derivada total e parcial) (associativas à esquerda)
+\end{lstlisting}
+
+Parâmetros e grades podem ser multidimensionais:
+\texttt{param T : [0, 1], [0, 1];}. Assim, o objeto \texttt{T} é uma tupla,
+e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
+
+Há 4 operadores unários: \texttt{+} e \texttt{-} são os usuais.
+A operação \texttt{*x} representa \texttt{xx}, e \texttt{/x} é igual a \texttt{1/x}.
+
+Para números reais, multiplicação com \texttt{*} e por justaposição são equivalentes.
+Porém, para tuplas, \texttt{a*b} representa o produto vetorial
+e \texttt{ab} representa o produto escalar.
+Assim, \texttt{*x} calcula o quadrado do módulo do vetor \texttt{x}.
+
+\section{Gramática formal}
 
 %gramática
-O programa deve seguir uma gramática formal que determina as estruturas sintáticas permitidas.
-A gramática especifica: o formato da declaração de cada tipo de objeto;
-e as operações matemáticas e suas ordens de precedência.
+O programa deve seguir uma gramática formal, 
+que especifica a sintaxe das declarações dos objetos e das expressões matemáticas.
+As expressões matemáticas podem seguir uma notação mais natural
+que as de várias linguagens de programação.
+Por exemplo, há multiplicação por justaposição: \texttt{3x = 3*x};
+e a aplicação de funções não exige parênteses: \texttt{sin-x = sin(-x)}.
+
 A gramática é definida pelo código \ref{gram}.
 
 \newpage
@@ -55,14 +110,14 @@ DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
 
 FDECL   = id "(" IDS ")" "=" EXPR ;
 IDS     = IDS "," id | id ;
-INT     = [ EXPR "," EXPR ] ;
-GRID    = [ EXPR "," EXPR "," EXPR ] ;
+INT     = "[" EXPR "," EXPR "]" ;
+GRID    = "[" EXPR "," EXPR "," EXPR "]" ;
 TINT    = id ":" INT ;
 INTS    = INTS "," INT | INT ;
 TINTS   = TINTS "," TINT | TINT ;
 GRIDS   = GRIDS "," GRID | GRID ;
 
-EXPR    = ADD;
+EXPR    = ADD ;
 ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
 JUX     = JUX MULT2 | MULT ;
 MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
@@ -82,22 +137,35 @@ FACT    = const | num | var | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
 TUPLE   = ADD "," TUPLE | ADD ;
 \end{lstlisting}
 
-Os termos à esquerda de uma igualdade são os não-terminais, em maiúsculo, e \texttt{PROG} é o não-terminal inicial.
-Os termos em minúsculo são terminais, e representam um token.
-Os termos entre aspas representam literalmente o texto entre aspas.
-Por exemplo, \texttt{func} representa o nome de uma função. Termos
-O lado direito de uma igualdade especifica as possíveis formas sentenciais do 
-não-terminal à esquerda, separadas por \texttt{|}.
-Uma forma sentencial pode conter símbolos terminais e não-terminais.
-Uma sentença, ou programa, é gerado a partir de \texttt{PROG}.
-Iterativamente, se substitui um não-terminal por qualquer uma de suas formas sentenciais. 
-Note que a primeira substituição é a de \texttt{PROG}.
-A estrutura do programa é determinada por quais foram as substituições feitas.
-Observe na linha 10 a especificação de um vetor. A palavra chave \texttt{vector} é necessária, seu nome é representado por \texttt{id} (identificador),
-e os termos \texttt{EXPR} representam expressões matemáticas.
+Os termos em maiúsculo(não-terminais) representam variáveis gramaticais.
+O lado direito de uma igualdade especifica as possíveis formas sentencias
+que um não-terminal pode assumir, 
+separadas por uma barra vertical ou em diferentes equações.
+Por exemplo, \texttt{MULT} possui 3 formas:
+\texttt{MULT * UNARY}, \texttt{MULT / UNARY} e \texttt{UNARY}.
+Cada forma tem um significado diferente.
+Uma forma pode ser vazia, como ocorre para \texttt{PROG}.
 
-O não-terminal \texttt{EXPR} está definido na linha 21, e representa uma expressão matemática.
-A linha 22 especifica os operadores do nível de precedência aditiva.
+Os símbolos entre aspas representam textos literais,
+e os termos em minúsculo(terminais) representam uma classe de ``palavras'':
+Por exemplo, \texttt{num} representa um número e \texttt{var} um nome de uma variável.
+
+O termo \texttt{PROG} representa um programa completo,
+que é uma sequência de declarações(\texttt{DECL}).
+O termo \texttt{EXPR} representa uma expressão matemática.
+Os símbolos abaixo de \texttt{EXPR} definem a sintaxe das operações,
+suas ordens de precedência e associatividades.
+
+Um programa coeso é formado a partir de \texttt{PROG}.
+Enquando houver não-terminais, deve-se substituí-los por uma de suas formas.
+
+Para extraír o significado de um programa, o processo contrário deve ser feito. 
+É necessário encontrar uma maneira de se obter o programa a partir de \texttt{PROG}.
+Para um programa coeso, sempre há uma maneira e essa é única.
+Algumas transformações nessa gramática a torna LL1,
+uma propriedade que garante que o \textit{parsing} pode ser feito de forma fácil e rápida.
+Além disso, LL1 garante que a gramática não é ambígua. \cite{GramCheck}
+
 
 %%%....
 Implementação de sintaxe que considera a estetica natural da escrita matemática que precisa ser traduzida para sintaxe de linguagem computacional. Isso é feito pelo parser.
