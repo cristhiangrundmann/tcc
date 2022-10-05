@@ -1,3 +1,32 @@
 \chapter{Introdução}
+Desenhos de superfícies costumam ser feitos a partir de um ponto de vista do
+espaço ambiente 3D.
+Esse projeto implementa uma visualização de superfícies que não depende de um espaço ambiente.
 
-Parte em que o autor fornece uma visão global da pesquisa realizada.
+A visualização pode ser comparada ao que um ser bidimensional interno à superfície observaria:
+simula-se raios de luz partindo da posição do ser, e os pontos iluminados são observados.
+Os raios de luz devem seguir caminhos em `linha reta', que minimizam distância.
+Para uma superfície qualquer, esses caminhos são chamados de geodésicos,
+e são estudados na geometria diferencial.
+A visualização, chamada de \textit{geodesic tracing}, obtém uma transformação de uma imagem original sobre a superfície.
+
+A implementação feita nesse projeto é feita em três partes:
+compilador, método numérico e interface gráfica.
+
+O compilador fornece uma maneira do usuário definir as superfícies e outros objetos.
+O usuário escreve um texto, seguindo algumas regras gramaticais, que então é processado.
+A teoria de compiladores é essencial para essa etapa,
+principalmente a análise léxica e a análise sintática \cite{Dragon:1}.
+O compilador está descrito no capítulo \ref{compiler}.
+
+O método numérico se refere à simulação dos raios de luz na superfície.
+Um raio de luz é determinado pela posição e direção inicial, que são as condições iniciais.
+Um sistema de equações diferenciais ordinárias(equação geodésica \cite{GeomDiff:1})
+determina a curva que a luz traça.
+Uma solução aproximada da equação é calculada pelo método de Runge-Kutta de ordem 4 \cite{Anal:1}.
+O método está descrito no capítulo \ref{geomdiff}.
+
+A interface gráfica é simples e é construída usando \textit{ImGui} \cite{ImGui},
+uma ferramenta de interface gráfica fácil de usar.
+A linguagem de programação escolhida para a implementação desse projeto é \textit{C++},
+e para desenhar a interface e os objetos, \textit{OpenGL} é usado.

@@ -1,0 +1,68 @@
+\chapter{Curvas e Superfícies}
+\label{geomdiff}
+O objetivo primário do projeto é visualizar curvas e superfícies.
+As curvas são visualizadas apenas em espaço 3D.
+As superfícies são visualizadas em espaço 3D e em \textit{geodesic tracing}.
+
+\section{Curvas}
+Há duas principais maneiras de se definir uma curva na geometria analítica:
+por parametrização e por equação. Esse trabalho apenas consideras curvas paramétricas.
+
+Uma curva pode ser parametrizada por um número real.
+Formalmente, uma parametrização é uma função $\gamma : I \rightarrow \mathbb{R}^n$, onde $I$ é um intervalo real.
+Nesse trabalho, o intervalo é fechado, e $n=3$.
+
+As curvas são desenhadas através de vários segmentos.
+Dada uma partição de $I$ de $k$ pontos,
+pode-se aproximar a curva pelos segmentos de extremidade $\gamma(t_{i})$ e $\gamma(t_{i-1})$ para $i<k$,
+onde $t_i$ é o i-ésimo ponto da partição. Nesse trabalho, a partição depende apenas de $k$ e é uniforme.
+
+O vetor tangente pode ser calculado com $\gamma'(t)$.
+
+\section{Superfícies}
+Assim como as curvas, apenas superfícies parametrizadas serão consideradas nesse trabalho:
+$\sigma :  I_1 \times I_2 \rightarrow \mathbb{R}^3$, onde $I_1$ e $I_2$ são intervalos fechados reais.
+
+As superfícies são desenhadas através de vários triângulos,
+a partir de partições dos intervalos $I_1$ e $I_2$.
+Juntas, as partições formam uma grade de retângulos, e cada retângulo pode ser dividido em 2 triângulos.
+Esses são os triângulos desenhados.
+
+Os vetores tangentes nas direções coordenadas são as derivadas parciais $\sigma_u(u,v)$ e $\sigma_v(u,v)$, onde os parâmetros são $u$ e $v$.
+Nesse projeto, os parâmetros podem ter nomes quaisquer.
+
+\subsection{Primeira forma fundamental}
+Supondo que a superfície seja diferenciável e com vetores tangentes linearmente independentes,
+a primeira forma fundamental no ponto paramétrico $(u,v)$ é definida como
+\[
+    \left[
+        \begin{array}{cc}
+            \sigma_u \cdot \sigma_u & \sigma_u \cdot \sigma_v \\
+            \sigma_v \cdot \sigma_u & \sigma_v \cdot \sigma_v
+        \end{array}
+    \right]
+    = 
+    \left[
+        \begin{array}{cc}
+            E & F \\
+            F & G
+        \end{array}
+    \right]
+\]
+onde as funções são todas aplicadas no ponto $(u,v)$.
+
+Os vetores $\sigma_u$ e $\sigma_v$ formam uma base do espaço tangente.
+O produto escalar de dois vetores tangentes 
+$x = x_1 \sigma_u + x_2 \sigma_v$ e $y = y_1 \sigma_u + y_2 \sigma_v$ pode ser calculado da seguinte forma:
+\[x\cdot y = (x_1 \sigma_u + x_2 \sigma_v) \cdot (y_1 \sigma_u + y_2 \sigma_v)\]
+\[x\cdot y = x_1 y_1 E + x_1 y_2 F + x_2 y_1 F + x_2 y_2 G\]
+
+O produto depende apenas dos coeficientes e da primeira forma fundamental.
+Isso significa que distâncias e ângulos podem ser calculados
+sem se referir ao espaço ambiente da parametrização, ou seja, de forma intrínseca.
+
+\subsection{Equação geodésica}
+
+\subsection{Solução Numérica}
+
+\subsection{Geodesic Tracing}

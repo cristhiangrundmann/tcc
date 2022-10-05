@@ -1,6 +1,6 @@
-\chapter{Programas}
+\chapter{Compilador}
+\label{compiler}
 
-%exemplo
 O usuário se comunica com a interface através de um texto, chamado de programa,
 que contém os objetos de interesse.
 Por exemplo:
@@ -19,28 +19,39 @@ vector v = c'k2 @ p;
 #surface s(u,v) = (u,v,f(u,v)), u : [-1, 1], v : [-1, 1];
 \end{lstlisting}
 
-O programa começa com uma linha de comentário, no estilo da linguagem Python.
-Os objetos \texttt{r} e \texttt{o} são parâmetros que podem ser alterados na interface.
-Seus valores devem estar nos intervalos indicados.
+A linguagem permite comentários no estilo da linguagem Python, usando \texttt{\#}.
 
-O objeto \texttt{c} é uma curva parametrizada por \texttt{t}.
-O domínio da parametrização é o intervalo indicado.
-A curva depende do parâmetro \texttt{r}, que foi definido anteriormente.
+O programa declara os seguintes objetos:
 
-O objeto \texttt{k} é uma grade de 8 pontos igualmente espaçados no intervalo indicado.
-Uma grade é tratada como uma constante, assim como um parâmetro.
-Se um objeto desenhável depende de uma grade, uma instância é desenhada para cada valor da grade.
-Um objeto pode depender de mais de uma grade.
-
-O objeto \texttt{k2} é uma constante, e não pode ser alterada na interface.
-Esse tipo de objeto pode ser usado para deixar o programa mais legível.
-
-O objeto \texttt{p} é o ponto da curva \texttt{c} de parâmetro \texttt{t = k2}.
-Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes.
-
-O objeto \texttt{v} é o vetor tangente da curva \texttt{c} no ponto \texttt{p}
-e desenhado a partir do mesmo ponto.
-O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes.
+\begin{centering}
+\begin{tabularx}{\textwidth}{||c|X||}
+    \cline{1-2}
+    Objetos & Descrição \\ \hline \hline
+    
+    \texttt{r} e \texttt{o} & parâmetros que podem ser alterados na interface.
+    Seus valores devem estar nos intervalos indicados \\ \hline
+    
+    \texttt{c} & uma curva parametrizada por \texttt{t}.
+    O domínio da parametrização é o intervalo indicado.
+    A curva depende do parâmetro \texttt{r}, que foi definido anteriormente. \\ \hline
+    
+    \texttt{k} & uma grade de 8 pontos igualmente espaçados no intervalo indicado.
+    Uma grade é tratada como uma constante, assim como um parâmetro.
+    Se um objeto desenhável depende de uma grade, uma instância é desenhada para cada valor da grade.
+    Um objeto pode depender de mais de uma grade. \\ \hline
+    
+    \texttt{k2} & uma constante, e não pode ser alterada na interface como os parâmetros.
+    Esse tipo de objeto pode ser usado para deixar o programa mais legível. \\ \hline
+    
+    \texttt{p} & o ponto da curva \texttt{c} de parâmetro \texttt{t = k2}.
+    Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes. \\ \hline
+    
+    \texttt{v} & o vetor tangente da curva \texttt{c} no ponto \texttt{p} 
+    e desenhado a partir do mesmo ponto.
+    O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes. \\ \hline
+    \cline{1-2}
+\end{tabularx}
+\end{centering}
 
 Os objetos \texttt{f} e \texttt{s} estão comentados, então não são considerados.
 Estão presentes apenas para o exemplo ter todos os tipos de objeto.
@@ -55,37 +66,18 @@ Há duas constantes pré-definidas: \texttt{pi} e \texttt{e}; e diversas funçõ
 \texttt{exp}, \texttt{log}, \texttt{sqrt} e \texttt{id}.
 A função \texttt{id} é a identidade é útil apenas no funcionamento interno do sistema.
 
-As operações metemáticas e suas precedências estão descritas no código \ref{order}.
-
-\newpage
-\begin{lstlisting}[caption=Ordem das operações,label=order]
-    0) (), [] e {}
-    1) , (construção de tupla)
-    2) + e - (associativas à esquerda)
-    3) multiplicação por justaposição (associativa à esquerda)
-    4) * e / (associativas à esquerda)
-    5) +, -, * e / (unárias)
-    6) aplicação de função
-    7) ^ (associativa à direita)
-    8) _ (elemento de tupla) (associativa à esquerda)
-    9) ' e _ (derivada total e parcial) (associativas à esquerda)
-\end{lstlisting}
-
 Parâmetros e grades podem ser multidimensionais:
 \texttt{param T : [0, 1], [0, 1];}. Assim, o objeto \texttt{T} é uma tupla,
 e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
 
 Há 4 operadores unários: \texttt{+} e \texttt{-} são os usuais.
 A operação \texttt{*x} representa \texttt{xx}, e \texttt{/x} é igual a \texttt{1/x}.
-
 Para números reais, multiplicação com \texttt{*} e por justaposição são equivalentes.
 Porém, para tuplas, \texttt{a*b} representa o produto vetorial
 e \texttt{ab} representa o produto escalar.
 Assim, \texttt{*x} calcula o quadrado do módulo do vetor \texttt{x}.
 
 \section{Gramática formal}
-
-%gramática
 O programa deve seguir uma gramática formal, 
 que especifica a sintaxe das declarações dos objetos e das expressões matemáticas.
 As expressões matemáticas podem seguir uma notação mais natural
@@ -113,7 +105,7 @@ FDECL   = id "(" IDS ")" "=" EXPR ;
 IDS     = IDS "," id | id ;
 INT     = "[" EXPR "," EXPR "]" ;
 GRID    = "[" EXPR "," EXPR "," EXPR "]" ;
-TINT    = id ":" INT ;
+TINT    = id ":" INT | id ":" GRID ;
 INTS    = INTS "," INT | INT ;
 TINTS   = TINTS "," TINT | TINT ;
 GRIDS   = GRIDS "," GRID | GRID ;
@@ -123,23 +115,21 @@ ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
 JUX     = JUX MULT2 | MULT ;
 MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
 MULT2   = MULT2 "*" UNARY | MULT2 "/" UNARY | APP ;
-UNARY   = "+" UNARY ;
-UNARY   = "-" UNARY ;
-UNARY   = "*" UNARY ;
-UNARY   = "/" UNARY ;
-UNARY   = APP ;
+UNARY   = "+" UNARY | "-" UNARY | "*" UNARY | "/" UNARY | APP;
 APP     = FUNC UNARY | POW ;
 FUNC    = FUNC2 "^" UNARY | FUNC2 ;
 FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
 
 POW     = COMP "^" UNARY | COMP ;
 COMP    = COMP "_" num | FACT ;
-FACT    = const | num | var | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
+FACT    = const | num | var
+        | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
 TUPLE   = ADD "," TUPLE | ADD ;
+    
 \end{lstlisting}
 
 Os termos em maiúsculo(não-terminais) representam variáveis gramaticais.
-O lado direito de uma igualdade especifica as possíveis formas sentencias
+O lado direito de uma igualdade especifica as possíveis formas sentenciais
 que um não-terminal pode assumir, 
 separadas por uma barra vertical ou em diferentes equações.
 Por exemplo, \texttt{MULT} possui 3 formas:
@@ -166,6 +156,31 @@ Para um programa coeso, sempre há uma maneira e essa é única.
 Algumas transformações nessa gramática a torna LL1,
 uma propriedade que garante que o \textit{parsing} pode ser feito de forma fácil e rápida.
 Além disso, LL1 garante que a gramática não é ambígua. \cite{GramCheck}
+
+A tabela \ref{order} descreve as operações e suas ordens de precedência, com base na gramática.
+
+\begin{table}[ht]
+\caption{Ordem das operações}
+\label{order}
+\begin{centering}
+\begin{tabularx}{\textwidth}{||c|c|c|c|X||}
+    \cline{1-5}
+    Operações & Aridade & Associatividade & Exemplo & Descrição \\ \hline \hline
+
+    \texttt{() [] \{\}} & Unário &  & \texttt{(expr)} & Isola a expressão interna \\ \hline
+    , & Binário & Esquerda & \texttt{(a,b,c)} & Adiciona uma elemento à tupla(dentro de parênteses) \\ \hline
+    + - & Binário & Esquerda & \texttt{a+b} & Soma e subtração usuais \\ \hline
+    \textit{justaposição} & Binário & Esquerda & \texttt{ab} & Multiplicação \\ \hline
+    * / & Binário & Esquerda & \texttt{a*b} & Multiplicação e Divisão \\ \hline
+    + - * / & Unário &  & \texttt{-x}, \texttt{*v} & Positivo, Negativo, Quadrado e Recíproco \\ \hline
+    \textit{aplicação} & Binário & Esquerda & \texttt{sin x} & Soma e subtração usuais \\ \hline
+    \textasciicircum & Binário & Direita & \texttt{a\textasciicircum b} & Potenciação \\ \hline
+    \_ & Unário & & \texttt{(1, 2, 3)\_2} & Elemento da tupla \\ \hline
+    ' \_ & Unário & & \texttt{sin'x + f\_z(3)} & Derivada Total e Parcial \\ \hline
+    \cline{1-5}
+\end{tabularx}
+\end{centering}
+\end{table}
 
 
 %%%....
