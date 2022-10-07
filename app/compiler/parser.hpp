@@ -10,7 +10,7 @@ namespace tcc
     {
         enum class ExprType
         {
-            TAGGED, INTERVAL, GRID, //for intervals
+            TAGGED, GRIDTAGGED, INTERVAL, GRID, //for intervals
             PLUS, MINUS, JUX, TIMES, DIVIDE,
             UPLUS, UMINUS, UTIMES, UDIVIDE,
             APP, FUNCTION, TOTAL, PARTIAL,

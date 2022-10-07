@@ -11,17 +11,18 @@ namespace tcc
 
     void Compiler::actInt(ExprType type)
     {
+        Interval i;
         SymbExpr *e[3]{};
         e[0] = expStack.back(); expStack.pop_back();
         e[1] = expStack.back(); expStack.pop_back();
-        Interval i;
-        if(type == S(GRID))
+
+        if(type == S(GRIDTAGGED) || type == S(GRID))
         {
             e[2] = expStack.back();
             expStack.pop_back();
             i = {type, tag, {e[2], e[1], e[0]}};
         }
-        else
+        else 
             i = {type, tag, {e[1], e[0], nullptr}};
         
         intStack.push_back(i);
@@ -1096,34 +1097,45 @@ namespace tcc
                     i.max = calculate(i.compSub[1], subs);
                     if(i.max < i.min) throw std::string("Degenerate interval");
                     i.number = floor(calculate(i.compSub[2], subs));
-                    if(i.number < 1) throw std::string("Grids must have at least 1 point");
+                    if(i.number < 2) throw std::string("Grids must have at least 2 points");
                 }
             }
-            
+
             if(o.type == curve)
             {
+                int gridt = 100;
                 std::stringstream str;
+
                 if(argList[o.name->argIndex].size() != 1)
                     throw std::string("Curves should have 1 parameter");
+
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
-                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
                 dependencies(o.intervals[0].compSub[0], o.grids);
-                dependencies(o.intervals[0].compSub[1], o.grids);
                 o.intervals[0].min = calculate(o.intervals[0].compSub[0], subs);
+
+                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
+                dependencies(o.intervals[0].compSub[1], o.grids);
                 o.intervals[0].max = calculate(o.intervals[0].compSub[1], subs);
+
+                if(o.intervals[0].sub[2])
+                {
+                    o.intervals[0].compSub[2] = compute(o.intervals[0].sub[2], subs);
+                    dependencies(o.intervals[0].compSub[2], o.grids);
+                    gridt = floor(calculate(o.intervals[0].compSub[2], subs));
+                    if(gridt < 2) throw std::string("Grids must have at least 2 points");
+                }
+
                 o.compSub[0] = compute(o.sub[0], subs);
                 dependencies(o.compSub[0], o.grids, true);
                 o.nTuple = o.compSub[0]->nTuple;
-                if(o.nTuple != 2 && o.nTuple != 3)
+                
+                if(o.nTuple != 3)
                     throw std::string("Curves should be in 2d or 3d space");
 
-                if(o.nTuple != 3) return;
-                str << "#version 460 core\n" << hdr.str();
-
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
-                compileFunction(o.compSub[0], o.name->argIndex, str, "c");
-                //compileFunction(compute(&ct, subs), o.name->argIndex, str, "c_t");
                 
+                str << "#version 460 core\n" << hdr.str();
+                compileFunction(o.compSub[0], o.name->argIndex, str, "c");
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
                 str << "gl_Position = camera*vec4(";
@@ -1135,7 +1147,7 @@ namespace tcc
                 o.program[0].ID = glCreateProgram();
                 glAttachShader(o.program[0].ID, defaultFrag.ID);
                 o.program[0].link();
-                o.array.create1DGrid(100, o.intervals[0]);
+                o.array.create1DGrid(gridt, o.intervals[0]);
                 o.col[0] = 1;
                 o.col[1] = 0;
                 o.col[2] = 0;
@@ -1146,21 +1158,45 @@ namespace tcc
 
             if(o.type == surface)
             {
+                int gridu = 100;
+                int gridv = 100;
                 std::stringstream str;
+
                 if(argList[o.name->argIndex].size() != 2)
                     throw std::string("Surface should have 2 parameters");
+
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
-                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
-                o.intervals[1].compSub[0] = compute(o.intervals[1].sub[0], subs);
-                o.intervals[1].compSub[1] = compute(o.intervals[1].sub[1], subs);
                 dependencies(o.intervals[0].compSub[0], o.grids);
-                dependencies(o.intervals[0].compSub[1], o.grids);
-                dependencies(o.intervals[1].compSub[0], o.grids);
-                dependencies(o.intervals[1].compSub[1], o.grids);
                 o.intervals[0].min = calculate(o.intervals[0].compSub[0], subs);
+
+                o.intervals[0].compSub[1] = compute(o.intervals[0].sub[1], subs);
+                dependencies(o.intervals[0].compSub[1], o.grids);
                 o.intervals[0].max = calculate(o.intervals[0].compSub[1], subs);
+                
+                o.intervals[1].compSub[0] = compute(o.intervals[1].sub[0], subs);
+                dependencies(o.intervals[1].compSub[0], o.grids);
                 o.intervals[1].min = calculate(o.intervals[1].compSub[0], subs);
+
+                o.intervals[1].compSub[1] = compute(o.intervals[1].sub[1], subs);                
+                dependencies(o.intervals[1].compSub[1], o.grids);
                 o.intervals[1].max = calculate(o.intervals[1].compSub[1], subs);
+
+                if(o.intervals[0].sub[2])
+                {
+                    o.intervals[0].compSub[2] = compute(o.intervals[0].sub[2], subs);
+                    dependencies(o.intervals[0].compSub[2], o.grids);
+                    gridu = floor(calculate(o.intervals[0].compSub[2], subs));
+                    if(gridu < 2) throw std::string("Grids must have at least 2 points");
+                }
+
+                if(o.intervals[1].sub[2])
+                {
+                    o.intervals[1].compSub[2] = compute(o.intervals[1].sub[2], subs);
+                    dependencies(o.intervals[1].compSub[2], o.grids);
+                    gridv = floor(calculate(o.intervals[1].compSub[2], subs));
+                    if(gridv < 2) throw std::string("Grids must have at least 2 points");
+                }
+                
                 o.compSub[0] = compute(o.sub[0], subs);
                 dependencies(o.compSub[0], o.grids, true);
                 o.nTuple = o.compSub[0]->nTuple;
@@ -1168,13 +1204,8 @@ namespace tcc
                 if(o.nTuple != 3)
                     throw std::string("Surfaces should be in 3d space");
                 
-                str << "#version 460 core\n" << hdr.str();
-
                 SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_v = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][1]);
-                //SymbExpr s_uu = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][0]);
-                //SymbExpr s_uv = op(S(PARTIAL), &s_u, nullptr, 0, argList[o.name->argIndex][1]);
-                //SymbExpr s_vv = op(S(PARTIAL), &s_v, nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_E = op(S(JUX), &s_u, &s_u);
                 SymbExpr s_F = op(S(JUX), &s_u, &s_v);
                 SymbExpr s_G = op(S(JUX), &s_v, &s_v);
@@ -1196,9 +1227,9 @@ namespace tcc
                 o.compSub[9] = compute(&s_Fv, subs);
                 o.compSub[10] = compute(&s_Gu, subs);
                 o.compSub[11] = compute(&s_Gv, subs);
-                
-                compileFunction(o.compSub[0], o.name->argIndex, str, "s");
-                
+
+                str << "#version 460 core\n" << hdr.str();
+                compileFunction(o.compSub[0], o.name->argIndex, str, "s");     
                 str << "layout (location = 0) in vec2 uv;\n";
                 str << "out vec2 opos;\n";
                 str << "flat out int index;\n";
@@ -1216,7 +1247,7 @@ namespace tcc
                     o.program[0].ID = glCreateProgram();
                     glAttachShader(o.program[0].ID, texFrag.ID);
                     o.program[0].link();
-                    o.array.create2DGrid(200, 200, o.intervals[0], o.intervals[1]);
+                    o.array.create2DGrid(gridu, gridv, o.intervals[0], o.intervals[1]);
 
                     o.col[0] = 1;
                     o.col[1] = 1;
@@ -1252,7 +1283,7 @@ namespace tcc
                 str = std::stringstream();
 
                 str << "#version 460 core\n" << hdr.str();
-
+               
                 compileFunction(compute(&s_E, subs), o.name->argIndex, str,  "s_E");
                 compileFunction(compute(&s_F, subs), o.name->argIndex, str,  "s_F");
                 compileFunction(compute(&s_G, subs), o.name->argIndex, str,  "s_G");
@@ -1325,13 +1356,15 @@ namespace tcc
             if(o.type == point)
             {
                 std::stringstream str;
+
                 o.compSub[0] = compute(o.sub[0], subs);
                 dependencies(o.compSub[0], o.grids, true);
+
                 o.nTuple = o.compSub[0]->nTuple;
-                if(o.nTuple != 2 && o.nTuple != 3)
+
+                if(o.nTuple != 3)
                     throw std::string("Points must be in 2d or 3d space");
 
-                if(o.nTuple != 3) return;
                 str << "#version 460 core\n" << hdr.str();
 
                 compileFunction(o.compSub[0], -1, str, "p");
@@ -1359,17 +1392,20 @@ namespace tcc
             if(o.type == vector)
             {
                 std::stringstream str;
+
                 o.compSub[0] = compute(o.sub[0], subs);
                 o.compSub[1] = compute(o.sub[1], subs);
                 dependencies(o.compSub[0], o.grids, true);
                 dependencies(o.compSub[1], o.grids, true);
-                o.nTuple = o.compSub[0]->nTuple;
-                if(o.nTuple != 2 && o.nTuple != 3)
-                    throw std::string("Vectors must be in 2d or 3d space");
-                if(o.compSub[1]->nTuple != o.nTuple)
-                    throw std::string("Inconsistent space dimensions");
 
-                if(o.nTuple != 3) return;
+                o.nTuple = o.compSub[0]->nTuple;
+
+                if(o.nTuple != 3)
+                    throw std::string("Vectors must be in 2d or 3d space");
+
+                if(o.compSub[1]->nTuple != o.nTuple)
+                    throw std::string("Vectors must be in 2d or 3d space");
+
                 str << "#version 460 core\n" << hdr.str();
 
                 compileFunction(o.compSub[0], -1, str, "v");

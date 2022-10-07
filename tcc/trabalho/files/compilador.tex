@@ -3,7 +3,7 @@
 
 O usuário se comunica com a interface através de um texto, chamado de programa,
 que contém os objetos de interesse.
-Por exemplo:
+O código \ref{code1} é um exemplo.
 \begin{lstlisting}[caption=Exemplo de objetos,label=code1]
 #circle and tangents
 param r : [/2, 1];
@@ -29,7 +29,7 @@ O programa declara os seguintes objetos:
     Objetos & Descrição \\ \hline \hline
     
     \texttt{r} e \texttt{o} & parâmetros que podem ser alterados na interface.
-    Seus valores devem estar nos intervalos indicados \\ \hline
+    Seus valores devem estar nos intervalos indicados. \\ \hline
     
     \texttt{c} & uma curva parametrizada por \texttt{t}.
     O domínio da parametrização é o intervalo indicado.
@@ -56,26 +56,47 @@ O programa declara os seguintes objetos:
 Os objetos \texttt{f} e \texttt{s} estão comentados, então não são considerados.
 Estão presentes apenas para o exemplo ter todos os tipos de objeto.
 
-Os objetos desenháveis são pontos, vetores, curvas e superfícies.
-Pontos e vetores podem ser usados como valores em outros objetos.
-Pontos representam suas posições e vetores seus deslocamentos.
-Curvas e superfícies podem ser usadas como funções, sem a restrição no domínio.
+A linguagem de descrição de objetos não é trivial, nem sua sintaxe matemática,
+que possui elementos inventados para esse projeto.
+A seguir, uma breve lista de observações:
 
+\begin{itemize}
+\item
+Os objetos desenháveis são pontos, vetores, curvas e superfícies.
+Pontos e vetores podem ser usados em outros objetos, sendo tratados como tuplas.
+Por exemplo, \texttt{v} usa o ponto \texttt{p}.
+Curvas e superfícies podem ser usadas como funções, mas sem a restrição no domínio.
+Por exemplo, \texttt{p} usa \texttt{c} como função.
+Um objeto só pode se referir aos objetos definidos anteriormente.
+
+\item
 Há duas constantes pré-definidas: \texttt{pi} e \texttt{e}; e diversas funções pré-definidas:
 \texttt{sin}, \texttt{cos}, \texttt{tan},
 \texttt{exp}, \texttt{log}, \texttt{sqrt} e \texttt{id}.
 A função \texttt{id} é a identidade é útil apenas no funcionamento interno do sistema.
 
+\item
 Parâmetros e grades podem ser multidimensionais:
 \texttt{param T : [0, 1], [0, 1];}. Assim, o objeto \texttt{T} é uma tupla,
 e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
 
+\item
 Há 4 operadores unários: \texttt{+} e \texttt{-} são os usuais.
 A operação \texttt{*x} representa \texttt{xx}, e \texttt{/x} é igual a \texttt{1/x}.
 Para números reais, multiplicação com \texttt{*} e por justaposição são equivalentes.
 Porém, para tuplas, \texttt{a*b} representa o produto vetorial
 e \texttt{ab} representa o produto escalar.
 Assim, \texttt{*x} calcula o quadrado do módulo do vetor \texttt{x}.
+Uma função que normaliza vetores pode ser definida assim: \texttt{function N(x) = x/sqrt*x ;}.
+
+\item
+Numa aplicação de função de uma variável, o argumento não precisa de parênteses:
+\texttt{sin x}.
+O argumento pode ter operadores unários e até um expoentes:
+\texttt{sin -x\textasciicircum2 = sin(-x\textasciicircum2)}.
+Deve-se tomar cuidado com expoentes: \texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
+Para a exponenciação de uma aplicação, deve-se usar a sintaxe: \texttt{sin\textasciicircum2 x}.
+\end{itemize}
 
 \section{Gramática formal}
 O programa deve seguir uma gramática formal, 
@@ -169,13 +190,13 @@ A tabela \ref{order} descreve as operações e suas ordens de precedência, com 
 
     \texttt{() [] \{\}} & Unário &  & \texttt{(expr)} & Isola a expressão interna \\ \hline
     , & Binário & Esquerda & \texttt{(a,b,c)} & Adiciona uma elemento à tupla(dentro de parênteses) \\ \hline
-    + - & Binário & Esquerda & \texttt{a+b} & Soma e subtração usuais \\ \hline
+    + - & Binário & Esquerda & \texttt{a+b} & Soma e subtração \\ \hline
     \textit{justaposição} & Binário & Esquerda & \texttt{ab} & Multiplicação \\ \hline
     * / & Binário & Esquerda & \texttt{a*b} & Multiplicação e Divisão \\ \hline
     + - * / & Unário &  & \texttt{-x}, \texttt{*v} & Positivo, Negativo, Quadrado e Recíproco \\ \hline
-    \textit{aplicação} & Binário & Esquerda & \texttt{sin x} & Soma e subtração usuais \\ \hline
+    \textit{aplicação} & Binário & Esquerda & \texttt{sin x} & Aplicação de função \\ \hline
     \textasciicircum & Binário & Direita & \texttt{a\textasciicircum b} & Potenciação \\ \hline
-    \_ & Unário & & \texttt{(1, 2, 3)\_2} & Elemento da tupla \\ \hline
+    \_ & Unário & & \texttt{(1, 2, 3)\_2} & Elemento de tupla \\ \hline
     ' \_ & Unário & & \texttt{sin'x + f\_z(3)} & Derivada Total e Parcial \\ \hline
     \cline{1-5}
 \end{tabularx}

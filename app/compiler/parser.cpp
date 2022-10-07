@@ -46,6 +46,22 @@ namespace tcc
                 tag = lexer.node;
                 advance();
                 skip(':');
+
+                skip('[');
+                parseExpr();
+                skip(',');
+                parseExpr();
+                
+                if(compare(charToken(',')))
+                {
+                    skip(',');
+                    parseExpr();
+                    skip(']');
+                    actInt(ExprType::GRIDTAGGED);
+                    return;
+                }
+                skip(']');
+                break;
             case ExprType::INTERVAL:
                 skip('[');
                 parseExpr();
