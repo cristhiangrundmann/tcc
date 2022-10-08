@@ -1,5 +1,5 @@
-\chapter{Compilador}
-\label{compiler}
+\chapter{Linguagem}
+\label{lang}
 
 O usuário se comunica com a interface através de um texto, chamado de programa,
 que contém os objetos de interesse.
@@ -27,25 +27,25 @@ O programa declara os seguintes objetos:
 \begin{tabularx}{\textwidth}{||c|X||}
     \cline{1-2}
     Objetos & Descrição \\ \hline \hline
-    
+
     \texttt{r} e \texttt{o} & parâmetros que podem ser alterados na interface.
     Seus valores devem estar nos intervalos indicados. \\ \hline
-    
+
     \texttt{c} & uma curva parametrizada por \texttt{t}.
     O domínio da parametrização é o intervalo indicado.
     A curva depende do parâmetro \texttt{r}, que foi definido anteriormente. \\ \hline
-    
+
     \texttt{k} & uma grade de 8 pontos igualmente espaçados no intervalo indicado.
     Uma grade é tratada como uma constante, assim como um parâmetro.
     Se um objeto desenhável depende de uma grade, uma instância é desenhada para cada valor da grade.
     Um objeto pode depender de mais de uma grade. \\ \hline
-    
+
     \texttt{k2} & uma constante, e não pode ser alterada na interface como os parâmetros.
     Esse tipo de objeto pode ser usado para deixar o programa mais legível. \\ \hline
-    
+
     \texttt{p} & o ponto da curva \texttt{c} de parâmetro \texttt{t = k2}.
     Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes. \\ \hline
-    
+
     \texttt{v} & o vetor tangente da curva \texttt{c} no ponto \texttt{p} 
     e desenhado a partir do mesmo ponto.
     O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes. \\ \hline
@@ -80,36 +80,47 @@ Parâmetros e grades podem ser multidimensionais:
 \texttt{param T : [0, 1], [0, 1];}. Assim, o objeto \texttt{T} é uma tupla,
 e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
 
+\item As grades das curvas e superfícies são por padrão 100 e 100x100, respectivamente.
+É possível alterar esse valor informando um intervalo do tipo grade: \texttt{[0, 2pi, 250]}.
+
 \item
-Há 4 operadores unários: \texttt{+} e \texttt{-} são os usuais.
+Há 4 operadores unários. Os operadores \texttt{+} e \texttt{-} são os usuais.
 A operação \texttt{*x} representa \texttt{xx}, e \texttt{/x} é igual a \texttt{1/x}.
 Para números reais, multiplicação com \texttt{*} e por justaposição são equivalentes.
 Porém, para tuplas, \texttt{a*b} representa o produto vetorial
 e \texttt{ab} representa o produto escalar.
 Assim, \texttt{*x} calcula o quadrado do módulo do vetor \texttt{x}.
-Uma função que normaliza vetores pode ser definida assim: \texttt{function N(x) = x/sqrt*x ;}.
+Uma função que normaliza vetores pode ser definida assim: \texttt{function N(x) = x/sqrt*x;}.
 
 \item
 Numa aplicação de função de uma variável, o argumento não precisa de parênteses:
 \texttt{sin x}.
-O argumento pode ter operadores unários e até um expoentes:
+O argumento pode ter operadores unários e até expoentes:
 \texttt{sin -x\textasciicircum2 = sin(-x\textasciicircum2)}.
 Deve-se tomar cuidado com expoentes: \texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
 Para a exponenciação de uma aplicação, deve-se usar a sintaxe: \texttt{sin\textasciicircum2 x}.
+
+\item
+Não é sempre necessário uma separação entre identificadores.
+Por exemplo, considere \texttt{sinx}.
+Caso haja um termo chamado \texttt{sinx} definido, esse seria o identificador reconhecido.
+Caso contrário, \texttt{sin x} será reconhecido,
+mesmo que \texttt{sinx} seja definido posteriormente
+(\texttt{sinx} seria reconhecido apenas depois de sua definição).
+Em geral, o maior identificador definido será reconhecido.
 \end{itemize}
 
 \section{Gramática formal}
-O programa deve seguir uma gramática formal, 
+O programa deve seguir uma gramática formal,
 que especifica a sintaxe das declarações dos objetos e das expressões matemáticas.
 As expressões matemáticas podem seguir uma notação mais natural
 que as de várias linguagens de programação.
 Por exemplo, há multiplicação por justaposição: \texttt{3x = 3*x};
-e a aplicação de funções não exige parênteses: \texttt{sin-x = sin(-x)}.
+e a aplicação de funções de uma variável não exige parênteses: \texttt{sin-x = sin(-x)}.
 
 A gramática livre de contexto é definida pelo código \ref{gram} \cite{Dragon:1}.
-A sintaxe das expressões matemáticas foi baseada na gramática da linguagem C \cite{CGram}.
+Uma parte da sintaxe das expressões matemáticas foi baseada na gramática da linguagem C \cite{CGram}.
 
-\newpage
 \begin{lstlisting}[caption=Gramática livre de contexto,label=gram]
 PROG    = DECL PROG | ;
 
@@ -146,13 +157,14 @@ COMP    = COMP "_" num | FACT ;
 FACT    = const | num | var
         | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
 TUPLE   = ADD "," TUPLE | ADD ;
-    
+
 \end{lstlisting}
 
 Os termos em maiúsculo(não-terminais) representam variáveis gramaticais.
 O lado direito de uma igualdade especifica as possíveis formas sentenciais
-que um não-terminal pode assumir, 
+que um não-terminal pode assumir,
 separadas por uma barra vertical ou em diferentes equações.
+Uma forma sentencial(ou produção) é uma sequência de terminais e não terminais, possivelmente vazia.
 Por exemplo, \texttt{MULT} possui 3 formas:
 \texttt{MULT * UNARY}, \texttt{MULT / UNARY} e \texttt{UNARY}.
 Cada forma tem um significado diferente.
@@ -160,7 +172,7 @@ Uma forma pode ser vazia, como ocorre para \texttt{PROG}.
 
 Os símbolos entre aspas representam textos literais,
 e os termos em minúsculo(terminais) representam uma classe de ``palavras'':
-Por exemplo, \texttt{num} representa um número e \texttt{var} um nome de uma variável.
+Por exemplo, \texttt{num} representa um número e \texttt{var} o nome de uma variável.
 
 O termo \texttt{PROG} representa um programa completo,
 que é uma sequência de declarações(\texttt{DECL}).
@@ -168,15 +180,23 @@ O termo \texttt{EXPR} representa uma expressão matemática.
 Os símbolos abaixo de \texttt{EXPR} definem a sintaxe das operações,
 suas ordens de precedência e associatividades.
 
-Um programa coeso é formado a partir de \texttt{PROG}.
-Enquando houver não-terminais, deve-se substituí-los por uma de suas formas.
+Para formar um programa gramaticalmente correto, inicia-se com o símbolo \texttt{PROG}.
+Cada não-terminal deve ser substituído no lugar por uma de suas formas sentenciais.
+O programa estará completo quando não houver mais não-terminais.
 
-Para extraír o significado de um programa, o processo contrário deve ser feito. 
+Para extraír o significado de um programa, o processo contrário deve ser feito.
 É necessário encontrar uma maneira de se obter o programa a partir de \texttt{PROG}.
-Para um programa coeso, sempre há uma maneira e essa é única.
+Para um programa coeso(gramaticalmente correto), sempre há uma maneira, que é única.
+
 Algumas transformações nessa gramática a torna LL1,
-uma propriedade que garante que o \textit{parsing} pode ser feito de forma fácil e rápida.
-Além disso, LL1 garante que a gramática não é ambígua. \cite{GramCheck}
+uma propriedade que garante que é possível fazer um \textit{parsing} preditivo.
+Uma consequência desse fato é a gramática não ser ambígua.
+A verificação foi feita em \cite{GramCheck}.
+Em uma iteração anterior da gramática, a potenciação de funções era associativa à esquerda,
+enquanto a potenciação de números era à direita.
+Isso causou uma ambiguidade que não foi detectada no momento.
+Ela só foi descoberta ao tentar verificar a propriedade LL1, que falhou.
+
 
 A tabela \ref{order} descreve as operações e suas ordens de precedência, com base na gramática.
 
@@ -203,6 +223,36 @@ A tabela \ref{order} descreve as operações e suas ordens de precedência, com 
 \end{centering}
 \end{table}
 
+\section{Compilador}
+O processo de compilação não é trivial, e é dividido em 3 estágios:
+\begin{itemize}
+    \item análise léxica: reconheçe as ``palavras'' que compõe um programa,
+    ignorando comentários e espaços em branco. É capaz de identificar números, 
+    constantes, nomes de objetos, e pontuação.
+
+    \item análise sintática: parser reconheçe a estrutura do programa: as declarações dos objetos
+    e as expressões matemáticas. A gramática \ref{gram} é usada como base.
+
+    \item análise semântica e síntese: gera todas as estruturas de dados
+    necessárias para a visualização dos objetos. Verifica também a semântica do programa,
+    detectando erros que não podem ser verificados com noções gramaticais.
+\end{itemize}
+
+Os estágios se comunicam entre si, e compartilham uma tabela de símbolos.
+A tabela especifica quais identificadores estão definidos, e quais são seus tipos.
+Uma declaração de um objeto de nome \texttt{X} insere \texttt{X} na tabela, e o associa ao tipo do objeto.
+Para isso, \texttt{X} não pode estar definido antes de ser declarado.
+Identificadores não definidos são reconhecidos como \texttt{id} na gramática.
+Após a declaração, o mesmo identificador passa a ser reconhecido como \texttt{const} ou \texttt{func},
+dependendo do tipo de objeto.
+Isso significa que os estágios devem ser executados em conjunto,
+pois o nome de uma função é gramaticamente diferente do nome de uma constante, por exemplo.
+A tabela é inicializada com as constantes e funções pré-definidas e palavras-chave.
+
+A síntese é responsável por computar as derivadas simbolicamente,
+e compilar as expressões matemáticas para a linguagem de \textit{shader} do OpenGL: \textit{GLSL}.
+Para os objetos desenháveis, suas fórmulas são usadas para determinar seus desenhos.
+Para as superfícies, o geodeic tracing também é compilado.
 
 %%%....
 %Implementação de sintaxe que considera a estetica natural da escrita matemática que precisa ser traduzida para sintaxe de linguagem computacional. Isso é feito pelo parser.
