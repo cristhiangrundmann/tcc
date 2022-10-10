@@ -73,7 +73,8 @@ Por exemplo, \texttt{p} usa \texttt{c} como função.
 Um objeto só pode se referir aos objetos definidos anteriormente.
 
 \item
-Há duas constantes pré-definidas: \texttt{pi} e \texttt{e}; e diversas funções pré-definidas:
+Há duas constantes pré-definidas: \texttt{pi} e \texttt{e};
+e diversas funções pré-definidas:
 \texttt{sin}, \texttt{cos}, \texttt{tan},
 \texttt{exp}, \texttt{log}, \texttt{sqrt} e \texttt{id}.
 A função \texttt{id} é a identidade é útil apenas no funcionamento interno do sistema.
@@ -84,7 +85,8 @@ Parâmetros e grades podem ser multidimensionais:
 e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
 
 \item As grades das curvas e superfícies são por padrão 100 e 100x100, respectivamente.
-É possível alterar esse valor informando um intervalo do tipo grade: \texttt{[0, 2pi, 250]}.
+É possível alterar esse valor informando um intervalo do
+tipo grade: \texttt{[0, 2pi, 250]}.
 
 \item
 Há 4 operadores unários. Os operadores \texttt{+} e \texttt{-} são os usuais.
@@ -93,20 +95,24 @@ Para números reais, multiplicação com \texttt{*} e por justaposição são eq
 Porém, para tuplas, \texttt{a*b} representa o produto vetorial
 e \texttt{ab} representa o produto escalar.
 Assim, \texttt{*x} calcula o quadrado do módulo do vetor \texttt{x}.
-Uma função que normaliza vetores pode ser definida assim: \texttt{function N(x) = x/sqrt*x;}.
+Uma função que normaliza vetores pode ser
+definida assim: \texttt{function N(x) = x/sqrt*x;}.
 
 \item
 Numa aplicação de função de uma variável, o argumento não precisa de parênteses:
 \texttt{sin x}.
 O argumento pode ter operadores unários e até expoentes:
 \texttt{sin -x\textasciicircum2 = sin(-x\textasciicircum2)}.
-Deve-se tomar cuidado com expoentes: \texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
-Para a exponenciação de uma aplicação, deve-se usar a sintaxe: \texttt{sin\textasciicircum2 x}.
+Deve-se tomar cuidado com expoentes:
+\\texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
+Para a exponenciação de uma aplicação,
+deve-se usar a sintaxe: \texttt{sin\textasciicircum2 x}.
 
 \item
 Não é sempre necessário uma separação entre identificadores.
 Por exemplo, considere \texttt{sinx}.
-Caso haja um termo chamado \texttt{sinx} definido, esse seria o identificador reconhecido.
+Caso haja um termo chamado \texttt{sinx} definido, esse seria o
+identificador reconhecido.
 Caso contrário, \texttt{sin x} será reconhecido,
 mesmo que \texttt{sinx} seja definido posteriormente
 (\texttt{sinx} seria reconhecido apenas depois de sua definição).
@@ -202,8 +208,9 @@ contendo mais informações sobre o token. \\
 \end{tabularx}
 \end{centering}
 
-O lexer tem apenas o método \texttt{advance}, que serve para avançar para o próximo token.
-O método também é usado para inicializar o lexer e obter o primeiro token do código-fonte,
+O lexer tem apenas o método \texttt{advance}, que serve para avançar
+para o próximo token. O método também é usado para inicializar o
+lexer e obter o primeiro token do código-fonte,
 invocando-o com \texttt{lexeme=source} e \texttt{length=0}.
 
 O método começa avançando a posição do \texttt{lexeme} a quantidade de
@@ -224,10 +231,12 @@ Se o caractere pertencer ao alfabeto dos identificadores,
 então o lexer o procura na tabela de símbolos obtendo o \texttt{node}.
 Com esse nó, o tipo de token e comprimento são obtidos.
 
-Caso contrário, o token é um símbolo, seu tipo é o próprio símbolo e seu comprimento é 1.
+Caso contrário, o token é um símbolo, seu tipo é o próprio símbolo
+e seu comprimento é 1.
 
 \subsection{Tabela de símbolos}
-Os estágios da compilação compartilham uma tabela de símbolos, que é inicializada com palavras-chave,
+Os estágios da compilação compartilham uma tabela de símbolos,
+que é inicializada com palavras-chave,
 funções e constantes pré-definidas.
 A tabela de símbolos define os atributos dos identificadores,
 que são o tipo do token, os argumentos da função e o índice do objeto.
@@ -253,8 +262,8 @@ struct Table
 \end{lstlisting}
 
 Essa estrutura é uma árvore de prefixos(trie):
-cada nó representa um identificador. Para encontrar um nó a partir de um identificador,
-basta traçar um caminho a partir da raíz.
+cada nó representa um identificador. Para encontrar um nó a partir
+de um identificador, basta traçar um caminho a partir da raíz.
 Os filhos de um nó correspondem a um caractere do alfabeto \texttt{a-zA-Z0-9}.
 Os 26 primeiros filhos são \texttt{a-z}, os próximos 26 são \texttt{A-Z},
 e os 10 últimos são \texttt{0-9}.
@@ -276,7 +285,8 @@ e caso seja nulo, um novo filho é criado.
 O método \texttt{procString} busca o identificador em \texttt{str} na árvore,
 usando \texttt{next} para traçar o caminho correto.
 O ponteiro \texttt{str} indica o início do identificador(dentro do código-fonte).
-O método avança no máximo até o primeiro caractere fora do alfabeto dos identificadores.
+O método avança no máximo até o primeiro caractere fora do alfabeto
+dos identificadores.
 Se o indicador \texttt{match} estiver ativo, o método buscará o
 maior identificador definido, se existir, ou o identificador todo, caso contrário.
 Por exemplo(\texttt{match=true}) para \texttt{"sinx"},
@@ -294,10 +304,12 @@ inicializando seu tipo de token com \texttt{type}.
 \subsection{Análise sintática}
 A análise sintática tem a função de identificar as estruturas sintáticas
 presentes nos tokens gerados pelo lexer.
-O gerador, no estágio seguinte, atribui um significado para as estruturas sintáticas reconhecidas,
-gerando as estruturas de dados desejadas. O analisador sintático é chamado de parser.
+O gerador, no estágio seguinte, atribui um significado para as estruturas
+sintáticas reconhecidas, gerando as estruturas de dados desejadas.
+O analisador sintático é chamado de parser.
 
-A gramática livre de contexto (\ref{grammar}) define as regras gramaticais da linguagem.
+A gramática livre de contexto (\ref{grammar}) define as
+regras gramaticais da linguagem.
 \begin{lstlisting}[caption=Gramática livre de contexto, label=grammar]
 PROG    = DECL PROG | ;
 
@@ -337,19 +349,23 @@ TUPLE   = ADD "," TUPLE | ADD ;
 \end{lstlisting}
 
 A gramática consiste em diversas igualdades.
-Os termos que aparecem no lado esquerdo de alguma igualdade são chamados de não-terminais,
+Os termos que aparecem no lado esquerdo de alguma igualdade
+são chamados de não-terminais,
 e representam um conjunto de sentenças(uma sentença é uma sequência de terminais).
 Os outros termos, como \texttt{";"} e \texttt{id}, são terminais,
-e correspondem a tokens. Os termos \texttt{id}, \texttt{var}, \texttt{const}, \texttt{num}
+e correspondem a tokens. Os termos \texttt{id}, \texttt{var},
+\texttt{const}, \texttt{num}
 e \texttt{func} representam qualquer token do tipo indicado:
-\texttt{UNDEFINED}, \texttt{VARIABLE}, \texttt{CONSTANT}, \texttt{NUMBER} e \texttt{FUNCTION} respectivamente.
+\texttt{UNDEFINED}, \texttt{VARIABLE}, \texttt{CONSTANT},
+\texttt{NUMBER} e \texttt{FUNCTION} respectivamente.
 Os termos \texttt{"param"}, \texttt{"grid"}, \texttt{"define"}, etc.
 representam os tokens do tipo \texttt{DECLARE}, que são os tipos de objeto.
 
 Uma igualdade na gramática é dita uma produção para o não-terminal à esquerda.
 O símbolo \texttt{"\textbar"}  abrevia uma produção alternativa. 
 Por exemplo: \texttt{ADD = ADD + JUX | ADD - JUX | JUX}
-é uma abreviação de \texttt{ADD = ADD + JUX}, \texttt{ADD = ADD - JUX} e \texttt{ADD = JUX}.
+é uma abreviação de \texttt{ADD = ADD + JUX},
+\texttt{ADD = ADD - JUX} e \texttt{ADD = JUX}.
 Uma produção pode ser a string vazia, por exemplo: \texttt{PROG = DECL PROG | ;}
 (o ponto e vírgula no final das igualdades pertence à meta-linguagem).
 
@@ -367,12 +383,14 @@ A gramática (\ref{grammar}) não é ambígua.
 A verificação foi feita em \cite{GramCheck}.
 Algumas transformações na gramática a fizeram ser uma gramática LL(1).
 Uma consequência disso é a não ambiguidade.
-Em uma iteração anterior da gramática, a potenciação de funções era associativa à esquerda,
+Em uma iteração anterior da gramática, a potenciação de funções
+era associativa à esquerda,
 enquanto a potenciação de números era à direita.
 Isso causou uma ambiguidade que não foi detectada no momento.
 Ela só foi descoberta ao tentar verificar a propriedade LL(1), que falhou.
 
-O trabalho do parser, então, é achar uma forma de derivar uma sentença a partir de \texttt{PROG}.
+O trabalho do parser, então, é achar uma forma de derivar uma
+sentença a partir de \texttt{PROG}.
 O método mais simples de parsing se aplica a gramáticas LL(1).
 
 Num parser LL(1), cada não-terminal possui sua própria subrotina.
@@ -381,8 +399,10 @@ por uma de suas formas sentenciais possíveis.
 Ou seja, uma subrotina simula uma produção de seu não-terminal.
 Para decidir qual produção aplicar, as subrotinas devem consultar o token atual.
 O fato da gramática ser LL(1) garante que o token atual fornece
-informação suficiente para determinar qual é a produção correta e, na falta de produção adequada,
-detectar um erro gramatical. Após decidir a produção, a subrotina começa sua simulação.
+informação suficiente para determinar qual é a produção correta e,
+na falta de produção adequada,
+detectar um erro gramatical. Após decidir a produção,
+a subrotina começa sua simulação.
 Os termos da forma sentencial da produção são tratados da esquerda para a direita.
 Terminais são comparados com o token atual e um erro é detectado quando diferem.
 Quando são iguais, o lexer avança para o próximo token.
@@ -398,10 +418,22 @@ e o token atual ficou imediatamente à direita dessa sub-sentença.
 Assim, indutivamente, a rotina para \texttt{FUNC2} avançou
 o token para \texttt{\textasciicircum} na produção examinada.
 
-O termo \texttt{EXPR} define como funcionam as expressões matemáticas, definindo operações,
-ordens de precedência e associatividades.
+O termo \texttt{EXPR} define como funcionam as expressões matemáticas,
+definindo operações, ordens de precedência e associatividades.
 A gramática para as expressões matemáticas foi baseada na linguagem C \cite{CGram}.
-A tabela \ref{order} descreve as operações e suas ordens de precedência, com base na gramática.
+Para a estética das expressões ser mais agradável, a multiplicação pode ser
+por justaposição, por exemplo: \texttt{3*x = 3x}.
+Em notação matemática comum, isso deixa as fórmulas muito mais simples de ler.
+Vários ambientes computacionais não possuem essa facilidade,
+como o Matlab, Scilab, e linguagens de programação geral.
+Além disso, a aplicação de função não precisa
+necessariamente de parênteses: \texttt{f(x) = fx}.
+Entretanto, deve-se tomar cuidado para entender
+quando que parênteses são necessários.
+O fato dessa linguagem ser de domínio bem específico facilita essas decisões.
+
+A tabela \ref{order} descreve as operações e suas ordens de precedência,
+com base na gramática.
 
 \begin{table}[ht]
 \caption{Ordem das operações}
@@ -573,8 +605,8 @@ Os métodos de \texttt{newExpr} a \texttt{dependencies} processam
 as expressões matemáticas para uma forma mais tratável.
 Para isso, derivadas são computadas simbolicamente, expressões com tuplas
 são descompactadas, e funções são aplicadas.
-O segundo método \texttt{op} é capaz de realizar uma simples
-otimização nas expressões matemáticas.
+O segundo método \texttt{op} é capaz de realizar otimizações simples
+ nas expressões matemáticas.
 
 Os métodos de \texttt{compile} a \texttt{declareFunction} geram o produto final.
 Juntos, geram os códigos-fonte na linguagem de \textit{shader}(GLSL) do OpenGL.
@@ -601,14 +633,7 @@ Para os objetos desenháveis, gera as funções para desenhá-los.
 Para superfícies, compila também o geodesic tracing.
 Para os parâmetros, gera controles deslizantes na interface.
 
-%%%....
-%Implementação de sintaxe que considera a estetica natural da escrita matemática que precisa ser traduzida para sintaxe de linguagem computacional. Isso é feito pelo parser.
-%A justificativa para essa abordagem é motivada pela experiencia de especificar desenhos de objetos gráficos em bibliotecas de uso corrente, tais como sagemath, manin etc.
-%Isso justifica a especificação de uma gramática livre de contexto. Explicitada a seguir.
-%Trabalhos futuros: grade variável
-%Sobre o texto que descreve a gramática
-%Fazer referencia à calculadora C++
-%Fazer referência ao site que valida a não ambiguidade da gramática
-%Por ter influenciado na sintaxe proposta (como?)
-%Tentar lembrar um exemplo de ambiguidade que foi resolvido para a versão atual da gramática.
-%Descrever o LL1 como certificado de não ambiguidade.
+O compilador também verfica a validade semântica dos objetos.
+Por exemplo, intervalos não podem depender de parâmetros ou grades.
+Curvas e superfícies devem ter o número correto de parâmetros, e devem estar
+definidos em 3 dimensões.
