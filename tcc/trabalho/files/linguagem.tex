@@ -25,31 +25,34 @@ O programa declara os seguintes objetos:
 
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
-    \cline{1-2}
-    Objetos & Descrição \\ \hline \hline
-
+    \hline
     \texttt{r} e \texttt{o} & parâmetros que podem ser alterados na interface.
-    Seus valores devem estar nos intervalos indicados. \\ \hline
+    Seus valores devem estar nos intervalos indicados. \\ 
 
+    \hline
     \texttt{c} & uma curva parametrizada por \texttt{t}.
     O domínio da parametrização é o intervalo indicado.
-    A curva depende do parâmetro \texttt{r}, que foi definido anteriormente. \\ \hline
+    A curva depende do parâmetro \texttt{r}, que foi definido anteriormente. \\
 
+    \hline
     \texttt{k} & uma grade de 8 pontos igualmente espaçados no intervalo indicado.
     Uma grade é tratada como uma constante, assim como um parâmetro.
     Se um objeto desenhável depende de uma grade, uma instância é desenhada para cada valor da grade.
-    Um objeto pode depender de mais de uma grade. \\ \hline
+    Um objeto pode depender de mais de uma grade. \\
 
+    \hline
     \texttt{k2} & uma constante, e não pode ser alterada na interface como os parâmetros.
-    Esse tipo de objeto pode ser usado para deixar o programa mais legível. \\ \hline
-
+    Esse tipo de objeto pode ser usado para deixar o programa mais legível. \\
+    
+    \hline
     \texttt{p} & o ponto da curva \texttt{c} de parâmetro \texttt{t = k2}.
-    Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes. \\ \hline
-
+    Esse objeto depende indiretamente de \texttt{k}, então é instanciado 8 vezes. \\
+    
+    \hline
     \texttt{v} & o vetor tangente da curva \texttt{c} no ponto \texttt{p} 
     e desenhado a partir do mesmo ponto.
-    O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes. \\ \hline
-    \cline{1-2}
+    O vetor também depende indiretamente de \texttt{k}, então é desenhado 8 vezes. \\
+    \hline
 \end{tabularx}
 \end{centering}
 
@@ -110,18 +113,197 @@ mesmo que \texttt{sinx} seja definido posteriormente
 Em geral, o maior identificador definido será reconhecido.
 \end{itemize}
 
-\section{Gramática formal}
-O programa deve seguir uma gramática formal,
-que especifica a sintaxe das declarações dos objetos e das expressões matemáticas.
-As expressões matemáticas podem seguir uma notação mais natural
-que as de várias linguagens de programação.
-Por exemplo, há multiplicação por justaposição: \texttt{3x = 3*x};
-e a aplicação de funções de uma variável não exige parênteses: \texttt{sin-x = sin(-x)}.
+\section{Compilador}
+O processo de compilação não é trivial, e é dividido em 3 estágios:
+\begin{itemize}
+    \item análise léxica: reconheçe as ``palavras'' que compõe um programa,
+    ignorando espaços em branco. É capaz de identificar números, 
+    constantes, nomes de objetos e pontuação.
+    Os termos são usados no estágio seguinte.
 
-A gramática livre de contexto é definida pelo código \ref{gram} \cite{Dragon:1}.
-Uma parte da sintaxe das expressões matemáticas foi baseada na gramática da linguagem C \cite{CGram}.
+    \item análise sintática: parser reconheçe a estrutura do programa:
+    as declarações dos objetos e as expressões matemáticas.
+    A gramática \ref{grammar} é usada como base.
 
-\begin{lstlisting}[caption=Gramática livre de contexto,label=gram]
+    \item análise semântica e síntese: gera todas as estruturas de dados
+    necessárias para a visualização dos objetos.
+    Verifica também a semântica do programa,
+    detectando erros que não podem ser verificados com noções gramaticais.
+\end{itemize}
+
+\subsection{Análise léxica}
+A análise léxica tem a função de ler o código-fonte que descreve um programa
+e abstrair as palavras e símbolos presentes.
+Dessa forma, os estágios seguintes se beneficiam dessa abstração.
+O analisador léxico é chamado de lexer.
+
+As palavras-chave, números, constantes, símbolos, etc. são chamados de lexemas.
+Todo lexema deve pertencer a uma classe gramatical.
+Por exemplo, o texto \texttt{"1024"} forma um lexema de 4 caracteres
+e sua classe gramatical é \texttt{NUMBER}.
+Conforme a classe, um lexema pode ter atributos.
+No caso de \texttt{NUMBER}, o próprio número em forma de ponto flutuante é um atributo.
+No caso de um símbolo como \texttt{";"}, não há atributos.
+
+Um lexema, sua classe gramatical e seus atributos juntos formam um \textbf{token}.
+Diz-se que a classe gramatical de um token é o tipo do token.
+
+Os tipos de token são:
+
+\begin{centering}
+\begin{tabularx}{\textwidth}{||c|X||}
+\hline \texttt{COMMENT} & texto livre, começando com \texttt{"\#"} e
+terminando com uma quebra de linha ou o fim do código-fonte.\\ 
+\hline \texttt{FUNCTION} & identificador de função definida ou pré-definida.\\
+\hline \texttt{NUMBER} & número de ponto flutuante.\\
+\hline \texttt{VARIABLE} & identificador de variável de função.\\
+\hline \texttt{CONSTANT} &identificador de constante definida ou pré-definida.\\
+\hline \texttt{DECLARE} & identificador de tipo de objeto.\\
+\hline \texttt{UNDEFINED} & identificador não definido ou a ser definido.\\
+\hline \texttt{EOI} & fim do código-fonte, caractere nulo(0).\\
+\hline Caso final & o lexema é um símbolo e seu tipo é o próprio símbolo.\\
+\hline
+\end{tabularx}
+\end{centering}
+
+A estrutura \texttt{Lexer}(\ref{lexer}) define o analisador léxico.
+\begin{lstlisting}[label=lexer, caption=Extrutura do Lexer]
+struct Lexer
+{
+    const char *source{};
+    const char *lexeme{};
+    int length = 0;
+    int lineno = 0;
+    int column = 0;
+    TokenType type = TokenType::UNDEFINED;
+    float number{};
+    Table *node{};
+    Table *table{};
+
+    void advance(bool match = true);
+};
+\end{lstlisting}
+
+O lexer lê os tokens um de cada vez, da esquerda para a direita.
+Essa estrutura guarda as seguintes informações sobre o token atual:
+
+\begin{centering}
+\begin{tabularx}{\textwidth}{||c|X||}
+\hline \texttt{source} & string do código-fonte inteiro. \\
+\hline \texttt{lexeme} & aponta para o primeiro caractere do lexema atual
+(dentro da string \texttt{source}) \\
+\hline \texttt{length} & comprimento do token. \\
+\hline \texttt{lineno} e \texttt{column} & o número da linha e coluna do lexema. \\
+\hline \texttt{type} & tipo do token. \\
+\hline \texttt{number} e \texttt{node} & atributos do token.
+No caso de um número, \texttt{number} é o atributo.
+No caso de um identificador, \texttt{node} é sua posição na tabela de símbolos(\ref{table}),
+contendo o tipo de token(\texttt{type}) e argumentos de função(\texttt{argIndex}),
+no caso de uma função definida.\\
+\hline \texttt{table} & tabela de símbolos compartilhada pelos estágios da compilação. \\
+\hline
+\end{tabularx}
+\end{centering}
+
+O lexer tem apenas o método \texttt{advance}, que serve para avançar para o próximo token.
+O método também é usado para inicializar o lexer e obter o primeiro token do código-fonte,
+invocando-o com \texttt{lexeme = source} e \texttt{length = 0}.
+
+O método começa avançando a posição do \texttt{lexeme} a quantidade de
+\texttt{length} caracteres à direita.
+Em seguida, espaços em branco são ignorados: espaços, tabulações e quebras de linha.
+
+Se o caractere em \texttt{lexeme} for \texttt{"\#"}, então o token é um
+comentário(tipo \texttt{COMMENT}),
+que se extende até uma quebra de linha ou até o \texttt{EOI}, sem incluí-los.
+
+Se o caractere for nulo(0), então o tipo do token é \texttt{EOI} e \texttt{length = 0}.
+Isso faz com que o lexer trave nesse token e nunca mais avance.
+
+Se o caractere for um dígito ou \texttt{"."}, então o token é número(\texttt{NUMBER}),
+e é lido pela função \texttt{sscanf} da linguagem C, juntamente com seu comprimento.
+O atributo \texttt{number} também é atualizado.
+
+Se o caractere pertencer ao alfabeto dos identificadores,
+então o lexer o procura na tabela de símbolos obtendo o \texttt{node}.
+Com esse valor, o tipo de token e comprimento são obtidos.
+
+Caso contrário, o token é um símbolo, seu tipo é o próprio símbolo e seu comprimento é 1.
+
+\subsection{Tabela de símbolos}
+Os estágios da compilação compartilham uma tabela de símbolos, que é inicializada com palavras-chave,
+funções e constantes pré-definidas.
+A tabela de símbolos define os atributos dos identificadores,
+que são o tipo do token, os argumentos da função e o índice do objeto.
+
+A estrutura \texttt{Table}(\ref{table}) define a tabela de símbolos.
+
+\begin{lstlisting}[caption=Tabela de símbolos, label=table]
+struct Table
+{
+    Table *parent{};
+    std::unique_ptr<Table> children[62];
+    int argIndex = -1;
+    int objIndex = -1;
+    int length = 0;
+    TokenType type = TokenType::UNDEFINED;
+    char character{};
+    std::string str{};
+
+    Table *next(char c);
+    Table *procString(const char *str, bool match);
+    Table *initString(const char *str, TokenType type);
+};
+\end{lstlisting}
+
+Essa estrutura é uma árvore de prefixos(trie):
+cada nó representa um identificador. Para encontrar um nó a partir de um identificador,
+basta traçar um caminho a partir da raíz.
+Os filhos de um nó correspondem a um caractere do alfabeto \texttt{a-zA-Z0-9}.
+Os 26 primeiros filhos são \texttt{a-z}, os próximos 26 são \texttt{A-Z},
+e os 10 últimos são \texttt{0-9}.
+Assim, cada letra do alfabeto indica qual filho seguir.
+
+O membro \texttt{character} representa a letra conforme o pai do nó.
+Por exemplo, se o nó é o primeiro filho, então a letra é \texttt{a}.
+Para a raíz, o caractere é nulo(0).
+O membro \texttt{parent} é o pai do nó, ou nulo para a raíz.
+Os nós \texttt{children[62]} são os $26+26+10$ filhos.
+O tamanho do identificador é \texttt{length}, e seus atributos são
+\texttt{type}, \texttt{argIndex} e \texttt{objIndex}.
+O atributo \texttt{argIndex} representa os argumentos de uma função definida.
+\texttt{type} sempre indica o tipo do token.
+\texttt{objType} representa o índice de um objeto.
+
+O método \texttt{next} encontra o filho correspondente ao caractere \texttt{c},
+e caso seja nulo, um novo filho é criado.
+O método \texttt{procString} busca o identificador em \texttt{str} na árvore,
+usando \texttt{next} para traçar o caminho correto.
+O ponteiro \texttt{str} indica o início do identificador, dentro do código-fonte.
+Isso significa que pode haver mais caracteres à direita do identificador.
+O método avança no máximo até o primeiro caractere fora do alfabeto dos identificadores.
+Se o indicador \texttt{match} estiver ativo, o método buscará o
+maior identificador definido, se existir, ou o identificador todo, caso contrário.
+Por exemplo(\texttt{match=true}) para \texttt{"sinx"},
+o método encontra o identificador \texttt{"sin"}, que é uma função.
+Ou seja, os identificadores não precisam estar separados por um espaço em branco,
+caso não haja ambiguidade.
+Se um objeto de nome \texttt{"sinx"} estivesse definido,
+o método encontraria o identificador \texttt{"sinx"}, pois é maior.
+Nesse caso, um espaço em branco faz diferença.
+
+O método \texttt{initString} usa \texttt{procString}
+para criar o identificador em \texttt{str},
+inicializando seu tipo de token com \texttt{type}.
+
+\subsection{Análise sintática}
+A análise sintática tem a função de identificar as estruturas sintáticas
+presentes nos tokens gerados pelo lexer.
+O gerador, no estágio seguinte, atribui um significado para as estruturas sintáticas reconhecidas,
+gerando as estruturas de dados desejadas. O analisador sintático é chamado de parser.
+
+A gramática livre de contexto (\ref{grammar}) define as regras gramaticais da linguagem.
+\begin{lstlisting}[caption=Gramática livre de contexto, label=grammar]
 PROG    = DECL PROG | ;
 
 DECL    = "param"     id ":" INTS ";" ;
@@ -157,46 +339,140 @@ COMP    = COMP "_" num | FACT ;
 FACT    = const | num | var
         | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
 TUPLE   = ADD "," TUPLE | ADD ;
-
 \end{lstlisting}
 
-Os termos em maiúsculo(não-terminais) representam variáveis gramaticais.
-O lado direito de uma igualdade especifica as possíveis formas sentenciais
-que um não-terminal pode assumir,
-separadas por uma barra vertical ou em diferentes equações.
-Uma forma sentencial(ou produção) é uma sequência de terminais e não terminais, possivelmente vazia.
-Por exemplo, \texttt{MULT} possui 3 formas:
-\texttt{MULT * UNARY}, \texttt{MULT / UNARY} e \texttt{UNARY}.
-Cada forma tem um significado diferente.
-Uma forma pode ser vazia, como ocorre para \texttt{PROG}.
+A gramática consiste em diversas igualdades.
+Os termos que aparecem no lado esquerdo de alguma igualdade são chamados de não-terminais,
+e representam um conjunto de sentenças(uma sentença é uma sequência de terminais).
+Os outros termos, como \texttt{";"} e \texttt{id}, são terminais,
+e correspondem a tokens. Os termos \texttt{id}, \texttt{var}, \texttt{const}
+e \texttt{num} representam qualquer token do tipo indicado:
+\texttt{UNDEFINED}, \texttt{VARIABLE}, \texttt{CONSTANT} e \texttt{NUMBER}, respectivamente.
+Os termos \texttt{"param"}, \texttt{"grid"}, \texttt{"define"}, etc.
+representam os tokens do tipo \texttt{DECLARE}, que são os tipos de objeto.
 
-Os símbolos entre aspas representam textos literais,
-e os termos em minúsculo(terminais) representam uma classe de ``palavras'':
-Por exemplo, \texttt{num} representa um número e \texttt{var} o nome de uma variável.
+Uma igualdade na gramática é dita uma produção para o não-terminal à esquerda.
+O símbolo \texttt{"\textbar"}  abrevia uma produção alternativa. 
+Por exemplo: \texttt{ADD = ADD + JUX | ADD - JUX | JUX}
+é uma abreviação de \texttt{ADD = ADD + JUX}, \texttt{ADD = ADD - JUX} e \texttt{ADD = JUX}.
+Uma produção pode ser a string vazia, por exemplo: \texttt{PROG = DECL PROG | ;}
+(o ponto e vírgula no final das igualdades pertence à meta-linguagem).
 
-O termo \texttt{PROG} representa um programa completo,
-que é uma sequência de declarações(\texttt{DECL}).
-O termo \texttt{EXPR} representa uma expressão matemática.
-Os símbolos abaixo de \texttt{EXPR} definem a sintaxe das operações,
-suas ordens de precedência e associatividades.
+Uma produção significa que o não-terminal à esquerda pode ser substituído
+pela forma sentencial à direita.
+Uma forma sentencial é uma sequência de terminais e não-terminais.
+Por exemplo, \texttt{ADD} pode ser substituído por \texttt{ADD + JUX}.
+Nesse caso, \texttt{ADD} deriva \texttt{ADD + JUX}.
+Para se obter uma sentença gramaticalmente válida,
+o não-terminal inicial \texttt{PROG} deve ser derivado até se obter somente terminais.
+Uma gramática é dita ambígua quando existe uma sentença com mais de uma forma de
+obtê-la a partir do não-terminal inicial.
 
-Para formar um programa gramaticalmente correto, inicia-se com o símbolo \texttt{PROG}.
-Cada não-terminal deve ser substituído no lugar por uma de suas formas sentenciais.
-O programa estará completo quando não houver mais não-terminais.
-
-Para extraír o significado de um programa, o processo contrário deve ser feito.
-É necessário encontrar uma maneira de se obter o programa a partir de \texttt{PROG}.
-Para um programa coeso(gramaticalmente correto), sempre há uma maneira, que é única.
-
-Algumas transformações nessa gramática a torna LL1,
-uma propriedade que garante que é possível fazer um \textit{parsing} preditivo.
-Uma consequência desse fato é a gramática não ser ambígua.
+A gramática (\ref{grammar}) não é ambígua.
 A verificação foi feita em \cite{GramCheck}.
+Algumas transformações na gramática a fizeram ser uma gramática LL(1).
+Uma consequência disso é a não ambiguidade.
 Em uma iteração anterior da gramática, a potenciação de funções era associativa à esquerda,
 enquanto a potenciação de números era à direita.
 Isso causou uma ambiguidade que não foi detectada no momento.
 Ela só foi descoberta ao tentar verificar a propriedade LL1, que falhou.
 
+O trabalho do parser, então, é achar uma forma de derivar uma sentença a partir de \texttt{PROG}.
+O método mais simples de parsing se aplica a gramáticas LL(1).
+
+Num parser LL(1), cada não-terminal possui sua própria subrotina.
+As subrotinas simulam a substituição de seu não-terminal
+por uma de suas formas sentenciais possíveis.
+Ou seja, uma subrotina simula uma produção de seu não-terminal.
+Para decidir qual produção aplicar, as subrotinas devem consultar o token atual.
+O fato da gramática ser LL(1) garante que o token atual fornece
+informação suficiente para determinar qual é a produção correta e, na falta de produção adequada,
+detectar um erro gramatical. Após decidir a produção, a subrotina começa sua simulação.
+Os termos da forma sentencial da produção são tratados da esquerda para a direita.
+Terminais são comparados com o token atual e um erro é detectado quando diferem.
+Quando são iguais, o lexer avança para o próximo token.
+Os não-terminais são substituídos imediatamente, através de suas subrotinas.
+
+Por exemplo, considere a produção \texttt{FUNC = FUNC2 \textasciicircum UNARY}.
+Para simulá-la, deve-se derivar \texttt{FUNC2}, chamando sua subrotina.
+Após a subrotina terminar, o token atual é comparado com \texttt{\textasciicircum},
+e caso seja igual, o lexer avança para o próximo token.
+Em seguida, a subrotina \texttt{UNARY} é chamada.
+No final de uma subrotina, seu não-terminal derivou uma sub-sentença,
+e o token atual ficou imediatamente à direita dessa sub-sentença.
+Assim, indutivamente, a rotina para \texttt{FUNC2} avançou
+o token para \texttt{\textasciicircum} na produção examinada.
+
+A estrutura \texttt{Parser} (\ref{parser}) define o parser.
+
+\begin{lstlisting}[caption=Estrutura parcial do parser, label=parser]
+struct Parser
+{
+    Lexer lexer;
+    std::unique_ptr<Table> table = std::make_unique<Table>();
+    std::vector<std::vector<Table*>> argList;
+    Table *objType{};
+    Table *objName{};
+    Table *tag{};
+    int tupleSize = 0;
+
+    #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
+        INIT(param,     DECLARE)
+        INIT(pi,        CONSTANT)
+        INIT(sqrt,      FUNCTION)
+        /*.....*/
+    #undef INIT
+
+    Parser();
+    void advance(bool match = true);
+
+    typedef void Parse();
+
+    void parseProgram(const char *source);
+
+    Parse 
+        parseFDecl, parseParam, parseGrid, parseDefine /*.....*/;
+
+    void parseInt(ExprType type);
+    void parseInts(ExprType type);
+
+    void parseMult(bool unary);
+
+    virtual void actSyntaxError(TokenType type);
+    virtual void actAdvance();
+    virtual void actInt(ExprType type);
+    virtual void actOp(ExprType type);
+    virtual void actDecl();
+
+    virtual ~Parser() = 0;
+};
+\end{lstlisting}
+
+O membro \texttt{lexer} é o analisador léxico. O parser controla o avanço dos tokens diretamente.
+O membro \texttt{table} é a tabela de símbolos compartilhada pelos estágios da compilação.
+O membro \texttt{argList} é uma lista de listas de argumentos de função.
+O atributo \texttt{argIndex} de um token de função é o índice da lista
+de seus parâmetros nesse membro.
+Os membros \texttt{objType} e \texttt{objName} auxiliam o estágio da geração,
+e correspondem ao tipo de objeto e seu nome.
+O membro \texttt{tag} é o nome do argumento marcado em um intervalo do tipo tag.
+Os membros \texttt{param}, \texttt{pi}, \texttt{sqrt}, etc. são
+as palavras-chave, funções e constantes pré-definidas.
+
+Os métodos com prefixo \texttt{parse} são as subrotinas dos não-terminais.
+A lógica do código foi simplificada, então não há uma correspondência exata.
+Os métodos com prefixo \texttt{act}, marcados com \texttt{virtual},
+são implementados no estágio seguinte.
+Esses métodos são chamados de ações semânticas,
+e são invocados pelo parser quando uma estrutura sintática é detectada.
+
+O método \texttt{advance} chama \texttt{actAdvance} e avança o token.
+Isso possibilita uma reação a um comentário ou a um token qualquer,
+mesmo que estes sejam ignorados pelo parser em questões gramaticais.
+
+Quando uma função está sendo definida, os identificadores de seus argumentos
+passam a ser do tipo \texttt{VARIABLE}.
+Após a definição, são redefinidos para \texttt{UNDEFINED}, pelo método \texttt{removeArgs}
 
 A tabela \ref{order} descreve as operações e suas ordens de precedência, com base na gramática.
 
@@ -223,36 +499,12 @@ A tabela \ref{order} descreve as operações e suas ordens de precedência, com 
 \end{centering}
 \end{table}
 
-\section{Compilador}
-O processo de compilação não é trivial, e é dividido em 3 estágios:
-\begin{itemize}
-    \item análise léxica: reconheçe as ``palavras'' que compõe um programa,
-    ignorando comentários e espaços em branco. É capaz de identificar números, 
-    constantes, nomes de objetos, e pontuação.
+\subsection{Análise semântica e síntese}
 
-    \item análise sintática: parser reconheçe a estrutura do programa: as declarações dos objetos
-    e as expressões matemáticas. A gramática \ref{gram} é usada como base.
-
-    \item análise semântica e síntese: gera todas as estruturas de dados
-    necessárias para a visualização dos objetos. Verifica também a semântica do programa,
-    detectando erros que não podem ser verificados com noções gramaticais.
-\end{itemize}
-
-Os estágios se comunicam entre si, e compartilham uma tabela de símbolos.
-A tabela especifica quais identificadores estão definidos, e quais são seus tipos.
-Uma declaração de um objeto de nome \texttt{X} insere \texttt{X} na tabela, e o associa ao tipo do objeto.
-Para isso, \texttt{X} não pode estar definido antes de ser declarado.
-Identificadores não definidos são reconhecidos como \texttt{id} na gramática.
-Após a declaração, o mesmo identificador passa a ser reconhecido como \texttt{const} ou \texttt{func},
-dependendo do tipo de objeto.
-Isso significa que os estágios devem ser executados em conjunto,
-pois o nome de uma função é gramaticamente diferente do nome de uma constante, por exemplo.
-A tabela é inicializada com as constantes e funções pré-definidas e palavras-chave.
-
-A síntese é responsável por computar as derivadas simbolicamente,
-e compilar as expressões matemáticas para a linguagem de \textit{shader} do OpenGL: \textit{GLSL}.
-Para os objetos desenháveis, suas fórmulas são usadas para determinar seus desenhos.
-Para as superfícies, o geodeic tracing também é compilado.
+%A síntese é responsável por computar as derivadas simbolicamente,
+%e compilar as expressões matemáticas para a linguagem de \textit{shader} do OpenGL: \textit{GLSL}.
+%Para os objetos desenháveis, suas fórmulas são usadas na renderização.
+%Para as superfícies, o geodeic tracing também é compilado.
 
 %%%....
 %Implementação de sintaxe que considera a estetica natural da escrita matemática que precisa ser traduzida para sintaxe de linguagem computacional. Isso é feito pelo parser.
