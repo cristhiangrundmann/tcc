@@ -113,16 +113,11 @@ void draw2(Obj &o)
 
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
-        glUseProgram(o.program[1].ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
-        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
-
         ImGui::PushID(o.name);
         ImGui::Begin("GEO");
 
         ImVec2 pos = ImGui::GetCursorScreenPos();
         ImGui::InvisibleButton("btn2", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
-        bool held = ImGui::IsItemActive();
         bool hover = ImGui::IsItemHovered();
 
         if(hover)
@@ -348,11 +343,6 @@ int main(int, char**)
         {
             ImGui::Begin("Settings");
 
-            glBindFramebuffer(GL_FRAMEBUFFER, cmp->uvFrame.ID);
-            glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
-            glClearColor(0, 0, -1, 1);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
             glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
             glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
             glClearColor(0, 0, 0, 1);
@@ -433,24 +423,6 @@ int main(int, char**)
             ImVec2 pos = ImGui::GetCursorScreenPos();
             ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
             bool held = ImGui::IsItemActive();
-            bool hover = ImGui::IsItemHovered();
-
-            if(hover)
-            {
-                int x = io.MousePos.x - pos.x;
-                int y = io.MousePos.y - pos.y;
-
-                if(x >= 0)
-                if(y >= 0)
-                if(x < (int)cmp->frameSize.width)
-                if(y < (int)cmp->frameSize.height)
-                {
-                    float data[3] = {0, 0, -1};
-                    glBindFramebuffer(GL_READ_FRAMEBUFFER, cmp->uvFrame.ID);
-                    glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, data);
-                    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-                }
-            }
 
             if(held)
             {

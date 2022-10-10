@@ -983,22 +983,6 @@ namespace tcc
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        {
-            glGenFramebuffers(1, &uvFrame.ID);
-            uvFrame.textures.push_back(new Texture);
-            Texture *tex = uvFrame.textures.back();
-            tex->create(frameSize, GL_RGB32F, GL_RGB, GL_FLOAT);
-            glBindFramebuffer(GL_FRAMEBUFFER, uvFrame.ID);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
-            uvFrame.textures.push_back(new Texture);
-            tex = uvFrame.textures.back();
-            tex->create(frameSize, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->ID, 0);
-            uint b = GL_COLOR_ATTACHMENT0;
-            glNamedFramebufferDrawBuffers(uvFrame.ID, 1, &b);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
         "#version 460 core\n"
         "layout (location = 0) uniform vec4 col;\n"
@@ -1017,16 +1001,6 @@ namespace tcc
         "void main()\n{\n"
         "vec4 c = texture(tex, opos);\n"
         "color = vec4(c.x*col.x, c.y*col.y, c.z*col.z, 1);\n"
-        "\n}\n"
-        );
-
-        uvFrag.compile(GL_FRAGMENT_SHADER, 
-        "#version 460 core\n"
-        "layout (location = 0) out vec4 color;\n"
-        "in vec2 opos;\n"
-        "flat in int index;\n"
-        "void main()\n{\n"
-        "color = vec4(opos, index, 1);\n"
         "\n}\n"
         );
 
@@ -1255,13 +1229,6 @@ namespace tcc
                     o.col[3] = 1;
                     glUseProgram(o.program[0].ID);
                     glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
-                }
-
-                {
-                    o.program[1].ID = glCreateProgram();
-                    glAttachShader(o.program[1].ID, sh->ID);
-                    glAttachShader(o.program[1].ID, uvFrag.ID);
-                    o.program[1].link();
                 }
 
                 {

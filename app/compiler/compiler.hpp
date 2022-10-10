@@ -141,7 +141,7 @@ namespace tcc
 
         Buffer block{};
         uint blockSize{};
-        Framebuffer frame{}, uvFrame{};
+        Framebuffer frame{};
         Array quad{};
         Array line{};
         Shader defaultVert{};
