@@ -57,7 +57,7 @@ O programa declara os seguintes objetos:
 \end{centering}
 
 A figura \ref{img:ex1} demonstra os objetos declarados em perspectiva 3D.
-\begin{figure}[h!]
+\begin{figure}[!ht]
     \includegraphics[width=\linewidth]{ex1.png}
     \caption{Exemplo 1}
     \label{img:ex1}
@@ -111,7 +111,7 @@ Numa aplicação de função de uma variável, o argumento não precisa de parê
 O argumento pode ter operadores unários e até expoentes:
 \texttt{sin -x\textasciicircum2 = sin(-x\textasciicircum2)}.
 Deve-se tomar cuidado com expoentes:
-\\texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
+\texttt{sin(x)\textasciicircum y = sin(x\textasciicircum y)}.
 Para a exponenciação de uma aplicação,
 deve-se usar a sintaxe: \texttt{sin\textasciicircum2 x}.
 
@@ -134,31 +134,28 @@ function f(u,v) =
 
 param U : [0, 1];
 param V : [0, 1];
-
 point p = f(U,V);
 
 curve cu(t) = f(t, V), t : [0, 1];
 curve cv(t) = f(U, t), t : [0, 1];
 
 function N(x) = x/sqrt*x;
-
 vector vu = Nf_u(U,V) @ p;
 vector vv = Nf_v(U,V) @ p;
 
-surface s(u,v) = f(u,v)*0.99, 
-u : [0, 1], v : [0, 1];
+surface s(u,v) = f(u,v)*0.99, u : [0, 1], v : [0, 1];
 \end{lstlisting}
 
-
+h
 A figura \ref{img:ex2} demonstra o programa em perspectiva 3D.
-\begin{figure}[h!]
+\begin{figure}[!ht]
     \includegraphics[width=\linewidth]{ex2.png}
     \caption{Exemplo 2 - Perspectiva em 3D}
     \label{img:ex2}
 \end{figure}
 
 A figura \ref{img:ex2gt} demonstra o geodesic tracing.
-\begin{figure}[h!]
+\begin{figure}[!ht]
     \includegraphics[width=\linewidth]{ex2gt.png}
     \caption{Exemplo 2 - geodesic tracing}
     \label{img:ex2gt}

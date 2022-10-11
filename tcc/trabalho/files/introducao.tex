@@ -2,15 +2,18 @@
 Desenhos de superfícies costumam ser feitos a partir de um ponto de vista do
 espaço ambiente 3D.
 Esse projeto implementa uma visualização de superfícies que não depende de um espaço ambiente.
+Para isso, é necessário uma imagem sobre a superfície, para poder observá-la.
 
 A visualização pode ser comparada ao que um ser bidimensional interno à superfície observaria:
 simula-se raios de luz partindo da posição do ser, e os pontos iluminados são observados.
 Os raios de luz devem seguir caminhos em `linha reta', que minimizam distância.
 Para uma superfície qualquer, esses caminhos são chamados de geodésicos,
-e são estudados na geometria diferencial.
-A visualização, chamada de \textit{geodesic tracing}, obtém uma transformação de uma imagem original sobre a superfície.
+estudados na geometria diferencial, e descritos no capítulo \ref{geomdiff}.
+A visualização, chamada de \textit{geodesic tracing}, renderiza a imagem sobre a superfície,
+e suas curvaturas podem ser notadas. Ao se mover, a imagem observada pode se distorcer,
+dependendo da curvatura.
 
-A implementação feita nesse projeto é feita em três partes:
+A implementação desse projeto é feita em três partes:
 compilador, método numérico e interface gráfica.
 
 O compilador fornece uma maneira do usuário definir as superfícies e outros objetos.
@@ -31,3 +34,7 @@ A interface gráfica é simples e é construída usando \textit{ImGui} \cite{ImG
 uma ferramenta de interface gráfica fácil de usar.
 A linguagem de programação escolhida para a implementação desse projeto é \textit{C++},
 e para desenhar a interface e os objetos, \textit{OpenGL} é usado.
+
+O objetivo primário desse projeto é a visualização do geodesic tracing.
+Porém, a estética dos gráficos e da linguagem descritiva, performance 
+e robustez do sistema também são levados em consideração.
