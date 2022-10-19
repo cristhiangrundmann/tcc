@@ -2,7 +2,13 @@
 \label{lang}
 
 O usuário se comunica com a interface através de um texto, chamado de programa,
-que contém os objetos de interesse.
+que contém os objetos de interesse. 
+Por exemplo, em GeoGebra, o círculo unitário pode ser
+definido como
+\texttt{c = Curve(cos(t), sin(t), t, 0, 2pi)}.
+Na linguagem desse projeto, a definição seria
+\texttt{curve c(t) = (cos(t), sin(t)), t : [0, 2pi];}.
+
 O código \ref{ex1} é um exemplo.
 \begin{lstlisting}[caption=Exemplo de objetos,label=ex1]
 #circle and tangents
@@ -78,6 +84,7 @@ Por exemplo, \texttt{v} usa o ponto \texttt{p}.
 Curvas e superfícies podem ser usadas como funções, mas sem a restrição no domínio.
 Por exemplo, \texttt{p} usa \texttt{c} como função.
 Um objeto só pode se referir aos objetos definidos anteriormente.
+Os parâmetros das curvas e superfícies podem ter qualquer nome disponível.
 
 \item
 Há duas constantes pré-definidas: \texttt{pi} e \texttt{e};

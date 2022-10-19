@@ -1,7 +1,12 @@
 \chapter{Introdução}
 Desenhos de superfícies costumam ser feitos a partir de um ponto de vista do
-espaço ambiente 3D.
-Esse projeto implementa uma visualização de superfícies que não depende de um espaço ambiente.
+espaço ambiente 3D, como em MatLab, Mathematica e Geogebra 3D.
+Uma superfície é definida numa linguagem, que então é renderizada.
+O usuário então pode interagir com a superfície, podendo mudar a orientação e a posição
+da câmera.
+
+O objetivo primário desse projeto é a visualização de curvas e superfícies.
+Esse projeto também implementa uma visualização de superfícies que não depende de um espaço ambiente.
 Para isso, é necessário uma imagem sobre a superfície, para poder observá-la.
 
 A visualização pode ser comparada ao que um ser bidimensional interno à superfície observaria:
@@ -34,6 +39,7 @@ A interface gráfica é simples e é construída usando \textit{ImGui} \cite{ImG
 uma ferramenta de interface gráfica fácil de usar.
 A linguagem de programação escolhida para a implementação desse projeto é \textit{C++},
 e para desenhar a interface e os objetos, \textit{OpenGL} é usado.
+A interface está descrita no capítulo \ref{interface}.
 
 O objetivo primário desse projeto é a visualização do geodesic tracing.
 Porém, a estética dos gráficos e da linguagem descritiva, performance 

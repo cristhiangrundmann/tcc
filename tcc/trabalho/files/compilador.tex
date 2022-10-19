@@ -18,6 +18,8 @@ O processo de compilação não é trivial, e é dividido em 3 estágios:
     detectando erros que não podem ser verificados com noções gramaticais.
 \end{itemize}
 
+A teoria de compiladores é essencial para esses estágios \cite{Dragon:1}.
+
 \section{Análise léxica}
 A análise léxica tem a função de ler o código-fonte que descreve um programa
 e abstrair as palavras e símbolos presentes.
@@ -481,13 +483,25 @@ para construír um intervalo.
 
 Os métodos de \texttt{newExpr} a \texttt{dependencies} processam
 as expressões matemáticas para uma forma mais tratável.
-Para isso, derivadas são computadas simbolicamente, expressões com tuplas
-são descompactadas, e funções são aplicadas.
-O segundo método \texttt{op} é capaz de realizar otimizações simples
- nas expressões matemáticas.
+\texttt{newExpr} e \texttt{op} auxiliam na criação de expressões matemáticas, e são usadas
+em vários outros métodos.
+\texttt{\_comp} auxilia o acesso de um elemento de uma tupla, por exemplo:
+\texttt{(x, y, z)\_1 = x}, e \texttt{p\_1 = p\_1} para uma constante \texttt{p}.
+\texttt{compute} é o método principal e invoca os outros métodos, além de
+descompactar algumas operações.
+O método \texttt{substitute} resolve funções, substituindo uma aplicação pelo corpo da função.
+O método \texttt{derivative} computa derivadas simbólicas.
+O método \texttt{calculate} calcula o valor numérico de uma expressão, 
+quando possível, e é usado 
+O método \texttt{dependencies} detecta de quais grades um objeto depende.
 
 Os métodos de \texttt{compile} a \texttt{declareFunction} geram o produto final.
 Juntos, geram os códigos-fonte na linguagem de \textit{shader}(GLSL) do OpenGL.
+O método \texttt{header} auxilia a declaração dos parâmetros na linguagem GLSL.
+O método \texttt{compileFunction} apenas auxilia o retorno das funções no código GLSL.
+O método \texttt{declareFunction} auxilia na declaração das funções.
+O primeiro método \texttt{compile} gera o código-fonte para calcular o valor de uma
+expressão.
 Por exemplo, a expressão matemática \texttt{x*3+1} é
 compilada para(aproximadamente) o seguinte código:
 
@@ -510,6 +524,7 @@ O método então compila as expressões matemáticas, e finalmente gera o produt
 Para os objetos desenháveis, gera as funções para desenhá-los.
 Para superfícies, compila também o geodesic tracing.
 Para os parâmetros, gera controles deslizantes na interface.
+Ao finalizar, a interface está pronta para a interação com os objetos.
 
 O compilador também verfica a validade semântica dos objetos.
 Por exemplo, intervalos não podem depender de parâmetros ou grades.

@@ -22,6 +22,8 @@ O vetor tangente pode ser calculado com $\gamma'(t)$.
 \section{Superfícies}
 Assim como as curvas, apenas superfícies parametrizadas serão consideradas nesse trabalho:
 $\sigma :  I_1 \times I_2 \rightarrow \mathbb{R}^3$, onde $I_1$ e $I_2$ são intervalos fechados reais.
+Além disso, apenas superfícies regulares serão consideradas: a parametrização é suave e
+os vetores tangentes são linearmente independentes.
 
 As superfícies são desenhadas através de vários triângulos,
 a partir de partições dos intervalos $I_1$ e $I_2$.
@@ -29,10 +31,9 @@ Juntas, as partições formam uma grade de retângulos, e cada retângulo pode s
 Esses são os triângulos desenhados.
 
 Os vetores tangentes nas direções coordenadas são as derivadas parciais $\sigma_u(u,v)$ e $\sigma_v(u,v)$, onde os parâmetros são $u$ e $v$.
-Nesse projeto, os parâmetros podem ter nomes quaisquer.
 
 \subsection{Primeira forma fundamental}
-Supondo que a superfície seja diferenciável e com vetores tangentes linearmente independentes,
+Numa superfície parametrizada regular,
 a primeira forma fundamental no ponto paramétrico $(u,v)$ é definida como
 \[
     \left[
@@ -66,16 +67,19 @@ Para a aplicação, é necessário rotacionar vetores no espaço tangente.
 É possível rotacionar um vetor apenas usando seus componentes e
 a primeira forma fundamental.
 
-Seja $w = u\sigma_u+v\sigma_v$, e $\gamma$ o ângulo da rotação.
-A base $\{\sigma_u, \sigma_v\}$ do espaço tangente pode ser ortogonalizada e normalizada.
-Assim, basta aplicar uma matriz de rotação.
+Seja $w = u\sigma_u+v\sigma_v$ o vetor a ser rotacionado e $\theta$ o ângulo da rotação.
+A base $\{\sigma_u, \sigma_v\}$ do espaço tangente pode ser ortogonalizada.
+Com uma base ortogonal, a rotação é feita com a matriz de rotação.
 
 A nova base pode ser escrita como:
 \begin{align*}
     \sigma'_u &= \frac{\sigma_u}{E}\\
-    \sigma'_v &= \frac{\sigma_u-\frac{F\sigma_v}{E}}{R}\\
+    \sigma'_v &= \frac{\sigma_v-\frac{F\sigma_u}{E}}{R}\\
     R &= \sqrt{EG-F^2}
 \end{align*}
+
+Note que os vetores são ortogonais e de mesmo comprimento.
+Apesar do comprimento não ser 1, a matriz de rotação funciona corretamente.
 
 Para achar os componentes de $w$ na nova base, basta observar:
 $w = u'\sigma'_u+v'\sigma'_v = u'\frac{\sigma_u}{E} + v'\frac{\sigma_v}{R}-v'\frac{\sigma_uF}{RE}$
@@ -87,17 +91,120 @@ Então
 \end{align*}
 
 O vetor rotacionado é
-\[w' = (u'\text{cos}\gamma-v'\text{sin}\gamma)\sigma'_u + (u'\text{sin}\gamma+v'\text{cos}\gamma)\sigma'_v\]
-\[w' = (u\text{cos}\gamma-\frac{uF+vG}{R}\text{sin}\gamma)\sigma_u+(\frac{uE+vF}{R}\text{sin}\gamma+v\text{cos}\gamma)\sigma_v\]
+\[w' = \left(u'\text{cos}\theta-v'\text{sin}\theta\right)\sigma'_u + \left(u'\text{sin}\theta+v'\text{cos}\theta\right)\sigma'_v\]
+\[w' = \left(u\text{cos}\theta-\frac{uF+vG}{R}\text{sin}\theta\right)\sigma_u+\left(\frac{uE+vF}{R}\text{sin}\theta+v\text{cos}\theta\right)\sigma_v\]
 
 Como esperado, esse vetor só depende da primeira forma fundamental,
 dos componentes originais e do ângulo de rotação.
 
-\subsection{Equação geodésica}
-...Apenas definir o sistema de EDOs e citar...
+\subsection{Transporte Paralelo}
+Seja $\gamma$ uma curva sobre a superfície e $v$ um campo vetorial tangente sobre a curva $\gamma$.
+Diz-se que $v$ é paralelo ao longo de $\gamma$ quando $v'$ é ortogonal à superfície
+para qualquer ponto de $\gamma$.
+Nesse caso, um ser sobre a superfície não observaria mudanças em $v$ ao traçar a curva $\gamma$.
+A variação de $v$ se dá ortogonalmente à superfície, logo não seria percebida pelo ser.
+Diz-se que o vetor $v$ está sendo transportado paralelamente ao longo de $\gamma$.
 
-\subsection{Solução Numérica}
-...Definir o método de Runge-Kutta de ordem 4...
+Sejam $v$ e $w$ vetores paralelos ao longo de $\gamma$(transportados paralelamente).
+Então o produto escalar $v \cdot w$ é constante, pois $(v \cdot w)' = v' \cdot w + v \cdot w' = 0$.
+Como o produto escalar pode definir as noções de comprimento e ângulo, vetores transportados
+paralelamente à uma curva mantém seus comprimentos e ângulos entre si.
+
+\subsection{Equação geodésica}
+Uma curva regular $\gamma$ sobre a superfície é dita geodésica quando
+$\gamma'$ é paralelo ao longo de $\gamma$.
+Nesse caso, um ser perceberia $\gamma'$(velocidade) como constante, e a curva $\gamma$ pode
+ser considerada como reta nesse espaço.
+
+Uma curva $\gamma$ é uma curva geodésica quando satisfaz o sistema \ref{geoeq}.
+\begin{equation}
+\label{geoeq}
+    \left\{\begin{array}{cc}
+        \dfrac{1}{2}\left(E_u(u')^2 + 2F_uu'v' + G_u(v')^2\right) & = \dfrac{d}{dt}(Eu' + Fv') \vspace{6pt}\\
+        \dfrac{1}{2}\left(E_v(u')^2 + 2F_vu'v' + G_v(v')^2\right) & = \dfrac{d}{dt}(Fu' + Gv')
+    \end{array}\right.
+\end{equation}
+
+Esse sistema pode ser reescrito como o sistema \ref{geoeq2}.
+
+\begin{equation}
+\label{geoeq2}
+        2
+        \begin{pmatrix}
+            E & F \\
+            F & G
+        \end{pmatrix}
+        \begin{pmatrix}
+            u'' \\
+            v''
+        \end{pmatrix}
+        =
+        \begin{pmatrix}
+            v'^2(G_u-2F_v)-u'^2E_u-2u'v'E_v \\
+            u'^2(E_v-2F_u)-v'^2G_v-2u'v'G_u
+        \end{pmatrix}
+\end{equation}
+
+Como a superfície é regular, $u''$ e $v''$ são únicos, pois a primeira forma
+fundamental é invertível.
+
+Note que a aceleração $(u'', v'')$ pode ser obtida em função da posição $(u,v)$
+e velocidade $(u', v')$.
+
+Esse é um sistema de equações diferenciais ordinárias de primeira ordem.
+Sua solução depende de uma posição e uma velocidade inicial.
+Na maioria das superfícies interessantes, esse sistema é muito difícil, ou até impossível,
+de resolver analiticamente.
 
 \subsection{Geodesic Tracing}
-...Definir o geodesic tracing...
+A visualização do Geodesic Tracing requer uma imagem sobre a superfície.
+Para isso, uma cor é associada a cada ponto $(u,v)$ do domínio da parametrização.
+
+O geodesic tracing gera uma imagem a partir de duas informações:
+\begin{itemize}
+    \item um ponto $(u,v)$ da superície, representando a posição da câmera
+    \item dois vetores tangentes $X$ e $Y$ no ponto $(u,v)$.
+    Os vetores $X$ e $Y$ são de mesmo comprimento($z$), são ortogonais entre si e
+    representam a orientação da câmera.
+\end{itemize}
+
+A imagem gerada é um quadrado $[-1, +1] \times [-1, +1]$.
+O primeiro eixo corresponde ao vetor $X$, e o segundo ao $Y$.
+
+Cada ponto $(x,y)$ é associado a um ponto $(u_1, v_1)$ da superfície,
+e logo a um ponto da imagem original, obtendo-se uma cor.
+O ponto $(u_1, v_1)$ é determinado traçando-se uma curva geodésica $\gamma$.
+A posição inicial de $\gamma$ é $(u,v)$, e a velocidade inicial é $xX+yY$.
+Finalmente, o ponto $(u_1, v_1)$ é definido como $\gamma(1)$.
+A distância percorrida, ou comprimento de arco, é o próprio comprimento
+da velocidade inicial: $z\sqrt{x^2+y^2}$.
+
+\subsection{Interação}
+Para compreender melhor o geodesic tracing,
+é necessário alterar as condições e observar as alterações na imagem.
+
+A interação mais simples é a rotação.
+Os vetores $X$ e $Y$ são apenas rotacionados por um ângulo $\theta$.
+A imagem resultante não se deforma, apenas é rotacionada pelo mesmo ângulo $\theta$.
+
+Outra interação simples é o \textit{zoom}.
+Os vetores $X$ e $Y$ são multiplicados por um fator $\alpha > 0$.
+Para $\alpha > 1$, a imagem é ampliada, pois as curvas geodésicas são maiores.
+Para $\alpha < 1$, a imagem é contraída.
+
+A interação mais interessante é o movimento.
+Para se mover na direção $X$, uma geodésica $\gamma$ é traçada na direçãção $X$.
+O novo centro da imagem passa a ser $\gamma(t)$, onde $t$ é o tamanho do passo.
+O novo vetor $X$ é a velocidade final($\gamma'(t)$),
+que foi transportada paralelamente ao longo
+de $\gamma$. O comprimento de $X$ foi preservado.
+O novo vetor $Y$ também é transportado paralelamente.
+Como visto anteriormente, seu comprimento é preservado e seu ângulo com $X$ também.
+Assim, o novo $Y$ é apenas a rotação de $X$ pelo ângulo de $90$ graus.
+O comprimento real do passo é $zt$.
+
+De forma similar, a câmera pode se movimentar ao longo de $Y$.
+As curvaturas da superfície causam distorções na imagem observada.
+Ao se mover, pode-se perceber curvatura pela forma com que a imagem se distorce.
+Curvatura gaussiana positiva faz os ``objetos'' expandirem ao se afastar.
+Curvatura negativa faz os ``objetos'' contraírem ao se afastar.
