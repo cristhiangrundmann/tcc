@@ -92,10 +92,16 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
     vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
 }
 
+bool paramChanged = false;
+bool changed = true;
+
 void draw2(Obj &o)
 {
+    if(paramChanged) changed = true;
+
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-    if(o.type == cmp->curve)
+
+    if(o.type == cmp->curve && changed)
     {
         glUseProgram(o.program[0].ID);
         glBindVertexArray(o.array.ID);
@@ -104,43 +110,67 @@ void draw2(Obj &o)
 
     if(o.type == cmp->surface)
     {
-        glUseProgram(o.program[0].ID);
-        glBindVertexArray(o.array.ID);
-        uint count = o.intervals[0].number*o.intervals[1].number*6;
+        if(changed)
+        {
+            glUseProgram(o.program[0].ID);
+            glBindVertexArray(o.array.ID);
+            uint count = o.intervals[0].number*o.intervals[1].number*6;
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex->ID);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, tex->ID);
 
-        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+        }
 
-        ImGui::PushID(o.name);
-        ImGui::Begin("GEO");
+        ImGui::Begin(o.name->str.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
         ImVec2 pos = ImGui::GetCursorScreenPos();
-        ImGui::InvisibleButton("btn2", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
+        ImGui::InvisibleButton("btn2", ImVec2(cmp->geoSize.width,
+        cmp->geoSize.height), ImGuiButtonFlags_MouseButtonLeft);
         bool hover = ImGui::IsItemHovered();
+        bool held = ImGui::IsItemActive();
+
+        bool changed = o.changed;
+
+        if(paramChanged) changed = true;
+
+        float mouseDelta = 0;
+        float w = 0, s = 0, a = 0, d = 0, q = 0, e = 0, z = 0, x = 0;
+        ImGuiIO& io = ImGui::GetIO();
 
         if(hover)
         {
-            ImGuiIO& io = ImGui::GetIO();
-            float w = ImGui::IsKeyDown('W') ? 1 : 0;
-            float s = ImGui::IsKeyDown('S') ? 1 : 0;
-            float a = ImGui::IsKeyDown('A') ? 1 : 0;
-            float d = ImGui::IsKeyDown('D') ? 1 : 0;
-            float q = ImGui::IsKeyDown('Q') ? 1 : 0;
-            float e = ImGui::IsKeyDown('E') ? 1 : 0;
-            float z = ImGui::IsKeyDown('Z') ? 1 : 0;
-            float x = ImGui::IsKeyDown('X') ? 1 : 0;
+            mouseDelta = io.MouseDelta.x;
+            if(!held) mouseDelta = 0;
 
+            w = ImGui::IsKeyDown('W') ? 1 : 0;
+            s = ImGui::IsKeyDown('S') ? 1 : 0;
+            a = ImGui::IsKeyDown('A') ? 1 : 0;
+            d = ImGui::IsKeyDown('D') ? 1 : 0;
+            q = ImGui::IsKeyDown('Q') ? 1 : 0;
+            e = ImGui::IsKeyDown('E') ? 1 : 0;
+            z = ImGui::IsKeyDown('Z') ? 1 : 0;
+            x = ImGui::IsKeyDown('X') ? 1 : 0;
+
+            o.changed = (w || s || a || d || q || e || z || x || mouseDelta);
+        }
+        else o.changed = false;
+
+        if(changed)
+        {
             o.zoom += (x-z)*io.DeltaTime;
+            if(o.zoom < 0.1f) o.zoom = 0.1f;
+            if(o.zoom > 100.0f) o.zoom = 100.0f;
 
             float l = length(o, o.center, o.X);
             o.X *= o.zoom/l;
-            o.X = rotate(o, o.center, o.X, o.ori*(q-e)*io.DeltaTime);
+            o.X = rotate(o, o.center, o.X,
+            o.ori*(q-e)*io.DeltaTime - mouseDelta/cmp->geoSize.width*6.0f);
             step(o, o.center, o.X, (d-a)*io.DeltaTime);
             o.Y = rotate(o, o.center, o.X, o.ori*Parser::CPI/2);
             step(o, o.center, o.Y, (s-w)*io.DeltaTime);
             o.X = rotate(o, o.center, o.Y, -o.ori*Parser::CPI/2);
+            glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
 
             glUseProgram(o.program[2].ID);
     
@@ -157,12 +187,12 @@ void draw2(Obj &o)
         }
 
         ImGui::SetCursorScreenPos(pos);
-        ImGui::Image((void*)(intptr_t)o.frame.textures[1]->ID, ImVec2(cmp->frameSize.width, cmp->frameSize.height));
+        ImGui::Image((void*)(intptr_t)o.frame.textures[0]->ID,
+        ImVec2(cmp->geoSize.width, cmp->geoSize.height));
         ImGui::End();
-        ImGui::PopID();
     }
 
-    if(o.type == cmp->point)
+    if(o.type == cmp->point && changed)
     {
         glPointSize(10);
         glUseProgram(o.program[0].ID);
@@ -170,7 +200,7 @@ void draw2(Obj &o)
         glDrawArrays(GL_POINTS, 0, 1);
     }
 
-    if(o.type == cmp->vector)
+    if(o.type == cmp->vector && changed)
     {
         glPointSize(40);
         glBindVertexArray(cmp->line.ID);
@@ -296,8 +326,16 @@ int main(int, char**)
 			ImGui::Begin("Program");
 			static char text[1024 * 16];
             ImGui::PushFont(f2);
-            ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
+            ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text),
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
 			ImGui::PopFont();
+
+            static int frameSizeX = 512, frameSizeY = 512;
+            static int geoSize = 512;
+
+            ImGui::SliderInt("Frame Width", &frameSizeX, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderInt("Frame Height", &frameSizeY, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderInt("Geo Size", &geoSize, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
 
             static std::string error;
             static const char *msg = "OK";
@@ -311,7 +349,8 @@ int main(int, char**)
                 }
                 try
                 {
-                    cmp->frameSize = {800, 800};
+                    cmp->frameSize = {(unsigned int)frameSizeX, (unsigned int)frameSizeY};
+                    cmp->geoSize = {(unsigned int)geoSize, (unsigned int)geoSize};
                     cmp->compile(text);
                     msg = "OK";
                     persp = glm::perspective<float>(120, 1, 0.1, 10);
@@ -340,16 +379,52 @@ int main(int, char**)
         float _t2 = ImGui::GetTime();
 
         if(cmp->compiled)
-        {
-            ImGui::Begin("Settings");
+        {  
+            ImGui::Begin("Output", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+            ImVec2 pos = ImGui::GetCursorScreenPos();
+            ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width,
+            cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
+            bool held = ImGui::IsItemActive();
 
-            glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-            glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            if(held)
+            {
+                ImGuiIO& io = ImGui::GetIO();
+                vec2 delta = vec2(io.MouseDelta.x, io.MouseDelta.y);
+                angle += delta/512.0f*6.0f;
+                vec3 vecs[3];
+                if(angle[0] < 0) angle[0] = Parser::CPI*2;
+                if(angle[0] > Parser::CPI*2) angle[0] = 0;
+                if(angle[1] < 0) angle[1] = 0;
+                if(angle[1] > Parser::CPI) angle[1] = Parser::CPI;
+                tri(angle, vecs);
+                float w = ImGui::IsKeyDown('W') ? 1 : 0;
+                float s = ImGui::IsKeyDown('S') ? 1 : 0;
+                float a = ImGui::IsKeyDown('A') ? 1 : 0;
+                float d = ImGui::IsKeyDown('D') ? 1 : 0;
+
+                changed = (w || s || a || d || delta.x || delta.y);
+                
+                center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
+                look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
+                mat4 camera = persp * look;
+                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
+                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+            }
+
+            if(changed)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+                glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
+
+            ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
             for(Obj &o : cmp->objects)
             {
+                paramChanged = false;
                 std::vector<Subst> subs;
                 if(o.type == cmp->param)
                 {
@@ -374,12 +449,15 @@ int main(int, char**)
                         }
         
                         ImGui::SliderFloat(str.c_str(), &o.intervals[i].number, 
-                            o.intervals[i].min, o.intervals[i].max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                            o.intervals[i].min, o.intervals[i].max, "%.3f",
+                            ImGuiSliderFlags_AlwaysClamp);
 
                         if(cur != o.intervals[i].number)
                         {
+                            paramChanged = true;
                             glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-                            glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset, 4, &o.intervals[i].number);
+                            glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset,
+                            4, &o.intervals[i].number);
                         }
                         ImGui::PopID();
                     }
@@ -403,6 +481,7 @@ int main(int, char**)
                     col[2] != o.col[2] ||
                     col[3] != o.col[3])
                     {
+                        paramChanged = true;
                         glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
 
                         if(o.type == cmp->vector)
@@ -412,44 +491,15 @@ int main(int, char**)
                         }
                     }
 
-                    if(o.program[0].ID)
-                        draw(o);
+                    if(o.program[0].ID) draw(o);
                 }
             }
 
             ImGui::End();
-    
-            ImGui::Begin("Output");
-            ImVec2 pos = ImGui::GetCursorScreenPos();
-            ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width, cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
-            bool held = ImGui::IsItemActive();
-
-            if(held)
-            {
-                ImGuiIO& io = ImGui::GetIO();
-                vec2 delta = vec2(io.MouseDelta.x, io.MouseDelta.y);
-                angle += delta/512.0f*6.0f;
-                vec3 vecs[3];
-                if(angle[0] < 0) angle[0] = Parser::CPI*2;
-                if(angle[0] > Parser::CPI*2) angle[0] = 0;
-                if(angle[1] < 0) angle[1] = 0;
-                if(angle[1] > Parser::CPI) angle[1] = Parser::CPI;
-                tri(angle, vecs);
-                float w = ImGui::IsKeyDown('W') ? 1 : 0;
-                float s = ImGui::IsKeyDown('S') ? 1 : 0;
-                float a = ImGui::IsKeyDown('A') ? 1 : 0;
-                float d = ImGui::IsKeyDown('D') ? 1 : 0;
-                
-                center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
-                look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
-                mat4 camera = persp * look;
-                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
-                glBindBuffer(GL_UNIFORM_BUFFER, 0);
-            }
 
             ImGui::SetCursorScreenPos(pos);
-            ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID, ImVec2(cmp->frameSize.width, cmp->frameSize.height));
+            ImGui::Image((void*)(intptr_t)cmp->frame.textures[0]->ID,
+            ImVec2(cmp->frameSize.width, cmp->frameSize.height));
             ImGui::End();
         }
 

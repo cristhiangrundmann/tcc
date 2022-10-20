@@ -1235,16 +1235,18 @@ namespace tcc
                     glGenFramebuffers(1, &o.frame.ID);
                     o.frame.textures.push_back(new Texture);
                     Texture *tex = o.frame.textures.back();
-                    tex->create(frameSize, GL_RGB32F, GL_RGB, GL_FLOAT);
+                    tex->create(geoSize, GL_RGB32F, GL_RGB, GL_FLOAT);
                     glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
                     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+                    /*
                     o.frame.textures.push_back(new Texture);
                     tex = o.frame.textures.back();
-                    tex->create(frameSize, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE);
+                    tex->create(geoSize, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE);
                     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, tex->ID, 0);
-                    uint bs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+                    */
+                    /*uint bs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
                     glNamedFramebufferDrawBuffers(o.frame.ID, 2, bs);
-                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
                 }
 
                 str = std::stringstream();
@@ -1278,16 +1280,18 @@ namespace tcc
                 str << "}\n";
 
                 str << "uniform sampler2D tex;\n";
-                str << "layout (location = 0) out vec4 uv;\n";
-                str << "layout (location = 1) out vec4 color;\n";
+                //str << "layout (location = 0) out vec4 uv;\n";
+                //str << "layout (location = 1) out vec4 color;\n";
+                str << "out vec4 color;\n";
                 str << "layout (location = 0) uniform vec2 center;\n";
                 str << "layout (location = 1) uniform vec2 X;\n";
                 str << "layout (location = 2) uniform vec2 Y;\n";
                 str << "in vec2 opos;\n";
                 str << "void main()\n{\n";
 
+                str << "/*uv = vec4(0);*/ color = vec4(0);\n";
                 str << "float l = length(opos);\n";
-                str << "if(l < 0.01) { uv = vec4(0); color = vec4(0); return;}\n";
+                str << "if(l < 0.01) return;\n";
                 str << "int N = int(l * 64);\n";
                 str << "float h = 1.0f/N;\n";
                 str << "vec2 pos = center\n;";
@@ -1306,7 +1310,7 @@ namespace tcc
                 str << "vel += (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)/6;\n";
                 str << "}\n";
 
-                str << "uv = vec4(pos, 0, 0);\n";
+                //str << "uv = vec4(pos, 0, 0);\n";
                 str << "color = texture(tex, pos);\n";
                 str << "}";
 

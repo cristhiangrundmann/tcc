@@ -113,6 +113,8 @@ namespace tcc
         Framebuffer frame{};
         Texture image{};
 
+        bool changed = true;
+
         //GEO
         glm::vec2 center = glm::vec2(0.5985, 0.2344);
         glm::vec2 X = glm::vec2(0, 1);
@@ -138,6 +140,7 @@ namespace tcc
         std::vector<Interval> intStack;
         std::vector<Obj> objects;
         Size frameSize = {512, 512};
+        Size geoSize = {512, 512};
 
         Buffer block{};
         uint blockSize{};
