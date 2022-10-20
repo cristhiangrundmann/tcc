@@ -5,6 +5,7 @@
 #include "compiler.hpp"
 
 #include <stdio.h>
+#include <cstring>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -92,25 +93,16 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
     vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
 }
 
-bool paramChanged = false;
-bool changed = true;
+bool colorChanged;
+bool changed;
 
 void draw2(Obj &o)
 {
-    if(paramChanged) changed = true;
-
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-
-    if(o.type == cmp->curve && changed)
-    {
-        glUseProgram(o.program[0].ID);
-        glBindVertexArray(o.array.ID);
-        glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
-    }
 
     if(o.type == cmp->surface)
     {
-        if(changed)
+        if(changed || colorChanged)
         {
             glUseProgram(o.program[0].ID);
             glBindVertexArray(o.array.ID);
@@ -122,7 +114,11 @@ void draw2(Obj &o)
             glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
         }
 
-        ImGui::Begin(o.name->str.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        static char title[128];
+        strcpy(title, "Geodesic Tracing - ");
+        strcat(title, o.name->str.c_str());
+        
+        ImGui::Begin(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
         ImVec2 pos = ImGui::GetCursorScreenPos();
         ImGui::InvisibleButton("btn2", ImVec2(cmp->geoSize.width,
@@ -131,8 +127,6 @@ void draw2(Obj &o)
         bool held = ImGui::IsItemActive();
 
         bool changed = o.changed;
-
-        if(paramChanged) changed = true;
 
         float mouseDelta = 0;
         float w = 0, s = 0, a = 0, d = 0, q = 0, e = 0, z = 0, x = 0;
@@ -190,6 +184,16 @@ void draw2(Obj &o)
         ImGui::Image((void*)(intptr_t)o.frame.textures[0]->ID,
         ImVec2(cmp->geoSize.width, cmp->geoSize.height));
         ImGui::End();
+    }
+
+    if(colorChanged) changed = true;
+
+
+    if(o.type == cmp->curve && changed)
+    {
+        glUseProgram(o.program[0].ID);
+        glBindVertexArray(o.array.ID);
+        glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
     }
 
     if(o.type == cmp->point && changed)
@@ -330,11 +334,10 @@ int main(int, char**)
             ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
 			ImGui::PopFont();
 
-            static int frameSizeX = 512, frameSizeY = 512;
+            static int frameSize = 512;
             static int geoSize = 512;
 
-            ImGui::SliderInt("Frame Width", &frameSizeX, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderInt("Frame Height", &frameSizeY, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderInt("Frame Size", &frameSize, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
             ImGui::SliderInt("Geo Size", &geoSize, 128, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
 
             static std::string error;
@@ -349,7 +352,7 @@ int main(int, char**)
                 }
                 try
                 {
-                    cmp->frameSize = {(unsigned int)frameSizeX, (unsigned int)frameSizeY};
+                    cmp->frameSize = {(unsigned int)frameSize, (unsigned int)frameSize};
                     cmp->geoSize = {(unsigned int)geoSize, (unsigned int)geoSize};
                     cmp->compile(text);
                     msg = "OK";
@@ -361,6 +364,7 @@ int main(int, char**)
                     glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
                     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
                     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+                    changed = true;
                 }
                 catch(std::string err)
                 {
@@ -380,16 +384,18 @@ int main(int, char**)
 
         if(cmp->compiled)
         {  
-            ImGui::Begin("Output", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Begin("3D View", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
             ImVec2 pos = ImGui::GetCursorScreenPos();
             ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width,
             cmp->frameSize.height), ImGuiButtonFlags_MouseButtonLeft);
             bool held = ImGui::IsItemActive();
+            bool hover = ImGui::IsItemHovered();
 
-            if(held)
+            if(hover)
             {
                 ImGuiIO& io = ImGui::GetIO();
                 vec2 delta = vec2(io.MouseDelta.x, io.MouseDelta.y);
+                if(!held) delta = vec2(0, 0);
                 angle += delta/512.0f*6.0f;
                 vec3 vecs[3];
                 if(angle[0] < 0) angle[0] = Parser::CPI*2;
@@ -403,28 +409,22 @@ int main(int, char**)
                 float d = ImGui::IsKeyDown('D') ? 1 : 0;
 
                 changed = (w || s || a || d || delta.x || delta.y);
-                
-                center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
-                look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
-                mat4 camera = persp * look;
-                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
-                glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
-                glBindBuffer(GL_UNIFORM_BUFFER, 0);
-            }
 
-            if(changed)
-            {
-                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
-                glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                if(changed)
+                {
+                    center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
+                    look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
+                    mat4 camera = persp * look;
+                    glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
+                    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+                }
             }
 
             ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
             for(Obj &o : cmp->objects)
             {
-                paramChanged = false;
                 std::vector<Subst> subs;
                 if(o.type == cmp->param)
                 {
@@ -454,7 +454,7 @@ int main(int, char**)
 
                         if(cur != o.intervals[i].number)
                         {
-                            paramChanged = true;
+                            changed = true;
                             glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
                             glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset,
                             4, &o.intervals[i].number);
@@ -463,7 +463,11 @@ int main(int, char**)
                     }
                     ImGui::PopID();
                 }
+            }
 
+            colorChanged = false;
+            for(Obj &o : cmp->objects)
+            {
                 if(o.type == cmp->curve ||
                 o.type == cmp->surface ||
                 o.type == cmp->point ||
@@ -481,7 +485,7 @@ int main(int, char**)
                     col[2] != o.col[2] ||
                     col[3] != o.col[3])
                     {
-                        paramChanged = true;
+                        colorChanged = true;
                         glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
 
                         if(o.type == cmp->vector)
@@ -490,10 +494,26 @@ int main(int, char**)
                             glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
                         }
                     }
-
-                    if(o.program[0].ID) draw(o);
                 }
             }
+
+            if(changed || colorChanged)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+                glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
+
+            for(Obj &o : cmp->objects)
+            {
+                if(o.type == cmp->curve ||
+                o.type == cmp->surface ||
+                o.type == cmp->point ||
+                o.type == cmp->vector) if(o.program[0].ID) draw(o);
+            }
+
+            changed = false;
 
             ImGui::End();
 

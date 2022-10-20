@@ -46,6 +46,7 @@ namespace tcc
             t->character = c;
             t->length = length+1;
             t->str = str + c;
+            if(t->length > 64) throw std::string("Identifier is too big");
         }
         return children[index].get();
     }
