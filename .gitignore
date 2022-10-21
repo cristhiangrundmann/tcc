@@ -16,6 +16,8 @@
 
 # Images
 *.jpg
+*.png
+*.jpeg
 
 # Minted
 _minted-text/
