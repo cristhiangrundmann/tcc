@@ -111,7 +111,7 @@ namespace tcc
         Program program[4]{};
         Array array{};
         Framebuffer frame{};
-        Texture image{};
+        Texture *texture{};
 
         bool changed = true;
 

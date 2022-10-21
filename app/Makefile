@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -g -Iimgui -Icompiler -Istb_image
+CPPFLAGS = -Wall -Wextra -Wpedantic -std=c++17 -O3 -ffast-math -Iimgui -Icompiler -Istb_image
 LIBS = -lglfw -ldl -lGL -lGLEW -lm
 CXX = clang++
 

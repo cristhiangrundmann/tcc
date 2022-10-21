@@ -5,6 +5,7 @@
 #include "compiler.hpp"
 
 #include <stdio.h>
+#include <list>
 #include <cstring>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -21,7 +22,9 @@ static void glfw_error_callback(int error, const char* description)
 }
 
 Compiler *cmp{};
-Texture *tex{};
+std::list<Texture*> textures;
+Texture *defTexture{};
+Obj *selectedObject{};
 
 vec2 rotate(Obj &o, vec2 pos, vec2 vec, float angle)
 {
@@ -95,12 +98,14 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
 
 bool colorChanged;
 bool changed;
+bool paramChanged;
 
 void draw2(Obj &o)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
 
     if(o.type == cmp->surface)
+    if(o.texture)
     {
         if(changed || colorChanged)
         {
@@ -109,7 +114,7 @@ void draw2(Obj &o)
             uint count = o.intervals[0].number*o.intervals[1].number*6;
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, tex->ID);
+            glBindTexture(GL_TEXTURE_2D, o.texture->ID);
 
             glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
         }
@@ -128,14 +133,14 @@ void draw2(Obj &o)
 
         bool changed = o.changed;
 
-        float mouseDelta = 0;
+        vec2 mouseDelta = vec2(0,0);
         float w = 0, s = 0, a = 0, d = 0, q = 0, e = 0, z = 0, x = 0;
         ImGuiIO& io = ImGui::GetIO();
 
         if(hover)
         {
-            mouseDelta = io.MouseDelta.x;
-            if(!held) mouseDelta = 0;
+            mouseDelta = vec2(io.MouseDelta.x, io.MouseDelta.y);
+            if(!held) mouseDelta = vec2(0,0);
 
             w = ImGui::IsKeyDown('W') ? 1 : 0;
             s = ImGui::IsKeyDown('S') ? 1 : 0;
@@ -146,11 +151,11 @@ void draw2(Obj &o)
             z = ImGui::IsKeyDown('Z') ? 1 : 0;
             x = ImGui::IsKeyDown('X') ? 1 : 0;
 
-            o.changed = (w || s || a || d || q || e || z || x || mouseDelta);
+            o.changed = (w || s || a || d || q || e || z || x || mouseDelta.x || mouseDelta.y);
         }
         else o.changed = false;
 
-        if(changed)
+        if(changed || paramChanged)
         {
             o.zoom += (x-z)*io.DeltaTime;
             if(o.zoom < 0.1f) o.zoom = 0.1f;
@@ -159,10 +164,10 @@ void draw2(Obj &o)
             float l = length(o, o.center, o.X);
             o.X *= o.zoom/l;
             o.X = rotate(o, o.center, o.X,
-            o.ori*(q-e)*io.DeltaTime - mouseDelta/cmp->geoSize.width*6.0f);
-            step(o, o.center, o.X, (d-a)*io.DeltaTime);
+            o.ori*(q-e)*io.DeltaTime);
+            step(o, o.center, o.X, (d-a)*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
             o.Y = rotate(o, o.center, o.X, o.ori*Parser::CPI/2);
-            step(o, o.center, o.Y, (s-w)*io.DeltaTime);
+            step(o, o.center, o.Y, (s-w)*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
             o.X = rotate(o, o.center, o.Y, -o.ori*Parser::CPI/2);
             glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
 
@@ -173,7 +178,7 @@ void draw2(Obj &o)
             glUniform2f(2, o.Y.x, o.Y.y);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, tex->ID);
+            glBindTexture(GL_TEXTURE_2D, o.texture->ID);
             glBindVertexArray(cmp->quad.ID);
             glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
             glEnable(GL_TEXTURE_2D);
@@ -281,7 +286,6 @@ vec2 angle = vec2(0, 0);
 int main(int, char**)
 {
     cmp = new Compiler;
-    tex = new Texture;
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return 1;
@@ -316,7 +320,9 @@ int main(int, char**)
     glEnable(GL_DEPTH_TEST);
     glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 
-    tex->load("test.jpg");
+    defTexture = new Texture;
+    defTexture->load("default.jpg");
+    textures.push_front(defTexture);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -325,6 +331,8 @@ int main(int, char**)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        static bool selTex = false;
 
 		{
 			ImGui::Begin("Program");
@@ -365,6 +373,9 @@ int main(int, char**)
                     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
                     glBindBuffer(GL_UNIFORM_BUFFER, 0);
                     changed = true;
+                    selectedObject = nullptr;
+                    selTex = false;
+                    for(Obj &o : cmp->objects) o.texture = defTexture;
                 }
                 catch(std::string err)
                 {
@@ -376,6 +387,26 @@ int main(int, char**)
             }
 
             ImGui::Text("Status: %s", msg);
+
+            static char textureName[64];
+            
+            if(ImGui::Button("Open Texture"))
+            {
+                Texture *t = new Texture;
+                
+                try
+                {
+                    t->load(textureName);
+                    textures.push_front(t);
+                } catch(std::string err)
+                {
+                    delete t;
+                }
+            }
+            ImGui::SameLine();
+
+            ImGui::InputText("##texname", textureName, sizeof(textureName));
+            
             ImGui::End();
 		}
 
@@ -455,6 +486,7 @@ int main(int, char**)
                         if(cur != o.intervals[i].number)
                         {
                             changed = true;
+                            paramChanged = true;
                             glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
                             glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset,
                             4, &o.intervals[i].number);
@@ -468,15 +500,14 @@ int main(int, char**)
             colorChanged = false;
             for(Obj &o : cmp->objects)
             {
+                ImGui::PushID(o.name);
                 if(o.type == cmp->curve ||
                 o.type == cmp->surface ||
                 o.type == cmp->point ||
                 o.type == cmp->vector)
                 {
                     Color col = {o.col[0], o.col[1], o.col[2], o.col[3]};
-                    ImGui::PushID(o.name);
                     ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs);
-                    ImGui::PopID();
 
                     glUseProgram(o.program[0].ID);
 
@@ -495,6 +526,62 @@ int main(int, char**)
                         }
                     }
                 }
+
+                if(o.type == cmp->surface)
+                {
+                    ImGui::SameLine();
+                    if(ImGui::Button("Texture"))
+                    {
+                        selectedObject = &o;
+                        selTex = true;
+                    }
+                }
+
+                ImGui::PopID();
+            }
+
+            if(selTex && selectedObject)
+            {
+                ImGui::Begin("Texture Selection", &selTex, ImGuiWindowFlags_AlwaysAutoResize);
+                for(Texture *t : textures)
+                {
+                    ImGui::PushID(t);
+                    ImVec2 pos = ImGui::GetCursorScreenPos();
+                    if(ImGui::InvisibleButton("btn", ImVec2(128, 128),ImGuiButtonFlags_MouseButtonLeft))
+                    {
+                        if(selectedObject)
+                        {
+                            selectedObject->texture = t;
+                            selTex = false;
+                            changed = true;
+                            selectedObject->changed = true;
+                        }
+                    }
+                    ImGui::SameLine();
+                    if(ImGui::Button("Remove"))
+                    {
+                        if(t != defTexture)
+                        {
+                            for(Obj &o : cmp->objects)
+                            {
+                                if(o.texture == t)
+                                {
+                                    o.texture = defTexture;
+                                    changed = true;
+                                    selectedObject->changed = true;
+                                }
+                            }
+                            textures.remove(t);
+                            delete t;
+                            ImGui::PopID();
+                            break;
+                        }
+                    }
+                    ImGui::SetCursorScreenPos(pos);
+                    ImGui::Image((void*)(intptr_t)t->ID, ImVec2(128, 128));
+                    ImGui::PopID();
+                }
+                ImGui::End();
             }
 
             if(changed || colorChanged)
@@ -514,6 +601,7 @@ int main(int, char**)
             }
 
             changed = false;
+            paramChanged = false;
 
             ImGui::End();
 
@@ -539,7 +627,7 @@ int main(int, char**)
     }
 
     delete cmp;
-    delete tex;
+    for(Texture *t : textures) delete t;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
