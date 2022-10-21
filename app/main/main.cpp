@@ -110,110 +110,108 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
     vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
 }
 
+//draw geodesic tracing
+void draw3(Obj &o)
+{
+    static char title[128];
+    strcpy(title, "Geodesic Tracing - ");
+    strcat(title, o.name->str.c_str());
+    
+    ImGui::Begin(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton("btn2", ImVec2(cmp->geoSize.width,
+    cmp->geoSize.height), ImGuiButtonFlags_MouseButtonLeft);
+    bool hover = ImGui::IsItemHovered();
+    bool held = ImGui::IsItemActive();
+
+    bool lchanged = o.changed || changed;
+    o.changed = false;
+
+    vec2 mouseDelta = vec2(0,0);
+    float w = 0, s = 0, a = 0, d = 0, q = 0, e = 0, z = 0, x = 0;
+    ImGuiIO& io = ImGui::GetIO();
+
+    if(hover)
+    {
+        mouseDelta = vec2(io.MouseDelta.x, io.MouseDelta.y);
+        if(!held) mouseDelta = vec2(0,0);
+
+        w = ImGui::IsKeyDown('W') ? 1 : 0;
+        s = ImGui::IsKeyDown('S') ? 1 : 0;
+        a = ImGui::IsKeyDown('A') ? 1 : 0;
+        d = ImGui::IsKeyDown('D') ? 1 : 0;
+        q = ImGui::IsKeyDown('Q') ? 1 : 0;
+        e = ImGui::IsKeyDown('E') ? 1 : 0;
+        z = ImGui::IsKeyDown('Z') ? 1 : 0;
+        x = ImGui::IsKeyDown('X') ? 1 : 0;
+
+        lchanged |= (w || s || a || d || q || e || z || x || mouseDelta.x || mouseDelta.y);
+    }
+
+    if(lchanged)
+    {
+        o.zoom += (x-z)*speed*io.DeltaTime;
+        if(o.zoom < 0.1f) o.zoom = 0.1f;
+        if(o.zoom > 100.0f) o.zoom = 100.0f;
+
+        float l = length(o, o.center, o.X);
+        o.X *= o.zoom/l;
+        o.X = rotate(o, o.center, o.X,
+        (q-e)*speed*io.DeltaTime);
+        step(o, o.center, o.X, (d-a)*speed*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
+        o.Y = rotate(o, o.center, o.X, Parser::CPI/2);
+        step(o, o.center, o.Y, (s-w)*speed*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
+        o.X = rotate(o, o.center, o.Y, -Parser::CPI/2);
+        glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
+
+        glUseProgram(o.program[2].ID);
+
+        glUniform2f(0, o.center.x, o.center.y);
+        glUniform2f(1, o.X.x, o.X.y);
+        glUniform2f(2, o.Y.x, o.Y.y);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, o.texture->ID);
+        glBindVertexArray(cmp->quad.ID);
+        glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
+        glEnable(GL_TEXTURE_2D);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    ImGui::SetCursorScreenPos(pos);
+    ImGui::Image((void*)(intptr_t)o.frame.textures[0]->ID,
+    ImVec2(cmp->geoSize.width, cmp->geoSize.height));
+    ImGui::End();
+}
+
 //draw instanced object
 void draw2(Obj &o)
 {
+    if(!colorChanged && !changed) return;
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
 
     if(o.type == cmp->surface)
     if(o.texture)
     {
-        //for 3d view
-        if(changed || colorChanged)
-        {
-            glUseProgram(o.program[0].ID);
-            glBindVertexArray(o.array.ID);
-            uint count = o.intervals[0].number*o.intervals[1].number*6;
+        glUseProgram(o.program[0].ID);
+        glBindVertexArray(o.array.ID);
+        uint count = o.intervals[0].number*o.intervals[1].number*6;
 
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, o.texture->ID);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, o.texture->ID);
 
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
-        }
-
-        //geodesic tracing
-        static char title[128];
-        strcpy(title, "Geodesic Tracing - ");
-        strcat(title, o.name->str.c_str());
-        
-        ImGui::Begin(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-
-        ImVec2 pos = ImGui::GetCursorScreenPos();
-        ImGui::InvisibleButton("btn2", ImVec2(cmp->geoSize.width,
-        cmp->geoSize.height), ImGuiButtonFlags_MouseButtonLeft);
-        bool hover = ImGui::IsItemHovered();
-        bool held = ImGui::IsItemActive();
-
-        bool changed = o.changed;
-
-        vec2 mouseDelta = vec2(0,0);
-        float w = 0, s = 0, a = 0, d = 0, q = 0, e = 0, z = 0, x = 0;
-        ImGuiIO& io = ImGui::GetIO();
-
-        if(hover)
-        {
-            mouseDelta = vec2(io.MouseDelta.x, io.MouseDelta.y);
-            if(!held) mouseDelta = vec2(0,0);
-
-            w = ImGui::IsKeyDown('W') ? 1 : 0;
-            s = ImGui::IsKeyDown('S') ? 1 : 0;
-            a = ImGui::IsKeyDown('A') ? 1 : 0;
-            d = ImGui::IsKeyDown('D') ? 1 : 0;
-            q = ImGui::IsKeyDown('Q') ? 1 : 0;
-            e = ImGui::IsKeyDown('E') ? 1 : 0;
-            z = ImGui::IsKeyDown('Z') ? 1 : 0;
-            x = ImGui::IsKeyDown('X') ? 1 : 0;
-
-            o.changed = (w || s || a || d || q || e || z || x || mouseDelta.x || mouseDelta.y);
-        }
-        else o.changed = false;
-
-        if(changed)
-        {
-            o.zoom += (x-z)*speed*io.DeltaTime;
-            if(o.zoom < 0.1f) o.zoom = 0.1f;
-            if(o.zoom > 100.0f) o.zoom = 100.0f;
-
-            float l = length(o, o.center, o.X);
-            o.X *= o.zoom/l;
-            o.X = rotate(o, o.center, o.X,
-            (q-e)*speed*io.DeltaTime);
-            step(o, o.center, o.X, (d-a)*speed*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
-            o.Y = rotate(o, o.center, o.X, Parser::CPI/2);
-            step(o, o.center, o.Y, (s-w)*speed*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
-            o.X = rotate(o, o.center, o.Y, -Parser::CPI/2);
-            glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
-
-            glUseProgram(o.program[2].ID);
-    
-            glUniform2f(0, o.center.x, o.center.y);
-            glUniform2f(1, o.X.x, o.X.y);
-            glUniform2f(2, o.Y.x, o.Y.y);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, o.texture->ID);
-            glBindVertexArray(cmp->quad.ID);
-            glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
-            glEnable(GL_TEXTURE_2D);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-
-        ImGui::SetCursorScreenPos(pos);
-        ImGui::Image((void*)(intptr_t)o.frame.textures[0]->ID,
-        ImVec2(cmp->geoSize.width, cmp->geoSize.height));
-        ImGui::End();
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
     }
 
-    if(colorChanged) changed = true;
-
-    if(o.type == cmp->curve && changed)
+    if(o.type == cmp->curve)
     {
         glUseProgram(o.program[0].ID);
         glBindVertexArray(o.array.ID);
         glDrawArrays(GL_LINE_STRIP, 0, o.intervals[0].number);
     }
 
-    if(o.type == cmp->point && changed)
+    if(o.type == cmp->point)
     {
         glPointSize(10);
         glUseProgram(o.program[0].ID);
@@ -221,7 +219,7 @@ void draw2(Obj &o)
         glDrawArrays(GL_POINTS, 0, 1);
     }
 
-    if(o.type == cmp->vector && changed)
+    if(o.type == cmp->vector)
     {
         glPointSize(40);
         glBindVertexArray(cmp->line.ID);
@@ -235,6 +233,9 @@ void draw2(Obj &o)
 //draw object, handling grid instancing
 void draw(Obj &o)
 {
+    if(o.type == cmp->surface)
+        draw3(o);
+        
     if(o.grids.size() == 0)
     {
         draw2(o);
