@@ -15,9 +15,9 @@
 *.blg
 
 # Images
-*.jpg
-*.png
-*.jpeg
+app/*.jpg
+app/*.png
+app/*.jpeg
 
 # Minted
 _minted-text/
