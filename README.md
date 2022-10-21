@@ -2,7 +2,7 @@
 
 Trabalho de conclusão de curso
 
-FVG EMAp 2022
+FGV EMAp 2022
 
 Orientando: Cristhian Grundmann
 
