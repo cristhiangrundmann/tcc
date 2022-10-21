@@ -6,8 +6,27 @@
 namespace tcc
 {
 
+    /*
+        Parser
+    lexer: a lexer object
+    table: a symble table object
+    argList: list of (argument list of a function = list of symble table entries for variable names)
+    objType: type(keyword for type) of the current object being declared (if any)
+    tag: current variable tagged for interval (if any)
+    tupleSize: number of tuple elements after parsing it (if any)
+    the various INIT's: initializing the symble table with keywords, function names and more
+    parseProgram: parse an entire program
+        source: pointer to start of input string
+    various parseX's: parse an X non-terminal
+    various actX: callback for semantic actions of parser
+    */
     struct Parser
     {
+        /*
+            ExprType
+        Types for the "symbolic" expressions
+        (or intervals)
+        */
         enum class ExprType
         {
             TAGGED, GRIDTAGGED, INTERVAL, GRID, //for intervals

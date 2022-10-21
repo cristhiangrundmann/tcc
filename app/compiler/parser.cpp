@@ -19,19 +19,22 @@ namespace tcc
     {
         do
         {
+            //advances token, skip comments
             actAdvance();
             lexer.advance(match);
         } while(lexer.type == TokenType::COMMENT);
     }
     
+    //main function, initializes vars and first token
     void Parser::parseProgram(const char *source)
     {
         lexer.source = source;
         lexer.lexeme = source;
         lexer.length = 0;
-        lexer.lineno = 0;
+        lexer.lineno = 1;
         lexer.column = 1;
 
+        //first token and keep parsing declarations until EOI
         advance();
         while(!compare(TokenType::EOI)) parseDecl();
     }
@@ -91,6 +94,7 @@ namespace tcc
             for(size_t i = 0; i < size; i++)
             {
                 parseInt(type);
+                //check tags consistency
                 if(tag != argList.back()[i])
                     throw std::string("Inconsistent argument list");
                 if(i != size-1)
@@ -102,6 +106,7 @@ namespace tcc
         }
         else
         {
+            //parse a list of intervals
             parseInt(type);
             while(compare(charToken(',')))
             {
@@ -119,6 +124,7 @@ namespace tcc
         advance(false);
         std::vector<Table*> args;
 
+        //parse variable list
         while(true)
         {
             require(TokenType::UNDEFINED);
@@ -131,11 +137,15 @@ namespace tcc
         }
 
         skip(')');
+
+        //parse function definition
         skip('=');
         parseExpr();
 
         objName->argIndex = (int)argList.size();
         argList.push_back(args);
+
+        //remove variables from symbol table, they are out-of-scope now
         if(argList.size()) for(Table *t : argList.back()) t->type = TokenType::UNDEFINED;
     }
 
@@ -215,9 +225,12 @@ namespace tcc
         require(TokenType::DECLARE);
         objType = lexer.node;
         advance(false);
+
+        //object name must be UNDEFINED, that is, a new identifier
         require(TokenType::UNDEFINED);
         objName = lexer.node;
 
+        //handle all declarations
         if(objType == param)           parseParam();
         else if(objType == grid)       parseGrid();
         else if(objType == define)     parseDefine();
@@ -227,10 +240,14 @@ namespace tcc
         else if(objType == point)      parsePoint();
         else if(objType == vector)     parseVector();
 
+        //above parse functions must set a new type for the object name
+        //so that it can be used from now on
+
         skip(';');
         actDecl();
     }
 
+    //below are mathematical expression parsing
     void Parser::parseExpr()
     {
         parseAdd();
@@ -353,6 +370,7 @@ namespace tcc
                 int l = lexer.length;
                 bool ok = false;
 
+                //check if variable belongs to function
                 if(node->argIndex != -1 && lexer.node) while(true)
                 {
                     for(Table *arg : argList[node->argIndex]) if(arg == lexer.node)
@@ -436,6 +454,8 @@ namespace tcc
     {
         char b0 = *lexer.lexeme;
         char b1;
+
+        //allow (), [] or {}
         if(b0 == '(') b1 = ')';
         else if(b0 == '[') b1 = ']';
         else if(b0 == '{') b1 = '}';
@@ -444,6 +464,7 @@ namespace tcc
         skip(b0);
         parseAdd();
         int lTupleSize = 1;
+        //handle possible tuple
         while(compare(charToken(',')))
         {
             advance();
@@ -455,16 +476,19 @@ namespace tcc
         actOp(ExprType::TUPLE);
     }
 
+    //semantic actions, default as empty
     void Parser::actAdvance() {}
     void Parser::actDecl() {}
     void Parser::actInt(ExprType) {}
     void Parser::actOp(ExprType) {}
 
+    //Default error callback
     void Parser::actSyntaxError(TokenType type) 
     {
         std::string s1 = getTypeString(type);
         std::string s2 = getTypeString(lexer.type);
-        throw std::string("Syntax error: expected " + s1 + " instead of " + s2);
+        throw std::string("Syntax error: expected " + s1 + " instead of " + s2 +
+        ", \nError at Ln " + std::to_string(lexer.lineno) + ", Col " + std::to_string(lexer.column));
     }
 
     #undef skip

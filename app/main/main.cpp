@@ -16,25 +16,27 @@
 using namespace tcc;
 using namespace glm;
 
-Compiler *cmp{};
-std::list<Texture*> textures;
-Texture *defTexture{};
-Obj *selectedObject{};
+Compiler *cmp{}; //compilation data
+std::list<Texture*> textures; //loaded textures
+Texture *defTexture{}; //default texture
+Obj *selectedObject{}; //selected object to apply texture
 
-bool colorChanged;
-bool changed;
+bool colorChanged; //simple color updating
+bool changed; //any update
 
-mat4 persp;
-mat4 look;
-vec3 center = vec3(0, 0, 0);
-vec2 angle = vec2(0, 0);
-float speed = 1.0f;
+//3d view vars
+mat4 persp; //perspective matrix
+mat4 look; //lookat/camera view matrix
+vec3 center = vec3(0, 0, 0); //camera center
+vec2 angle = vec2(0, 0); //camera spherical angles
+float speed = 1.0f; //camera speed (affects geodesic tracing camera too)
 
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+//rotate tangent vector on surface
 vec2 rotate(Obj &o, vec2 pos, vec2 vec, float angle)
 {
     std::vector<Subst> subs;
@@ -54,6 +56,7 @@ vec2 rotate(Obj &o, vec2 pos, vec2 vec, float angle)
     );
 }
 
+//calculate length of tangent vetor on surface
 float length(Obj &o, vec2 pos, vec2 vec)
 {
     std::vector<Subst> subs;
@@ -67,6 +70,7 @@ float length(Obj &o, vec2 pos, vec2 vec)
     return std::sqrt(vec.x*vec.x*E + 2*vec.x*vec.y*F + vec.y*vec.y*G);
 }
 
+//calculate acceleration for geodesic curves
 vec2 accel(Obj &o, vec2 pos, vec2 vec)
 {
     std::vector<Subst> subs;
@@ -91,6 +95,7 @@ vec2 accel(Obj &o, vec2 pos, vec2 vec)
     return mat2(G, -F, -F, E)*vec2(A, B)/R;
 }
 
+//Runge-Kutta 4 step on surfaces
 void step(Obj &o, vec2 &pos, vec2 &vec, float h)
 {
     vec2 k1_pos = h*vec;
@@ -105,6 +110,7 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
     vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
 }
 
+//draw instanced object
 void draw2(Obj &o)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
@@ -112,6 +118,7 @@ void draw2(Obj &o)
     if(o.type == cmp->surface)
     if(o.texture)
     {
+        //for 3d view
         if(changed || colorChanged)
         {
             glUseProgram(o.program[0].ID);
@@ -124,6 +131,7 @@ void draw2(Obj &o)
             glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
         }
 
+        //geodesic tracing
         static char title[128];
         strcpy(title, "Geodesic Tracing - ");
         strcat(title, o.name->str.c_str());
@@ -169,11 +177,11 @@ void draw2(Obj &o)
             float l = length(o, o.center, o.X);
             o.X *= o.zoom/l;
             o.X = rotate(o, o.center, o.X,
-            o.ori*(q-e)*speed*io.DeltaTime);
+            (q-e)*speed*io.DeltaTime);
             step(o, o.center, o.X, (d-a)*speed*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
-            o.Y = rotate(o, o.center, o.X, o.ori*Parser::CPI/2);
+            o.Y = rotate(o, o.center, o.X, Parser::CPI/2);
             step(o, o.center, o.Y, (s-w)*speed*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
-            o.X = rotate(o, o.center, o.Y, -o.ori*Parser::CPI/2);
+            o.X = rotate(o, o.center, o.Y, -Parser::CPI/2);
             glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
 
             glUseProgram(o.program[2].ID);
@@ -197,7 +205,6 @@ void draw2(Obj &o)
     }
 
     if(colorChanged) changed = true;
-
 
     if(o.type == cmp->curve && changed)
     {
@@ -225,6 +232,7 @@ void draw2(Obj &o)
     }
 }
 
+//draw object, handling grid instancing
 void draw(Obj &o)
 {
     if(o.grids.size() == 0)
@@ -241,6 +249,7 @@ void draw(Obj &o)
 
     std::vector<State> states;
 
+    //reset grid values
     glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
     for(uint s = 0; s < o.grids.size(); s++)
     {
@@ -252,6 +261,7 @@ void draw(Obj &o)
         }
     }
 
+    //iterate grid configuration
     while(true)
     {
         draw2(o);
@@ -276,6 +286,7 @@ void draw(Obj &o)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+//computes orthonormal vectors from `angle'
 void tri(vec2 angle, vec3 vecs[3])
 {
     vecs[0] = vec3(sin(-angle.y)*cos(angle.x), sin(-angle.y)*sin(angle.x), cos(-angle.y));
@@ -283,10 +294,12 @@ void tri(vec2 angle, vec3 vecs[3])
     vecs[2] = cross(vecs[0], vecs[1]);
 }
 
+//main function: draws GUI
 int main(int, char**)
 {
     cmp = new Compiler;
 
+    //opengl & glfw & imgui init
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) return 1;
 
@@ -320,6 +333,7 @@ int main(int, char**)
     glEnable(GL_DEPTH_TEST);
     glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
 
+
     defTexture = new Texture;
     defTexture->load("default.jpg");
     textures.push_front(defTexture);
@@ -334,6 +348,7 @@ int main(int, char**)
 
         static bool selTex = false;
 
+        //Program input text, frame and geo sizes and camera speed controls
 		{
 			ImGui::Begin("Program");
 			static char text[1024 * 16];
@@ -414,6 +429,7 @@ int main(int, char**)
 
         if(cmp->compiled)
         {  
+            //3d view window
             ImGui::Begin("3D View", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
             ImVec2 pos = ImGui::GetCursorScreenPos();
             ImGui::InvisibleButton("btn", ImVec2(cmp->frameSize.width,
@@ -432,7 +448,7 @@ int main(int, char**)
                 if(angle[0] > Parser::CPI*2) angle[0] = 0;
                 if(angle[1] < 0) angle[1] = 0;
                 if(angle[1] > Parser::CPI) angle[1] = Parser::CPI;
-                tri(angle, vecs);
+                
                 float w = ImGui::IsKeyDown('W') ? 1 : 0;
                 float s = ImGui::IsKeyDown('S') ? 1 : 0;
                 float a = ImGui::IsKeyDown('A') ? 1 : 0;
@@ -444,6 +460,7 @@ int main(int, char**)
 
                 if(changed)
                 {
+                    tri(angle, vecs);
                     center += speed*io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]+(q-e)*vec3(0, 0, 1));
                     look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
                     mat4 camera = persp * look;
@@ -453,6 +470,7 @@ int main(int, char**)
                 }
             }
 
+            //settings window
             ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
             {
@@ -461,6 +479,7 @@ int main(int, char**)
                 ImGuiSliderFlags_AlwaysClamp);
             }
 
+            //handle parameter sliders
             for(Obj &o : cmp->objects)
             {
                 std::vector<Subst> subs;
@@ -504,6 +523,8 @@ int main(int, char**)
             }
 
             colorChanged = false;
+
+            //handle drawable objects' colors and textures
             for(Obj &o : cmp->objects)
             {
                 ImGui::PushID(o.name);
@@ -546,6 +567,7 @@ int main(int, char**)
                 ImGui::PopID();
             }
 
+            //texture selection window
             if(selTex && selectedObject)
             {
                 ImGui::Begin("Texture Selection", &selTex, ImGuiWindowFlags_AlwaysAutoResize);
@@ -590,6 +612,7 @@ int main(int, char**)
                 ImGui::End();
             }
 
+            //clear 3d view MS framebuffer
             if(changed || colorChanged)
             {
                 glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
@@ -598,6 +621,7 @@ int main(int, char**)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             }
 
+            //draw objects
             for(Obj &o : cmp->objects)
             {
                 if(o.type == cmp->curve ||
@@ -639,6 +663,7 @@ int main(int, char**)
         glfwSwapBuffers(window);
     }
 
+    //cleanup
     delete cmp;
     for(Texture *t : textures) delete t;
 

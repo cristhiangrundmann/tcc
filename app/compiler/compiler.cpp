@@ -156,6 +156,7 @@ namespace tcc
 
     CompExpr *Compiler::op(CompExpr::ExprType type, CompExpr *a, CompExpr *b, float number, Table *name, int nTuple)
     {
+        //Math optimization
         switch(type)
         {
             case C(PLUS):
@@ -243,6 +244,8 @@ namespace tcc
             }
             default: break;
         }
+
+        //build expression
         CompExpr e{};
         e.type = type;
         if(a) e.sub.push_back(a);
@@ -267,6 +270,7 @@ namespace tcc
 
     CompExpr *Compiler::_comp(CompExpr *e, unsigned int index, std::vector<Subst> &subs)
     {
+        //simple case
         if(e->type == C(TUPLE))
         {
             if(e->sub.size() < index) throw std::string("Invalid index");
@@ -274,6 +278,7 @@ namespace tcc
         }
         else
         {
+            //handle recursive variable case
             if(e->type == C(VARIABLE))
             {
                 for(Subst &s : subs)
@@ -285,7 +290,7 @@ namespace tcc
                     }
                 return op(C(COMPONENT), e, nullptr, index);
             }
-            else if(e->type == C(CONSTANT))
+            else if(e->type == C(CONSTANT)) //easy case
             {
                 if(e->name->objIndex == -1) throw std::string("Invalid index");
                 Obj &o = objects[e->name->objIndex];
@@ -306,6 +311,8 @@ namespace tcc
         {
             case S(CONSTANT):
             {
+                //checks if constant is primitive, param, grid
+                //if it's a define, point or vector, replace by its definition
                 if(e->name->objIndex == -1) return op(C(CONSTANT), nullptr, nullptr, 0, e->name);
                 Obj &o = objects[e->name->objIndex];
                 if(o.type == define) return compute(o.sub[0], subs);
@@ -315,27 +322,35 @@ namespace tcc
                     return compute(o.sub[0], subs);
                 throw std::string("Invalid type");
             }
-            case S(NUMBER): return op(C(NUMBER), nullptr, nullptr, e->number);
+            case S(NUMBER): return op(C(NUMBER), nullptr, nullptr, e->number); //easy case
             case S(VARIABLE):
             {
+                //substitute variable by argument
                 for(Subst &s : subs)
                     if(s.var == e->name)
                         return op(C(VARIABLE), nullptr, nullptr, 0, e->name, s.exp->nTuple);
+                //it's ok, the variable stays: curves and surfaces have open variables
                 return op(C(VARIABLE), nullptr, nullptr, 0, e->name);
             }
-            case S(FUNCTION):
+            case S(FUNCTION): //this case is not function application, but function body
             {
+                
+                //if function is primitive then the body is its name
                 if(e->name->objIndex == -1) return op(C(FUNCTION), nullptr, nullptr, 0, e->name);
+                //else, its body is retrieved
                 return compute(objects[e->name->objIndex].sub[0], subs);
             }
             case S(APP):
             {
                 SymbExpr *f = e->sub[0];
+                //gets function name
                 while(f->type != S(FUNCTION)) f = f->sub[0];
                 unsigned int argCount = 1;
                 if(f->name->argIndex != -1)
                     argCount = argList[f->name->argIndex].size();     
                 std::vector<Subst> subs2;
+
+                //check argument format
                 if(argCount == 1)
                 {
                     Table *name = nullptr;
@@ -346,6 +361,7 @@ namespace tcc
                 }
                 else
                 {
+                    //get multiple arguments
                     if(e->sub[1]->type != S(TUPLE)) throw std::string("Expected a tuple");
                     if(e->sub[1]->sub.size() != argCount) throw std::string("Wrong number of arguments");
                     for(unsigned int i = 0; i < argCount; i++)
@@ -355,12 +371,13 @@ namespace tcc
                         subs2.push_back({name, c});
                     }
                 }
+                //finally replaces variables in function body by its argument-definition 
                 return substitute(compute(e->sub[0], subs2), subs2);  
             }
             case S(COMPONENT):
             {
                 SymbExpr *s = e->sub[0];
-                if(s->type == S(TUPLE))
+                if(s->type == S(TUPLE)) //easy case
                 {
                     if(s->sub.size() < e->number) throw std::string("Invalid index");
                     return compute(s->sub[e->number-1], subs);
@@ -373,11 +390,12 @@ namespace tcc
                 CompExpr::ExprType type = e->type == S(PLUS) ? C(PLUS) : C(MINUS);
                 CompExpr *c0 = compute(e->sub[0], subs);
                 CompExpr *c1 = compute(e->sub[1], subs);
-                if(c0->nTuple != c1->nTuple)
+
+                if(c0->nTuple != c1->nTuple) //consistency check
                     throw std::string("Tuple size mismatch");
-                if(c0->nTuple == 1)
+                if(c0->nTuple == 1) //scalar case
                     return op(type, c0, c1);
-                CompExpr *c = op(C(TUPLE));
+                CompExpr *c = op(C(TUPLE)); //tuple addition
                 c->nTuple = c0->nTuple;
                 for(int i = 0; i < c->nTuple; i++)
                     c->sub.push_back(op(type, _comp(c0, i+1, subs), _comp(c1, i+1, subs)));
@@ -387,9 +405,9 @@ namespace tcc
             {
                 CompExpr *c0 = compute(e->sub[0], subs);
                 CompExpr *c1 = compute(e->sub[1], subs);
-                if(c0->nTuple == 1 && c1->nTuple == 1)
+                if(c0->nTuple == 1 && c1->nTuple == 1) //scalar multiplication
                     return op(C(TIMES), c0, c1);
-                if(c0->nTuple == 1 || c1->nTuple == 1)
+                if(c0->nTuple == 1 || c1->nTuple == 1) //scalar x tuple
                 {
                     CompExpr *a, *b;
                     if(c0->nTuple == 1)
@@ -405,9 +423,10 @@ namespace tcc
                     }
                     return c;
                 }
-                if(c0->nTuple != c1->nTuple)
+                if(c0->nTuple != c1->nTuple) //consistency check
                     throw std::string("Inconsistent tuple size");
 
+                //tuple tuple case: dot product
                 std::vector<CompExpr*> terms;
     
                 for(int i = 0; i < c0->nTuple; i++)
@@ -429,9 +448,9 @@ namespace tcc
             {
                 CompExpr *c0 = compute(e->sub[0], subs);
                 CompExpr *c1 = compute(e->sub[1], subs);
-                if(c0->nTuple == 1 && c1->nTuple == 1)
+                if(c0->nTuple == 1 && c1->nTuple == 1) //scalar multiplication
                     return op(C(TIMES), c0, c1);
-                if(c0->nTuple == 1 || c1->nTuple == 1)
+                if(c0->nTuple == 1 || c1->nTuple == 1) //scalar x tuple
                 {
                     CompExpr *a, *b;
                     if(c0->nTuple == 1)
@@ -444,7 +463,7 @@ namespace tcc
                         c->sub.push_back(op(C(TIMES), a, _comp(b, i+1, subs)));
                     return c;
                 }
-                if(c0->nTuple != 3 || c1->nTuple != 3)
+                if(c0->nTuple != 3 || c1->nTuple != 3) //tuple x tuple: cross product
                     throw std::string("Invalid cross-product");
                 CompExpr *a1 = _comp(c0, 1, subs);
                 CompExpr *a2 = _comp(c0, 2, subs);
@@ -467,10 +486,12 @@ namespace tcc
                 CompExpr *c0 = compute(e->sub[0], subs);
                 CompExpr *c1 = compute(e->sub[1], subs);
 
-                if(c1->nTuple > 1)
+                if(c1->nTuple > 1) //consistency check
                     throw std::string("Cannot divide tuples");
-                if(c0->nTuple == 1)
+                if(c0->nTuple == 1) //scalar division
                     return op(C(DIVIDE), c0, c1);
+
+                //tuple mdivision
                 CompExpr *c = op(C(TUPLE));
                 c->nTuple = c0->nTuple;
                 for(int i = 0; i < c0->nTuple; i++)
@@ -482,23 +503,23 @@ namespace tcc
             {
                 CompExpr::ExprType type = e->type == S(UPLUS) ? C(UPLUS) : C(UMINUS);
                 CompExpr *c0 = compute(e->sub[0], subs);
-                if(c0->nTuple == 1)
+                if(c0->nTuple == 1) //scalar sign
                     return op(type, c0);
-                CompExpr *c = op(C(TUPLE));
+                CompExpr *c = op(C(TUPLE)); //tuple sign
                 c->nTuple = c0->nTuple;
                 for(int i = 0; i < c0->nTuple; i++)
                     c->sub.push_back(op(type, _comp(c0, i+1, subs)));
                 return c;
             }
-            case S(UTIMES):
+            case S(UTIMES): //special unary operation: length squared
             {
-                SymbExpr s = op(S(JUX), e->sub[0], e->sub[0]);
+                SymbExpr s = op(S(JUX), e->sub[0], e->sub[0]); //redirection
                 return compute(&s, subs);
             }
-            case S(UDIVIDE):
+            case S(UDIVIDE): //special unary operation: reciprocal
             {
                 CompExpr *c0 = compute(e->sub[0], subs);
-                if(c0->nTuple > 1)
+                if(c0->nTuple > 1) //must be scalar
                     throw std::string("Cannot invert tuples");
                 return op(C(UDIVIDE), c0);
             }
@@ -507,11 +528,11 @@ namespace tcc
                 CompExpr *c0 = compute(e->sub[0], subs);
                 CompExpr *c1 = compute(e->sub[1], subs);
                 
-                if(c0->nTuple > 1 || c1->nTuple > 1)
+                if(c0->nTuple > 1 || c1->nTuple > 1) //must be scalar
                     throw std::string("Cannot exponentiate tuples");
                 return op(C(POW), c0, c1);
             }
-            case S(TUPLE):
+            case S(TUPLE): //simple translation
             {
                 CompExpr *c = op(C(TUPLE));
                 c->nTuple = (int)e->sub.size();
@@ -536,11 +557,13 @@ namespace tcc
                 return e;
             case C(VARIABLE):
             {
+                //replacing
                 for(Subst &s : subs)
                     if(s.var == e->name)
                         return s.exp;
                 throw std::string("Variable definition missing");
             }
+            //recursion
             case C(COMPONENT): return _comp(substitute(e->sub[0], subs), e->number, subs);
             case C(PLUS):
             case C(MINUS):
@@ -554,16 +577,19 @@ namespace tcc
                 return op(e->type, substitute(e->sub[0], subs));
             case C(APP):
             {
+                //must be primitive function
                 if(e->sub[0]->type != C(FUNCTION)) throw std::string("Invalid type");
                 return op(C(APP), e->sub[0], substitute(e->sub[1], subs));
             }
             case C(FUNCTION):
             {
-                if(subs.size() != 1)
+                if(subs.size() != 1) //primitive functions have 1 argument
                     throw std::string("Must have 1 argument");
-                if(subs[0].exp->nTuple > 1)
+                if(subs[0].exp->nTuple > 1) //the argument is scalar
                     throw std::string("Must be a scalar");
-                return op(C(APP), e, subs[0].exp);
+                return op(C(APP), e, subs[0].exp); //applies body to argument
+                //bodies of primitive function and its derivative/powers dont
+                //contain applications, they contain just the function name as a placeholder
             }
             case C(TUPLE):
             {
@@ -848,6 +874,7 @@ namespace tcc
                 if(e->sub[1]->type == C(NUMBER))
                 {
                     float num = e->sub[1]->number;
+                    //power function optimization
                     if(num == (int)num && num >= -10 && num <= 10)
                     {
                         char symb = '*';
@@ -888,7 +915,7 @@ namespace tcc
             }
             case C(FUNCTION):
                 break;
-            case C(UDIVIDE):
+            case C(UDIVIDE): //resolution
             {
                 compile(e->sub[0], str, v);
                 int k = v;
@@ -912,6 +939,7 @@ namespace tcc
         }
     }
 
+    //square as 2 triangles, just to rasterize the whole geodesic tracing screen
     static float quadData[] = 
     {
         -1.0f, -1.0f,
@@ -923,6 +951,7 @@ namespace tcc
         +1.0f, +1.0f,
     };
 
+    //place holder for vertex attributes, used for points and vectors
     static float lineData[] = {0, 1};
 
     void Compiler::compile(const char *source)
@@ -941,6 +970,7 @@ namespace tcc
         glBufferData(GL_UNIFORM_BUFFER, blockSize, NULL, GL_DYNAMIC_DRAW);
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, block.ID);
 
+        //generate quad object
         {
             glGenVertexArrays(1, &quad.ID);
             Buffer *buf = new Buffer;
@@ -954,6 +984,7 @@ namespace tcc
             glBindVertexArray(0);
         }
 
+        //generate line object
         {
             glGenVertexArrays(1, &line.ID);
             Buffer *buf = new Buffer;
@@ -967,6 +998,7 @@ namespace tcc
             glBindVertexArray(0);
         }
         
+        //generate 3d view frame and MS frame
         {
             Texture *tex;
 
@@ -978,12 +1010,6 @@ namespace tcc
                 frame.textures.push_back(tex);
                 tex->create(frameSize, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
-            }
-
-            {
-                /*uint b = GL_COLOR_ATTACHMENT0;
-                glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
             }
 
             glGenFramebuffers(1, &frameMS.ID);
@@ -1012,14 +1038,9 @@ namespace tcc
                 
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, tex->ID, 0);
             }
-
-            {
-                uint b = GL_COLOR_ATTACHMENT0;
-                glNamedFramebufferDrawBuffers(frameMS.ID, 1, &b);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
         }
 
+        //default fragment and vertex shaders
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
         "#version 460 core\n"
         "layout (location = 0) uniform vec4 col;\n"
@@ -1090,6 +1111,7 @@ namespace tcc
                     i.max = calculate(i.compSub[1], subs);
                     if(i.max < i.min) throw std::string("Degenerate interval");
                     i.number = i.min;
+                    //initialize uniform as the minimum
                     glBufferSubData(GL_UNIFORM_BUFFER, i.offset, 4, &i.number);
                 }
             }
@@ -1152,6 +1174,7 @@ namespace tcc
                 str << "gl_Position = camera*vec4(";
                 str << "c(t), 1);\n}\n";
                 
+                //generate opengl objects
                 Shader *sh = new Shader;
                 o.program[0].shaders.push_back(sh);
                 sh->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1215,6 +1238,7 @@ namespace tcc
                 if(o.nTuple != 3)
                     throw std::string("Surfaces should be in 3d space");
                 
+                //generate First Fundamental Form
                 SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
                 SymbExpr s_v = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][1]);
                 SymbExpr s_E = op(S(JUX), &s_u, &s_u);
@@ -1239,13 +1263,12 @@ namespace tcc
                 o.compSub[10] = compute(&s_Gu, subs);
                 o.compSub[11] = compute(&s_Gv, subs);
 
+                //3d view shader
                 str << "#version 460 core\n" << hdr.str();
                 compileFunction(o.compSub[0], o.name->argIndex, str, "s");     
                 str << "layout (location = 0) in vec2 uv;\n";
                 str << "out vec2 opos;\n";
-                str << "flat out int index;\n";
                 str << "void main()\n{\n";
-                str << "index = " << objIndex << ";\n";
                 str << "opos = uv;\n";
                 str << "gl_Position = camera*vec4(";
                 str << "s(uv.x, uv.y), 1);\n}\n";
@@ -1253,6 +1276,7 @@ namespace tcc
                 Shader *sh = new Shader;
                 o.program[0].shaders.push_back(sh);
 
+                //compile the custom vertex shader
                 {
                     sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                     o.program[0].ID = glCreateProgram();
@@ -1268,6 +1292,7 @@ namespace tcc
                     glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
                 }
 
+                //generate geodesic tracing framebuffer
                 {
                     glGenFramebuffers(1, &o.frame.ID);
                     Texture *tex = new Texture;
@@ -1279,6 +1304,7 @@ namespace tcc
 
                 str = std::stringstream();
 
+                //compile geodesic tracing method
                 str << "#version 460 core\n" << hdr.str();
                
                 compileFunction(compute(&s_E, subs), o.name->argIndex, str,  "s_E");
@@ -1323,6 +1349,7 @@ namespace tcc
                 str << "vec2 pos = center\n;";
                 str << "vec2 vel = opos.x*X + opos.y*Y;\n";
 
+                //Runge-Kutta 4 iteration
                 str << "for(int i = 0; i < N; i++)\n{\n";
                 str << "vec2 k1_pos = h*vel;\n";
                 str << "vec2 k1_vel = h*accel(pos.x, pos.y, vel.x, vel.y);\n";
@@ -1339,6 +1366,7 @@ namespace tcc
                 str << "color = texture(tex, pos);\n";
                 str << "}";
 
+                //compile the custom shader
                 {
                     Shader *sh = new Shader;
                     o.program[2].shaders.push_back(sh);
@@ -1414,6 +1442,7 @@ namespace tcc
                 str << "vec4 b = camera*vec4(v_org()+v(), 1);\n";
                 str << "vec4 a = camera*vec4(v_org(), 1);\n";
                 str << "vec4 diff = b/abs(b.w)-a/abs(a.w);\n";
+                //get arrow angle
                 str << "angle = atan(diff.x, -diff.y);\n}\n";
 
                 o.program[0].shaders.push_back(new Shader);
@@ -1444,7 +1473,7 @@ namespace tcc
 
     void Compiler::header(std::stringstream &str)
     {
-        blockSize = 64;
+        blockSize = 64; //camera matrix is 64 bytes
         str << "float Cpi = " << Parser::CPI << ";\n";
         str << "float Ce = " << Parser::CE << ";\n";
         str << "layout (std140, binding = 0) uniform Header\n{\n\tmat4 camera;\n";

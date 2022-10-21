@@ -6,6 +6,15 @@
 
 namespace tcc
 {
+    /*
+        SymbExpr
+    Node for a "symbolic" expression, that is,
+    an expression in the input string `as-is'
+    type: the type/operation of the node
+    sub: the children/operands of the node
+    name: variable/function/constant name (if any)
+    number: the number as float (if any)
+    */
     struct SymbExpr
     {
         Parser::ExprType type{};
@@ -14,6 +23,16 @@ namespace tcc
         float number{};
     };
 
+    /*
+        CompExpr
+    Node for a "computable" expression, that is,
+    an expression good for computing.
+    Generated from a "symbolic" expression, replacing function
+    definitions, computing derivatives and decompressing tuple operations
+    Same as SymbExpr, except:
+    -Type numeration is smaller
+    -nTuple: 1 if a number, or the number of elements in the tuple
+    */
     struct CompExpr
     {
         enum class ExprType
@@ -31,6 +50,17 @@ namespace tcc
         int nTuple{};
     };
 
+    /*
+        Interval
+    All information for an interval
+    type: kind of interval
+    sub: expressions given. [A, B, C]
+    compSub: computable expressions from the given ones
+    number: current parameter/grid value (if any)
+    min, max: float values for limits
+    offset: byte offset for the Shader Uniform Block
+    animate: tells whether to animate parameter (if any)
+    */
     struct Interval
     {
         Parser::ExprType type{};
@@ -51,6 +81,7 @@ namespace tcc
         uint height{};
     };
 
+    //Holds an opengl texture
     struct Texture
     {
         uint ID{};
@@ -59,6 +90,7 @@ namespace tcc
         ~Texture();
     };
 
+    //Holds an opengl framebuffer
     struct Framebuffer
     {
         uint ID{};
@@ -66,6 +98,7 @@ namespace tcc
         ~Framebuffer();
     };
 
+    //Holds an opengl shader
     struct Shader
     {
         uint ID{};
@@ -73,6 +106,7 @@ namespace tcc
         ~Shader();
     };
 
+    //Holds an opengl program
     struct Program
     {
         uint ID{};
@@ -81,12 +115,14 @@ namespace tcc
         ~Program();
     };
 
+    //Holds an opengl buffer
     struct Buffer
     {
         uint ID{};
         ~Buffer();
     };
 
+    //Holds an opengl array
     struct Array
     {
         uint ID{};
@@ -98,6 +134,28 @@ namespace tcc
 
     typedef float Color[4];
 
+    /*
+        Obj
+    All information in a declared object
+    type: type of the object
+    name: name of the object
+    sub: given expression(s) that define the object
+    compSub: computable expression from the given ones
+    intervals: all the intervals attached to the object
+    grids: list of (index of a grid object that this object depends on)
+    nTuple: number of tuple elements of object
+    program: opengl program(s) compiled for the object
+    array: opengl array build for object
+    frame: opengl framebuffer for geodesic tracing (of surfaces)
+    col: color of the object
+
+    SURFACES ONLY:
+        texture: opengl texture selected
+        changed: tells when to redo the geodesic tracing
+        center: camera origin for geodesic tracing
+        X, Y: camera orientation for geodesic tracing
+        zoom: length of X and Y
+    */
     struct Obj
     {
         Table *type{};
@@ -119,12 +177,16 @@ namespace tcc
         glm::vec2 center = glm::vec2(0.5985, 0.2344);
         glm::vec2 X = glm::vec2(0, 1);
         glm::vec2 Y = glm::vec2(1, 0);
-        float ori = 1;
         float zoom = 1;
 
         Color col{};
     };
 
+    /*
+        Subts
+    Used to perform substitutions for calculating an expression
+    or applying functions
+    */
     struct Subst
     {
         Table *var{};
@@ -132,6 +194,49 @@ namespace tcc
         float number{};
     };
 
+    /*
+        Compiler
+    Implements the semantic actions for the parser
+    symbExprs: holds all symbolic expressions
+    compExprs: holds all computable expressions
+    expStack: expression stack, used to build expression trees
+    intStack: interval stack, used to store current intervals
+    objects: list of the declared objects
+    frameSize: width and height of 3d view
+    geoSize: width and height of geodesic tracing
+    compiled: tells if it has been compiled yet
+    OPENGL SPECIFICS:
+    block: uniform buffer block, used for colors, parameters, grids, and camera
+    blockSize: size of the block
+    frameMS: multisample framebuffer for 3d view
+    frame: final framebuffer for 3d view
+    quad: square array for geodesic tracing
+    line: line array for points and vectors
+    various shaders: default or global shaders
+
+    actInt: handle intervals
+    actOp: handle expressions
+    actDecl: handle object declarations
+
+    newExpr's: create nodes for expressions
+    op's: assemble expression nodes
+
+    COMPUTE FUNCTIONS:
+        _comp: compute tuple element access
+        compute: main function to convert SymbExpr's to CompExpr's
+        substitute: applies function definition (non-primitive functions)
+        derivative: compute derivatives (symbolically)
+    calculate: compute float value of expression (if possible)
+    dependencies: find all grid dependencies
+
+    COMPILATION FUNCTIONS:
+        compile(const char *source): main/driver function, generates everything
+            source: the input string
+        compile: generates GLSL source code for evaluating expressions
+        header: generates GLSL header
+        compileFunction: generates code for GLSL function definition
+        declareFunction: generates GLSL function declaration
+    */
     struct Compiler : public Parser
     {
         std::vector<std::unique_ptr<SymbExpr>> symbExprs;
@@ -169,6 +274,7 @@ namespace tcc
         CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
         CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
         CompExpr *derivative(CompExpr *e, Table *var);
+        
         float calculate(CompExpr *e, std::vector<Subst> &subs);
         void dependencies(CompExpr *e, std::vector<int> &grids, bool allow = false);
 
