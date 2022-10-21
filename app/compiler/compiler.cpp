@@ -943,8 +943,8 @@ namespace tcc
 
         {
             glGenVertexArrays(1, &quad.ID);
-            quad.buffers.push_back(new Buffer);
-            Buffer *buf = quad.buffers.back();
+            Buffer *buf = new Buffer;
+            quad.buffers.push_back(buf);
             glGenBuffers(1, &buf->ID);
             glBindVertexArray(quad.ID);
             glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
@@ -956,8 +956,8 @@ namespace tcc
 
         {
             glGenVertexArrays(1, &line.ID);
-            line.buffers.push_back(new Buffer);
-            Buffer *buf = line.buffers.back();
+            Buffer *buf = new Buffer;
+            line.buffers.push_back(buf);
             glGenBuffers(1, &buf->ID);
             glBindVertexArray(line.ID);
             glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
@@ -968,19 +968,56 @@ namespace tcc
         }
         
         {
+            Texture *tex;
+
             glGenFramebuffers(1, &frame.ID);
-            frame.textures.push_back(new Texture);
-            Texture *tex = frame.textures.back();
-            tex->create(frameSize, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
             glBindFramebuffer(GL_FRAMEBUFFER, frame.ID);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
-            frame.textures.push_back(new Texture);
-            tex = frame.textures.back();
-            tex->create(frameSize, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->ID, 0);
-            uint b = GL_COLOR_ATTACHMENT0;
-            glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            {
+                tex = new Texture;
+                frame.textures.push_back(tex);
+                tex->create(frameSize, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
+            }
+
+            {
+                /*uint b = GL_COLOR_ATTACHMENT0;
+                glNamedFramebufferDrawBuffers(frame.ID, 1, &b);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+            }
+
+            glGenFramebuffers(1, &frameMS.ID);
+            glBindFramebuffer(GL_FRAMEBUFFER, frameMS.ID);
+
+            {
+                tex = new Texture;
+                frame.textures.push_back(tex);
+
+                glGenTextures(1, &tex->ID);
+                glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex->ID);
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
+                16, GL_RGB, frameSize.width, frameSize.height, GL_TRUE);
+                
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, tex->ID, 0);
+            }
+
+            {
+                tex = new Texture;
+                frame.textures.push_back(tex);
+
+                glGenTextures(1, &tex->ID);
+                glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex->ID);
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
+                16, GL_DEPTH_COMPONENT, frameSize.width, frameSize.height, GL_TRUE);
+                
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, tex->ID, 0);
+            }
+
+            {
+                uint b = GL_COLOR_ATTACHMENT0;
+                glNamedFramebufferDrawBuffers(frameMS.ID, 1, &b);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
         }
 
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
@@ -1115,8 +1152,8 @@ namespace tcc
                 str << "gl_Position = camera*vec4(";
                 str << "c(t), 1);\n}\n";
                 
-                o.program[0].shaders.push_back(new Shader);
-                Shader *sh = o.program[0].shaders.back();
+                Shader *sh = new Shader;
+                o.program[0].shaders.push_back(sh);
                 sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                 o.program[0].ID = glCreateProgram();
                 glAttachShader(o.program[0].ID, defaultFrag.ID);
@@ -1213,8 +1250,8 @@ namespace tcc
                 str << "gl_Position = camera*vec4(";
                 str << "s(uv.x, uv.y), 1);\n}\n";
 
-                o.program[0].shaders.push_back(new Shader);
-                Shader *sh = o.program[0].shaders.back();
+                Shader *sh = new Shader;
+                o.program[0].shaders.push_back(sh);
 
                 {
                     sh->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1233,8 +1270,8 @@ namespace tcc
 
                 {
                     glGenFramebuffers(1, &o.frame.ID);
-                    o.frame.textures.push_back(new Texture);
-                    Texture *tex = o.frame.textures.back();
+                    Texture *tex = new Texture;
+                    o.frame.textures.push_back(tex);
                     tex->create(geoSize, GL_RGB32F, GL_RGB, GL_FLOAT);
                     glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
                     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->ID, 0);
@@ -1303,8 +1340,8 @@ namespace tcc
                 str << "}";
 
                 {
-                    o.program[2].shaders.push_back(new Shader);
-                    Shader *sh = o.program[2].shaders.back();
+                    Shader *sh = new Shader;
+                    o.program[2].shaders.push_back(sh);
                     sh->compile(GL_FRAGMENT_SHADER, str.str().c_str());
                     o.program[2].ID = glCreateProgram();
                     glAttachShader(o.program[2].ID, defaultVert.ID);
@@ -1586,8 +1623,8 @@ namespace tcc
         glBindVertexArray(ID);
 
         {
-            buffers.push_back(new Buffer);
-            Buffer *buf = buffers.back();
+            Buffer *buf = new Buffer;
+            buffers.push_back(buf);
             glGenBuffers(1, &buf->ID);
             glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
             glBufferData(GL_ARRAY_BUFFER, nx*ny*2*sizeof(float), data, GL_STATIC_DRAW);
@@ -1596,8 +1633,8 @@ namespace tcc
         }
 
         {
-            buffers.push_back(new Buffer);
-            Buffer *buf = buffers.back();
+            Buffer *buf = new Buffer;
+            buffers.push_back(buf);
             glGenBuffers(1, &buf->ID);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf->ID);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, (nx-1)*(ny-1)*6*sizeof(uint), eData, GL_STATIC_DRAW);
@@ -1620,8 +1657,8 @@ namespace tcc
 
         glGenVertexArrays(1, &ID);
         glBindVertexArray(ID);
-        buffers.push_back(new Buffer);
-        Buffer *buf = buffers.back();
+        Buffer *buf = new Buffer;
+        buffers.push_back(buf);
         glGenBuffers(1, &buf->ID);
         glBindBuffer(GL_ARRAY_BUFFER, buf->ID);
         glBufferData(GL_ARRAY_BUFFER, nx*sizeof(float), data, GL_STATIC_DRAW);

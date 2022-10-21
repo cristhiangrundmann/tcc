@@ -144,6 +144,7 @@ namespace tcc
 
         Buffer block{};
         uint blockSize{};
+        Framebuffer frameMS{};
         Framebuffer frame{};
         Array quad{};
         Array line{};

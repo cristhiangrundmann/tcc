@@ -16,15 +16,24 @@
 using namespace tcc;
 using namespace glm;
 
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
 Compiler *cmp{};
 std::list<Texture*> textures;
 Texture *defTexture{};
 Obj *selectedObject{};
+
+bool colorChanged;
+bool changed;
+
+mat4 persp;
+mat4 look;
+vec3 center = vec3(0, 0, 0);
+vec2 angle = vec2(0, 0);
+float speed = 1.0f;
+
+static void glfw_error_callback(int error, const char* description)
+{
+    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
 
 vec2 rotate(Obj &o, vec2 pos, vec2 vec, float angle)
 {
@@ -96,13 +105,9 @@ void step(Obj &o, vec2 &pos, vec2 &vec, float h)
     vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
 }
 
-bool colorChanged;
-bool changed;
-bool paramChanged;
-
 void draw2(Obj &o)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+    glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
 
     if(o.type == cmp->surface)
     if(o.texture)
@@ -155,19 +160,19 @@ void draw2(Obj &o)
         }
         else o.changed = false;
 
-        if(changed || paramChanged)
+        if(changed)
         {
-            o.zoom += (x-z)*io.DeltaTime;
+            o.zoom += (x-z)*speed*io.DeltaTime;
             if(o.zoom < 0.1f) o.zoom = 0.1f;
             if(o.zoom > 100.0f) o.zoom = 100.0f;
 
             float l = length(o, o.center, o.X);
             o.X *= o.zoom/l;
             o.X = rotate(o, o.center, o.X,
-            o.ori*(q-e)*io.DeltaTime);
-            step(o, o.center, o.X, (d-a)*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
+            o.ori*(q-e)*speed*io.DeltaTime);
+            step(o, o.center, o.X, (d-a)*speed*io.DeltaTime + mouseDelta.x/cmp->geoSize.width*2.0f);
             o.Y = rotate(o, o.center, o.X, o.ori*Parser::CPI/2);
-            step(o, o.center, o.Y, (s-w)*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
+            step(o, o.center, o.Y, (s-w)*speed*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
             o.X = rotate(o, o.center, o.Y, -o.ori*Parser::CPI/2);
             glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
 
@@ -278,11 +283,6 @@ void tri(vec2 angle, vec3 vecs[3])
     vecs[2] = cross(vecs[0], vecs[1]);
 }
 
-mat4 persp;
-mat4 look;
-vec3 center = vec3(0, 0, 0);
-vec2 angle = vec2(0, 0);
-
 int main(int, char**)
 {
     cmp = new Compiler;
@@ -364,7 +364,7 @@ int main(int, char**)
                     cmp->geoSize = {(unsigned int)geoSize, (unsigned int)geoSize};
                     cmp->compile(text);
                     msg = "OK";
-                    persp = glm::perspective<float>(120, 1, 0.1, 10);
+                    persp = glm::perspective<float>(120, 1, 0.1, 100);
                     vec3 vecs[3];
                     tri(angle, vecs);
                     look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
@@ -388,24 +388,23 @@ int main(int, char**)
 
             ImGui::Text("Status: %s", msg);
 
-            static char textureName[64];
-            
-            if(ImGui::Button("Open Texture"))
             {
-                Texture *t = new Texture;
-                
-                try
+                static char textureName[64];
+                if(ImGui::Button("Open Texture"))
                 {
-                    t->load(textureName);
-                    textures.push_front(t);
-                } catch(std::string err)
-                {
-                    delete t;
+                    Texture *t = new Texture;  
+                    try
+                    {
+                        t->load(textureName);
+                        textures.push_front(t);
+                    } catch(std::string err)
+                    {
+                        delete t;
+                    }
                 }
+                ImGui::SameLine();
+                ImGui::InputText("##texname", textureName, sizeof(textureName));
             }
-            ImGui::SameLine();
-
-            ImGui::InputText("##texname", textureName, sizeof(textureName));
             
             ImGui::End();
 		}
@@ -438,12 +437,14 @@ int main(int, char**)
                 float s = ImGui::IsKeyDown('S') ? 1 : 0;
                 float a = ImGui::IsKeyDown('A') ? 1 : 0;
                 float d = ImGui::IsKeyDown('D') ? 1 : 0;
+                float q = ImGui::IsKeyDown('Q') ? 1 : 0;
+                float e = ImGui::IsKeyDown('E') ? 1 : 0;
 
-                changed = (w || s || a || d || delta.x || delta.y);
+                changed = (w || s || a || d || q || e || delta.x || delta.y);
 
                 if(changed)
                 {
-                    center += io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]);
+                    center += speed*io.DeltaTime*((w-s)*vecs[0]+(a-d)*vecs[1]+(q-e)*vec3(0, 0, 1));
                     look = glm::lookAt<float>(center, center + vecs[0], vecs[2]);
                     mat4 camera = persp * look;
                     glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
@@ -453,6 +454,12 @@ int main(int, char**)
             }
 
             ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+            {
+                ImGui::SliderFloat("Camera speed", &speed, 
+                0.1f, 10.0f, "%.3f",
+                ImGuiSliderFlags_AlwaysClamp);
+            }
 
             for(Obj &o : cmp->objects)
             {
@@ -486,7 +493,6 @@ int main(int, char**)
                         if(cur != o.intervals[i].number)
                         {
                             changed = true;
-                            paramChanged = true;
                             glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
                             glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset,
                             4, &o.intervals[i].number);
@@ -586,7 +592,7 @@ int main(int, char**)
 
             if(changed || colorChanged)
             {
-                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frame.ID);
+                glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
                 glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
                 glClearColor(0, 0, 0, 1);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -600,8 +606,15 @@ int main(int, char**)
                 o.type == cmp->vector) if(o.program[0].ID) draw(o);
             }
 
+            if(changed)
+            {
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, cmp->frameMS.ID);
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cmp->frame.ID);
+                glBlitFramebuffer(0, 0, cmp->frameSize.width, cmp->frameSize.height,
+                0, 0, cmp->frameSize.width, cmp->frameSize.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            }
+
             changed = false;
-            paramChanged = false;
 
             ImGui::End();
 
