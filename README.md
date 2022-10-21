@@ -6,4 +6,6 @@ FVG EMAp 2022
 Orientando: Cristhian Grundmann
 Orientadora: Asla Medeiros e Sá
 
-![preview](preview.mp4)
+<video width="480" height="270" controls>
+  <source src="preview.mp4" type="video/mp4">
+</video>
