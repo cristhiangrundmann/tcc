@@ -3,6 +3,8 @@
 #include <GL/glew.h>
 #include "stb_image.hpp"
 
+#define NUM_SAMPLES 16
+
 #define S(x) Parser::ExprType::x
 #define C(x) CompExpr::ExprType::x
 
@@ -1022,7 +1024,7 @@ namespace tcc
                 glGenTextures(1, &tex->ID);
                 glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex->ID);
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
-                16, GL_RGB, frameSize.width, frameSize.height, GL_TRUE);
+                NUM_SAMPLES, GL_RGB, frameSize.width, frameSize.height, GL_TRUE);
                 
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, tex->ID, 0);
             }
@@ -1034,7 +1036,7 @@ namespace tcc
                 glGenTextures(1, &tex->ID);
                 glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex->ID);
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,
-                16, GL_DEPTH_COMPONENT, frameSize.width, frameSize.height, GL_TRUE);
+                NUM_SAMPLES, GL_DEPTH_COMPONENT, frameSize.width, frameSize.height, GL_TRUE);
                 
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, tex->ID, 0);
             }

@@ -1,4 +1,4 @@
-# Visualização de curvas e superfícies através de geodésicos
+# Visualização de curvas e superfícies através de geodésicas
 
 Trabalho de conclusão de curso
 

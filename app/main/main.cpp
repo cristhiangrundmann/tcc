@@ -631,7 +631,7 @@ int main(int, char**)
                 o.type == cmp->vector) if(o.program[0].ID) draw(o);
             }
 
-            if(changed)
+            if(changed || colorChanged)
             {
                 glBindFramebuffer(GL_READ_FRAMEBUFFER, cmp->frameMS.ID);
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cmp->frame.ID);
@@ -640,6 +640,7 @@ int main(int, char**)
             }
 
             changed = false;
+            colorChanged = false;
 
             ImGui::End();
 
