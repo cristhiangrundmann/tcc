@@ -1,0 +1,37 @@
+\chapter{Método numérico}
+\label{numeric}
+
+A equação \ref{geoeq2} caracteriza as curvas geodésicas que devem ser 
+computadas para a visualização do Geodesic Tracing.
+Nem sempre é possível resolver a equação de forma analítica, então uma aproximação
+deve ser computada no lugar.
+
+O método numérico escolhido é o método de Runge-Kutta de ordem 4 \cite{Anal:1}.
+Seja $y' = f(t, y)$ uma equação diferencial para $y(t)$ com valores iniciais $t_0$ e $y_0$.
+O método consiste em aproximar $y(t+h)$, para um passo $h>0$.
+A aproximação é feita pelas equações \ref{runge}.
+
+\begin{equation}
+\label{runge}
+\begin{split}
+k_1 & = hf(t_0, y_0) \\
+k_2 & = hf(t_0 + h/2, y_0 + k_1/2) \\
+k_3 & = hf(t_0 + h/2, y_0 + k_2/2) \\
+k_4 & = hf(t_0 + h, y_0 + k_3) \\
+y_1 & = y_0 + (k_1 + 2k_2 + 2k_3 + k_4)/6 \\
+t_1 & = t_0 + h
+\end{split}
+\end{equation}
+
+As equações devem ser adaptadas para o sistema \ref{geoeq2}, pois é de 
+segunda ordem e possui mais de uma equação.
+O sistema pode ser escrito vetorialmente:
+\[y' = (u, v, u', v')' = g(u, v, u', v') = g(y)\]
+
+A função $g$ computa $(u', v', u'', v'')$, onde $u'$ e $v'$ são simplesmente 
+os argumentos dados à $g$. Os valores $u''$ e $v''$ são calculados conforme a equação
+\ref{geoeq2}, usando todos os 4 valores.
+Note que a função $g$ não depende do parâmetro $t$ da curva.
+
+O sistema pode ser resolvido numericamente por Runge-Kutta, ignorando a variável $t$,
+e tratando $y$ como $(u, v, u', v')$.
