@@ -163,7 +163,6 @@ void draw3(Obj &o)
         o.Y = rotate(o, o.center, o.X, Parser::CPI/2);
         step(o, o.center, o.Y, (s-w)*speed*io.DeltaTime + mouseDelta.y/cmp->geoSize.width*2.0f);
         o.X = rotate(o, o.center, o.Y, -Parser::CPI/2);
-        glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
 
         glUseProgram(o.program[2].ID);
 
@@ -175,6 +174,7 @@ void draw3(Obj &o)
         glBindTexture(GL_TEXTURE_2D, o.texture->ID);
         glBindVertexArray(cmp->quad.ID);
         glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
+        glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
         glEnable(GL_TEXTURE_2D);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -188,6 +188,7 @@ void draw3(Obj &o)
 //draw instanced object
 void draw2(Obj &o)
 {
+    glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
     if(!colorChanged && !changed) return;
     glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
 
@@ -235,6 +236,8 @@ void draw(Obj &o)
 {
     if(o.type == cmp->surface)
         draw3(o);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
         
     if(o.grids.size() == 0)
     {

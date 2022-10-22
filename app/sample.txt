@@ -8,11 +8,24 @@ point p = ck2;
 vector v = c'k2 @ p;
 
 #mobius strip
-surface m(u,v) = 
-(
-(1 + v/2cos(u/2))cos u, 
-(1 + v/2cos(u/2))sin u,
-v/2sin(u/2)), u : [0, 2pi], v : [-1, 1];
+function ROT(x, y, t) = xcost+ysint;
+define x = (1, 0, 0);
+define y = (0, 1, 0);
+define z = (0, 0, 1);
+param r : [/2, 2];
+param a : [1, 3];
+function f1(t) = ROT(x, y, t);
+function f2(u, v) = f1(u) + rROT(f1(u), z, av);
+function f3(u, v) = f1(u) + v(f2(u, au) - f1(u));
+surface m(u,v) = f3(u,v), u : [0, 2pi], v : [-/2, /2];
+curve c1(t) = f1(t), t : [0, 2pi];
+param t0 : [0, 2pi];
+point p = c1t0;
+curve c2(t) = f2(t0, t), t : [0, 2pi];
+point p2 = f2(t0, at0);
+point p3 = f2(t0, at0+pi);
+curve c3(t) = tp3 + (1-t)p2, t : [0, 1];
+
 
 #klein bottle
 surface s(u,v) = (
