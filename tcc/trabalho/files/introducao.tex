@@ -1,8 +1,10 @@
 \chapter{Introdução}
 Desenhos de superfícies costumam ser feitos a partir de um ponto de vista do
-espaço ambiente 3D, como em MatLab, Mathematica e Geogebra 3D.
-Uma superfície é definida numa linguagem, que então é renderizada.
-O usuário então pode interagir com a superfície, podendo mudar a orientação e a posição
+espaço ambiente 3D ou 2D, como em MatLab, Mathematica e Geogebra.
+Uma curva ou superfície é definida numa linguagem e então é renderizada.
+Uma forma muito comum de renderização é a discretização da curva ou superfície,
+formando segmentos no caso de uma curva, ou triângulos para superfícies.
+O usuário então pode interagir com a software, podendo mudar a orientação e a posição
 da câmera.
 
 O objetivo primário desse projeto é a visualização de curvas e superfícies.
@@ -35,7 +37,7 @@ determina a curva que a luz traça.
 Uma solução aproximada da equação é calculada pelo método de Runge-Kutta de ordem 4 \cite{Anal:1}.
 O método está descrito no capítulo \ref{geomdiff}.
 
-A interface gráfica é simples e é construída usando \textit{ImGui} \cite{ImGui},
+A interface gráfica é simples e é construída usando \textit{Dear ImGUI} \cite{ImGui},
 uma ferramenta de interface gráfica fácil de usar.
 A linguagem de programação escolhida para a implementação desse projeto é \textit{C++},
 e para desenhar a interface e os objetos, \textit{OpenGL} é usado.

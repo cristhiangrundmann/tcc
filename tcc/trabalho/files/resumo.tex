@@ -1,24 +1,29 @@
 \setlength{\absparsep}{18pt} 
 \begin{resumo}[Resumo]
- Segundo a  o resumo deve ressaltar o
- objetivo, o método, os resultados e as conclusões do documento. A ordem e a extensão
- destes itens dependem do tipo de resumo (informativo ou indicativo) e do
- tratamento que cada item recebe no documento original. O resumo deve ser
- precedido da referência do documento, com exceção do resumo inserido no
- próprio documento. (\ldots) As palavras-chave devem figurar logo abaixo do
- resumo, antecedidas da expressão Palavras-chave:, separadas entre si por
- ponto e finalizadas também por ponto. Deve ser redigido na terceira
- pessoa do singular e quanto a sua extensão, o resumo deve ter de 150 a 500
- palavras.
+Curvas e superfícies costumam ser visualizados em um espaço ambiente 2D ou 3D.
+Esse projeto implementa essa visualização em 3D, e para superfícies,
+implementa também o \textit{Geodesic Tracing}: uma visualização intrínseca à
+superfície, baseada em curvas geodésicas. Além de curvas e superfícies,
+o projeto permite visualizar pontos e vetores. Outros objetos auxiliares podem ser
+definidos, como parâmetros(controles deslizantes), funções e grades para
+instanciar objetos múltiplas vezes.
 
- Palavras-chave: latex. abntex. editoração de texto.
+Para a especificação dos objetos, uma linguagem textual foi estabelecida,
+acompanhada de um compilador capaz de tranformar o texto em estruturas de dados
+úteis para a renderização.
+
+Para a interface gráfica, \textit{OpenGL} é usado para a renderização,
+e \textit{Dear ImGUI} é usado para construir os controles e janelas.
+
+...
+
+ Palavras-chave: visualização. curvas. superfícies. compilador.
 \end{resumo}
 
 \begin{resumo}[Abstract]
  \begin{otherlanguage*}{english}
-  É a tradução do resumo para o inglês (Abstract), com a finalidade de facilitar a
-  divulgação do trabalho em nível internacional.
+  (ENGLISH)
  \end{otherlanguage*}
 
- Keywords: latex. abntex. editoração de texto.
+ Keywords: ...
 \end{resumo}
