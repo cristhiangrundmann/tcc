@@ -8,6 +8,7 @@ namespace tcc
         number = 0;
         node = nullptr;
         lexeme += length;
+        column += length;
         
         while(true)
         {
