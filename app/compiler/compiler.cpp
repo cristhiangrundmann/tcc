@@ -1083,7 +1083,7 @@ namespace tcc
         "void main()\n{\n"
         "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
         "p = mat2(cos(angle), sin(angle), -sin(angle), cos(angle))*p;"
-        "if(abs(p.x) > -p.y) discard;\n"
+        "if(abs(2*p.x) > -p.y) discard;\n"
         "if(p.y < -0.25) discard;\n"
         "color = col;\n"
         "\n}\n");
