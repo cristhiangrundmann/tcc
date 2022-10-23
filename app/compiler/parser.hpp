@@ -86,7 +86,6 @@ namespace tcc
 
         void parseMult(bool unary);
 
-        virtual void actSyntaxError(TokenType type);
         virtual void actAdvance();
         virtual void actInt(ExprType type);
         virtual void actOp(ExprType type);
@@ -94,6 +93,5 @@ namespace tcc
 
         virtual ~Parser() = 0;
     };
-
 
 }

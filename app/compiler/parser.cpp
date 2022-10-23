@@ -5,8 +5,22 @@
 namespace tcc
 {
     #define compare(x) (lexer.type == x)
-    #define require(x) {if(!compare(x)) actSyntaxError(x);}
     #define skip(x) {require(charToken(x)); advance();}
+    #define error(x) throw x + ", \nError at Ln " + std::to_string(lexer.lineno) + ", Col " + std::to_string(lexer.column)
+    #define require(x) \
+    { \
+        if(!compare(x)) \
+        { \
+            if(static_cast<int>(x) < 256) error(std::string("Expected a " + getTypeString(x))); \
+            if(x == TokenType::UNDEFINED) error(std::string("Identifier `") + lexer.node->str + "` is already defined"); \
+            if(x == TokenType::DECLARE) error(std::string("Expected a declaration keyword")); \
+            if(x == TokenType::CONSTANT) error(std::string("Expected a constant")); \
+            if(x == TokenType::VARIABLE) error(std::string("Expected a variable")); \
+            if(x == TokenType::NUMBER) error(std::string("Expected a number")); \
+            if(x == TokenType::FUNCTION) error(std::string("Expected a function")); \
+            if(x == TokenType::COMMENT) error(std::string("Expected a comment")); \
+        } \
+    }
 
     Parser::~Parser() {}
 
@@ -96,7 +110,7 @@ namespace tcc
                 parseInt(type);
                 //check tags consistency
                 if(tag != argList.back()[i])
-                    throw std::string("Inconsistent argument list");
+                    error(std::string("Expected tag `" + tag->str + "`"));
                 if(i != size-1)
                 {
                     require(charToken(','));
@@ -390,7 +404,7 @@ namespace tcc
                 if(!ok)
                 {
                     lexer.length = l;
-                    throw std::string("Expected a function variable");
+                    error(std::string("Expected a function variable"));
                 }
                 lexer.type = TokenType::FUNCTION;
                 actOp(ExprType::PARTIAL);
@@ -459,7 +473,11 @@ namespace tcc
         if(b0 == '(') b1 = ')';
         else if(b0 == '[') b1 = ']';
         else if(b0 == '{') b1 = '}';
-        else require(charToken('('));
+        else
+        {
+            if(lexer.node) error(std::string("Unknown identifier `" + lexer.node->str + "`"));
+            error(std::string("Expression expected"));
+        }
 
         skip(b0);
         parseAdd();
@@ -481,15 +499,6 @@ namespace tcc
     void Parser::actDecl() {}
     void Parser::actInt(ExprType) {}
     void Parser::actOp(ExprType) {}
-
-    //Default error callback
-    void Parser::actSyntaxError(TokenType type) 
-    {
-        std::string s1 = getTypeString(type);
-        std::string s2 = getTypeString(lexer.type);
-        throw std::string("Syntax error: expected " + s1 + " instead of " + s2 +
-        ", \nError at Ln " + std::to_string(lexer.lineno) + ", Col " + std::to_string(lexer.column));
-    }
 
     #undef skip
     #undef require

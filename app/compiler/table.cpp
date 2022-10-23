@@ -53,7 +53,7 @@ namespace tcc
 
     Table *Table::procString(const char *text, bool match)
     {
-        if(length) throw "Must call procString from root";
+        if(length) throw std::string("Must call procString from root");
 
         Table *node = this;
         Table *lastMatch = nullptr;
