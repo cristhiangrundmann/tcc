@@ -387,7 +387,6 @@ struct Parser
 
     void parseMult(bool unary);
 
-    virtual void actSyntaxError(TokenType type);
     virtual void actAdvance();
     virtual void actInt(ExprType type);
     virtual void actOp(ExprType type);
@@ -419,6 +418,13 @@ e são invocados pelo parser quando uma estrutura sintática é detectada.
 
 O método \texttt{advance} chama \texttt{actAdvance} e avança o token.
 Isso possibilita uma reação a um comentário ou a um token qualquer.
+O compilador não usa essa ação semântica.
+A intenção inicial era a existência de um outro `compilador'
+que ao invés de compilar, fizesse \textit{syntax highlighting}
+no texto, ou seja, colorisse os tokens conforme seu tipo.
+Isso incluiria comentários, por isso são considerados tokens,
+mas ignorados gramaticalmente pelo parser.
+Essa ideia não se viabilizou.
 
 Quando uma função está sendo definida, os identificadores de seus argumentos
 passam a ser do tipo \texttt{VARIABLE}.
