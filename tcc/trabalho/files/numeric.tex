@@ -8,7 +8,7 @@ deve ser computada no lugar.
 
 O método numérico escolhido é o método de Runge-Kutta de ordem 4 \cite{Anal:1}.
 Seja $y' = f(t, y)$ uma equação diferencial para $y(t)$ com valores iniciais $t_0$ e $y_0$.
-O método consiste em aproximar $y(t+h)$, para um passo $h>0$.
+O método consiste em aproximar $y_1 = y(t_0+h)$, para um passo $h>0$.
 A aproximação é feita pelas equações \ref{runge}.
 
 \begin{equation}
@@ -26,12 +26,31 @@ t_1 & = t_0 + h
 As equações devem ser adaptadas para o sistema \ref{geoeq2}, pois é de 
 segunda ordem e possui mais de uma equação.
 O sistema pode ser escrito vetorialmente:
-\[y' = (u, v, u', v')' = g(u, v, u', v') = g(y)\]
+\[y' = (u, v, u', v')' = f(u, v, u', v') = f(y)\]
 
-A função $g$ computa $(u', v', u'', v'')$, onde $u'$ e $v'$ são simplesmente 
-os argumentos dados à $g$. Os valores $u''$ e $v''$ são calculados conforme a equação
-\ref{geoeq2}, usando todos os 4 valores.
-Note que a função $g$ não depende do parâmetro $t$ da curva.
+Ou ainda 
+\[y' = (\text{pos}, \text{vel})' = f(\text{pos}, \text{vel}) = f(y)\]
+
+A função $f$ computa $(u', v', u'', v'') = (\text{vel}, \text{acc})$, onde $\text{vel}$ é
+igual ao argumento $\text{vel}$ de $f$. Os valores $u''$ e $v''$ são calculados conforme a equação
+\ref{geoeq2}, usando $\text{pos}$ e $\text{vel}$.
+Note que a função $f$ não depende do parâmetro $t$ da curva.
 
 O sistema pode ser resolvido numericamente por Runge-Kutta, ignorando a variável $t$,
-e tratando $y$ como $(u, v, u', v')$.
+e fazendo $y$ como $(\text{pos}, \text{vel})$.
+
+\begin{equation}
+\label{method}
+\begin{split}
+    p_1 & = h\text{vel}_0 \\
+    v_1 & = hg(\text{pos}_0, \text{vel}_0) \\
+    p_2 & = h(\text{vel}_0+v_1/2) \\
+    v_2 & = hg(\text{pos}_0+p_1/2, \text{vel}_0+v_1/2) \\
+    p_3 & = h(\text{vel}_0+v_2/2) \\
+    v_3 & = hg(\text{pos}_0+p_2/2, \text{vel}_0+v_2/2) \\
+    p_4 & = h(\text{vel}_0+v_3) \\
+    v_4 & = hg(\text{pos}_0+p_3, \text{vel}_0+v_3) \\
+    \text{pos}_1 & = (p_1+2p_2+2p_3+p_4)/6 \\
+    \text{vel}_1 & = (v_1+2v_2+2v_3+v_4)/6
+\end{split}
+\end{equation}
