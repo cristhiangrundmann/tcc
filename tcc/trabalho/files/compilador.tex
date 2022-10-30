@@ -184,6 +184,16 @@ O método \texttt{initString} usa \texttt{procString}
 para criar o identificador em \texttt{str},
 inicializando seu tipo de token com \texttt{type}.
 
+Para o exemplo \ref{ex1}, a tabela é a trie ilustrada na figura \ref{img:ex1table}.
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{ex1table.png}
+    \caption{Tabela de símbolos do exemplo 1}
+    \label{img:ex1table}
+\end{figure}
+
+Nessa figura, o nó corresponente ao termo \texttt{cos} indica \texttt{type=FUNCTION},
+e para \texttt{k2}, \texttt{type=CONSTANT}.
+
 \section{Análise sintática}
 A análise sintática tem a função de identificar as estruturas sintáticas
 presentes nos tokens gerados pelo lexer.
@@ -498,7 +508,8 @@ descompactar algumas operações.
 O método \texttt{substitute} resolve funções, substituindo uma aplicação pelo corpo da função.
 O método \texttt{derivative} computa derivadas simbólicas.
 O método \texttt{calculate} calcula o valor numérico de uma expressão, 
-quando possível, e é usado 
+quando possível, e é usado para cálculos feitos na \textit{CPU}, pois
+as expressões são compiladas apenas para a \textit{GPU}.
 O método \texttt{dependencies} detecta de quais grades um objeto depende.
 
 Os métodos de \texttt{compile} a \texttt{declareFunction} geram o produto final.
@@ -532,7 +543,7 @@ Para superfícies, compila também o geodesic tracing.
 Para os parâmetros, gera controles deslizantes na interface.
 Ao finalizar, a interface está pronta para a interação com os objetos.
 
-O compilador também verfica a validade semântica dos objetos.
+O compilador também verifica a validade semântica dos objetos.
 Por exemplo, intervalos não podem depender de parâmetros ou grades.
 Curvas e superfícies devem ter o número correto de parâmetros, e devem estar
 definidos em 3 dimensões.
