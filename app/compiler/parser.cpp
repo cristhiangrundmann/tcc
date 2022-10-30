@@ -12,7 +12,13 @@ namespace tcc
         if(!compare(x)) \
         { \
             if(static_cast<int>(x) < 256) error(std::string("Expected a " + getTypeString(x))); \
-            if(x == TokenType::UNDEFINED) error(std::string("Identifier `") + lexer.node->str + "` is already defined"); \
+            if(x == TokenType::UNDEFINED) \
+            { \
+                if(lexer.node) \
+                    error(std::string("Identifier `") + lexer.node->str + "` is already defined"); \
+                else \
+                    error(std::string("Expected an identifier")); \
+            } \
             if(x == TokenType::DECLARE) error(std::string("Expected a declaration keyword")); \
             if(x == TokenType::CONSTANT) error(std::string("Expected a constant")); \
             if(x == TokenType::VARIABLE) error(std::string("Expected a variable")); \
@@ -110,7 +116,7 @@ namespace tcc
                 parseInt(type);
                 //check tags consistency
                 if(tag != argList.back()[i])
-                    error(std::string("Expected tag `" + tag->str + "`"));
+                    error(std::string("Expected tag `" + argList.back()[i]->str + "`"));
                 if(i != size-1)
                 {
                     require(charToken(','));

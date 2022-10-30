@@ -339,7 +339,7 @@ int main(int, char**)
 
 
     defTexture = new Texture;
-    defTexture->load("default.jpg");
+    defTexture->load("default.png");
     textures.push_front(defTexture);
 
     while (!glfwWindowShouldClose(window))

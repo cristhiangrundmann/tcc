@@ -586,9 +586,9 @@ namespace tcc
             case C(FUNCTION):
             {
                 if(subs.size() != 1) //primitive functions have 1 argument
-                    throw std::string("Must have 1 argument");
+                    throw std::string("Function must have 1 argument: ") + e->name->str;
                 if(subs[0].exp->nTuple > 1) //the argument is scalar
-                    throw std::string("Must be a scalar");
+                    throw std::string("Argument must be scalar: ") + e->name->str;
                 return op(C(APP), e, subs[0].exp); //applies body to argument
                 //bodies of primitive function and its derivative/powers dont
                 //contain applications, they contain just the function name as a placeholder
@@ -789,7 +789,7 @@ namespace tcc
             case C(CONSTANT):
                 if(e->name->objIndex == -1) return;
                 if(!allow)
-                    throw std::string("Invalid dependency");
+                    throw std::string("Intervals cannot reference grids or parameters: ") + e->name->str;
                 if(objects[e->name->objIndex].type == grid)
                 {
                     for(int k : grids)
@@ -800,7 +800,7 @@ namespace tcc
                 break;
             case C(COMPONENT):
                 if(!allow)
-                    throw std::string("Invalid dependency");
+                    throw std::string("Intervals cannot reference grids or parameters: ") + e->name->str;
                 if(objects[e->sub[0]->name->objIndex].type == grid)
                 {
                     for(int k : grids)
@@ -1111,7 +1111,7 @@ namespace tcc
                     dependencies(i.compSub[1], o.grids);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
-                    if(i.max < i.min) throw std::string("Degenerate interval");
+                    if(i.max < i.min) throw std::string("Degenerate interval: ") + o.name->str;
                     i.number = i.min;
                     //initialize uniform as the minimum
                     glBufferSubData(GL_UNIFORM_BUFFER, i.offset, 4, &i.number);
@@ -1130,9 +1130,9 @@ namespace tcc
                     dependencies(i.compSub[2], o.grids);
                     i.min = calculate(i.compSub[0], subs);
                     i.max = calculate(i.compSub[1], subs);
-                    if(i.max < i.min) throw std::string("Degenerate interval");
+                    if(i.max < i.min) throw std::string("Degenerate interval: ") + o.name->str;
                     i.number = floor(calculate(i.compSub[2], subs));
-                    if(i.number < 2) throw std::string("Grids must have at least 2 points");
+                    if(i.number < 2) throw std::string("Grids must have at least 2 points: ") + o.name->str;
                 }
             }
 
@@ -1142,7 +1142,7 @@ namespace tcc
                 std::stringstream str;
 
                 if(argList[o.name->argIndex].size() != 1)
-                    throw std::string("Curves should have 1 parameter");
+                    throw std::string("Curves should have 1 parameter: ") + o.name->str;
 
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
                 dependencies(o.intervals[0].compSub[0], o.grids);
@@ -1157,7 +1157,7 @@ namespace tcc
                     o.intervals[0].compSub[2] = compute(o.intervals[0].sub[2], subs);
                     dependencies(o.intervals[0].compSub[2], o.grids);
                     gridt = floor(calculate(o.intervals[0].compSub[2], subs));
-                    if(gridt < 2) throw std::string("Grids must have at least 2 points");
+                    if(gridt < 2) throw std::string("Grids must have at least 2 points: ") + o.name->str;
                 }
 
                 o.compSub[0] = compute(o.sub[0], subs);
@@ -1165,7 +1165,7 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
                 
                 if(o.nTuple != 3)
-                    throw std::string("Curves should be in 2d or 3d space");
+                    throw std::string("Curves should be in 2d or 3d space: ") + o.name->str;
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
                 
@@ -1199,7 +1199,7 @@ namespace tcc
                 std::stringstream str;
 
                 if(argList[o.name->argIndex].size() != 2)
-                    throw std::string("Surface should have 2 parameters");
+                    throw std::string("Surface should have 2 parameters: ") + o.name->str;
 
                 o.intervals[0].compSub[0] = compute(o.intervals[0].sub[0], subs);
                 dependencies(o.intervals[0].compSub[0], o.grids);
@@ -1222,7 +1222,7 @@ namespace tcc
                     o.intervals[0].compSub[2] = compute(o.intervals[0].sub[2], subs);
                     dependencies(o.intervals[0].compSub[2], o.grids);
                     gridu = floor(calculate(o.intervals[0].compSub[2], subs));
-                    if(gridu < 2) throw std::string("Grids must have at least 2 points");
+                    if(gridu < 2) throw std::string("Grids must have at least 2 points: ") + o.name->str;
                 }
 
                 if(o.intervals[1].sub[2])
@@ -1230,7 +1230,7 @@ namespace tcc
                     o.intervals[1].compSub[2] = compute(o.intervals[1].sub[2], subs);
                     dependencies(o.intervals[1].compSub[2], o.grids);
                     gridv = floor(calculate(o.intervals[1].compSub[2], subs));
-                    if(gridv < 2) throw std::string("Grids must have at least 2 points");
+                    if(gridv < 2) throw std::string("Grids must have at least 2 points: ") + o.name->str;
                 }
                 
                 o.compSub[0] = compute(o.sub[0], subs);
@@ -1238,7 +1238,7 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
 
                 if(o.nTuple != 3)
-                    throw std::string("Surfaces should be in 3d space");
+                    throw std::string("Surfaces should be in 3d space: ") + o.name->str;
                 
                 //generate First Fundamental Form
                 SymbExpr s_u = op(S(PARTIAL), o.sub[0], nullptr, 0, argList[o.name->argIndex][0]);
@@ -1389,7 +1389,7 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
 
                 if(o.nTuple != 3)
-                    throw std::string("Points must be in 2d or 3d space");
+                    throw std::string("Points must be in 2d or 3d space: ") + o.name->str;
 
                 str << "#version 460 core\n" << hdr.str();
 
@@ -1427,10 +1427,10 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
 
                 if(o.nTuple != 3)
-                    throw std::string("Vectors must be in 2d or 3d space");
+                    throw std::string("Vectors must be in 2d or 3d space: ") + o.name->str;
 
                 if(o.compSub[1]->nTuple != o.nTuple)
-                    throw std::string("Vectors must be in 2d or 3d space");
+                    throw std::string("Vectors must be in 2d or 3d space: ") + o.name->str;
 
                 str << "#version 460 core\n" << hdr.str();
 
@@ -1604,7 +1604,7 @@ namespace tcc
     {
         int width, height, nrChannels;
         unsigned char *data = stbi_load(file, &width, &height, &nrChannels, 0);
-        if(!data) throw std::string("Failed to load image");
+        if(!data) throw std::string("Failed to load image: ") + file;
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
