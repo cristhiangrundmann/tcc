@@ -4,6 +4,7 @@
 #include "stb_image.hpp"
 
 #define NUM_SAMPLES 16
+#define VERSION "#version 430 core\n"
 
 #define S(x) Parser::ExprType::x
 #define C(x) CompExpr::ExprType::x
@@ -1044,7 +1045,7 @@ namespace tcc
 
         //default fragment and vertex shaders
         defaultFrag.compile(GL_FRAGMENT_SHADER, 
-        "#version 460 core\n"
+        VERSION
         "layout (location = 0) uniform vec4 col;\n"
         "layout (location = 0) out vec4 color;\n"
         "void main()\n{\n"
@@ -1053,7 +1054,7 @@ namespace tcc
         );
 
         texFrag.compile(GL_FRAGMENT_SHADER, 
-        "#version 460 core\n"
+        VERSION
         "uniform sampler2D tex;\n"
         "layout (location = 0) out vec4 color;\n"
         "layout (location = 0) uniform vec4 col;\n"
@@ -1065,7 +1066,7 @@ namespace tcc
         );
 
         pointFrag.compile(GL_FRAGMENT_SHADER, 
-        "#version 460 core\n"
+        VERSION
         "layout (location = 0) uniform vec4 col;\n"
         "layout (location = 0) out vec4 color;\n"
         "void main()\n{\n"
@@ -1076,7 +1077,7 @@ namespace tcc
         );
 
         arrowFrag.compile(GL_FRAGMENT_SHADER, 
-        "#version 460 core\n"
+        VERSION
         "layout (location = 0) uniform vec4 col;\n"
         "in float angle;\n"
         "layout (location = 0) out vec4 color;\n"
@@ -1089,7 +1090,7 @@ namespace tcc
         "\n}\n");
 
         defaultVert.compile(GL_VERTEX_SHADER, 
-        "#version 460 core\n"
+        VERSION
         "layout (location = 0) in vec2 pos;\n"
         "out vec2 opos;\n"
         "void main()\n{\n"
@@ -1169,7 +1170,7 @@ namespace tcc
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
                 
-                str << "#version 460 core\n" << hdr.str();
+                str << VERSION << hdr.str();
                 compileFunction(o.compSub[0], o.name->argIndex, str, "c");
                 str << "layout (location = 0) in float t;\n";
                 str << "void main()\n{\n";
@@ -1266,7 +1267,7 @@ namespace tcc
                 o.compSub[11] = compute(&s_Gv, subs);
 
                 //3d view shader
-                str << "#version 460 core\n" << hdr.str();
+                str << VERSION << hdr.str();
                 compileFunction(o.compSub[0], o.name->argIndex, str, "s");     
                 str << "layout (location = 0) in vec2 uv;\n";
                 str << "out vec2 opos;\n";
@@ -1307,7 +1308,7 @@ namespace tcc
                 str = std::stringstream();
 
                 //compile geodesic tracing method
-                str << "#version 460 core\n" << hdr.str();
+                str << VERSION << hdr.str();
                
                 compileFunction(compute(&s_E, subs), o.name->argIndex, str,  "s_E");
                 compileFunction(compute(&s_F, subs), o.name->argIndex, str,  "s_F");
@@ -1391,7 +1392,7 @@ namespace tcc
                 if(o.nTuple != 3)
                     throw std::string("Points must be in 2d or 3d space: ") + o.name->str;
 
-                str << "#version 460 core\n" << hdr.str();
+                str << VERSION << hdr.str();
 
                 compileFunction(o.compSub[0], -1, str, "p");
 
@@ -1432,7 +1433,7 @@ namespace tcc
                 if(o.compSub[1]->nTuple != o.nTuple)
                     throw std::string("Vectors must be in 2d or 3d space: ") + o.name->str;
 
-                str << "#version 460 core\n" << hdr.str();
+                str << VERSION << hdr.str();
 
                 compileFunction(o.compSub[0], -1, str, "v");
                 compileFunction(o.compSub[1], -1, str, "v_org");
