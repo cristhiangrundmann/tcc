@@ -285,4 +285,18 @@ namespace tcc
         void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
     };
 
+    /*
+        Highlight
+    Syntax Highlighting for text editor
+    Implements lexer's semantic action actAdvance
+    palette: points to color string
+    colosize: main function
+    */
+    struct Highlight : public Parser
+    {
+        char *palette = nullptr;
+        void actAdvance();
+        void colorize(const char *source);
+    };
+
 }

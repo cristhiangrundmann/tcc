@@ -12,6 +12,48 @@
 namespace tcc
 {
 
+    void Highlight::actAdvance()
+    {
+        if(!palette) return;
+        
+        char color = 0;
+
+        switch(lexer.type)
+        {
+            case TokenType::EOI: color = 1; break;
+            case TokenType::UNDEFINED: color = 2; break;
+            case TokenType::DECLARE: color = 3; break;
+            case TokenType::CONSTANT: color = 4; break;
+            case TokenType::VARIABLE: color = 5; break;
+            case TokenType::NUMBER: color = 6; break;
+            case TokenType::FUNCTION: color = 7; break;
+            case TokenType::COMMENT: color = 8; break;
+            default: break;
+        }
+
+        for(int i = 0; i < lexer.length; i++)
+            palette[lexer.lexeme - lexer.source + i] = color;
+    }
+
+    void Highlight::colorize(const char *source)
+    {
+        try
+        {
+            parseProgram(source);
+        } 
+        catch(std::string &err)
+        {
+            for(int i = 0; i < lexer.length; i++)
+                palette[lexer.lexeme - lexer.source + i] = 9; //offending lexeme in 'red'
+            lexer.advance(true);
+            while(lexer.type != TokenType::EOI)
+            {
+                actAdvance();
+                lexer.advance(true);
+            }
+        }
+    }
+
     void Compiler::actInt(ExprType type)
     {
         Interval i;

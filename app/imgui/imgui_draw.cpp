@@ -1574,7 +1574,7 @@ void ImDrawList::AddBezierQuadratic(const ImVec2& p1, const ImVec2& p2, const Im
     PathStroke(col, 0, thickness);
 }
 
-void ImDrawList::AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end, float wrap_width, const ImVec4* cpu_fine_clip_rect)
+void ImDrawList::AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end, float wrap_width, const ImVec4* cpu_fine_clip_rect, const char *buf_palette)
 {
     if ((col & IM_COL32_A_MASK) == 0)
         return;
@@ -1600,7 +1600,7 @@ void ImDrawList::AddText(const ImFont* font, float font_size, const ImVec2& pos,
         clip_rect.z = ImMin(clip_rect.z, cpu_fine_clip_rect->z);
         clip_rect.w = ImMin(clip_rect.w, cpu_fine_clip_rect->w);
     }
-    font->RenderText(this, font_size, pos, col, clip_rect, text_begin, text_end, wrap_width, cpu_fine_clip_rect != NULL);
+    font->RenderText(this, font_size, pos, col, clip_rect, text_begin, text_end, wrap_width, cpu_fine_clip_rect != NULL, buf_palette);
 }
 
 void ImDrawList::AddText(const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end)
@@ -3539,7 +3539,7 @@ void ImFont::RenderChar(ImDrawList* draw_list, float size, const ImVec2& pos, Im
 }
 
 // Note: as with every ImDrawList drawing function, this expects that the font atlas texture is bound.
-void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, ImU32 col, const ImVec4& clip_rect, const char* text_begin, const char* text_end, float wrap_width, bool cpu_fine_clip) const
+void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, ImU32 col, const ImVec4& clip_rect, const char* text_begin, const char* text_end, float wrap_width, bool cpu_fine_clip, const char *buf_palette) const
 {
     if (!text_end)
         text_end = text_begin + strlen(text_begin); // ImGui:: functions generally already provides a valid text_end, so this is merely to handle direct calls.
@@ -3593,7 +3593,7 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, Im
     ImDrawIdx* idx_write = draw_list->_IdxWritePtr;
     unsigned int vtx_current_idx = draw_list->_VtxCurrentIdx;
 
-    const ImU32 col_untinted = col | ~IM_COL32_A_MASK;
+    ImU32 col_untinted = col | ~IM_COL32_A_MASK;
 
     while (s < text_end)
     {
@@ -3625,6 +3625,7 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, Im
 
         // Decode and advance source
         unsigned int c = (unsigned int)*s;
+        const char *colPos = s;
         if (c < 0x80)
         {
             s += 1;
@@ -3700,8 +3701,84 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, Im
                     }
                 }
 
+                ImU32 newCol = col;
+                ImU32 newCol_untinted = col_untinted;
+
+                if(buf_palette)
+                {
+                    int pos = colPos - text_begin;
+                    char colIndex = buf_palette[pos];
+                    int r = 0;
+                    int g = 0;
+                    int b = 0;
+                    int a = 0;
+
+                    switch(colIndex)
+                    {
+                    case 1:
+                        r = 10;
+                        g = 10;
+                        b = 200;
+                        a = 255;
+                        break;
+                    case 2:
+                        r = 242;
+                        g = 150;
+                        b = 11;
+                        a = 255;
+                        break;
+                    case 3:
+                        r = 50;
+                        g = 50;
+                        b = 200;
+                        a = 255;
+                        break;
+                    case 4:
+                        r = 100;
+                        g = 120;
+                        b = 150;
+                        a = 255;
+                        break;
+                    case 5:
+                        r = 242;
+                        g = 150;
+                        b = 11;
+                        a = 255;
+                        break;
+                    case 6:
+                        r = 100;
+                        g = 100;
+                        b = 255;
+                        a = 255;
+                        break;
+                    case 7:
+                        r = 100;
+                        g = 100;
+                        b = 100;
+                        a = 255;
+                        break;
+                    case 8:
+                        r = 0;
+                        g = 100;
+                        b = 0;
+                        a = 255;
+                        break;
+                    case 9:
+                        r = 200;
+                        g = 30;
+                        b = 30;
+                        a = 255;
+                        break;
+                    }
+                    if(a)
+                    {
+                        newCol = (r << IM_COL32_R_SHIFT) + (g << IM_COL32_G_SHIFT) + (b << IM_COL32_B_SHIFT)+ (a << IM_COL32_A_SHIFT);
+                        newCol_untinted = col | ~IM_COL32_A_MASK;
+                    }
+                }
+
                 // Support for untinted glyphs
-                ImU32 glyph_col = glyph->Colored ? col_untinted : col;
+                ImU32 glyph_col = glyph->Colored ? newCol_untinted : newCol;
 
                 // We are NOT calling PrimRectUV() here because non-inlined causes too much overhead in a debug builds. Inlined here:
                 {

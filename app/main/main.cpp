@@ -356,10 +356,18 @@ int main(int, char**)
 		{
 			ImGui::Begin("Program");
 			static char text[1024 * 16];
+            static char palette[1024 * 16];
+
+            Highlight *h = new Highlight;
+            h->palette = palette;
+            h->colorize(text);
+            delete h;
+
             ImGui::PushFont(f2);
             ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text),
-            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput);
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput, NULL, NULL, palette);
 			ImGui::PopFont();
+
 
             static int frameSize = 512;
             static int geoSize = 512;
