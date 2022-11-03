@@ -9,12 +9,27 @@
 #define S(x) Parser::ExprType::x
 #define C(x) CompExpr::ExprType::x
 
+#define PLT(r,g,b) static_cast<ImU32>((r << IM_COL32_R_SHIFT) + (g << IM_COL32_G_SHIFT) + (b << IM_COL32_B_SHIFT) + (255 << IM_COL32_A_SHIFT))
+
 namespace tcc
 {
+    ImU32 Highlight::palette[10] =
+    {
+        PLT(200, 200, 200),   //other symbols
+        PLT(30, 30, 30),    //EOI
+        PLT(78, 201, 176),  //UNDEFINED = VARIABLE
+        PLT(86, 156, 214),  //DECLARE
+        PLT(156, 220, 254), //CONSTANT
+        PLT(78, 201, 176),  //VARIABLE
+        PLT(181, 206, 168), //NUMBER
+        PLT(197, 134, 192), //FUNCTION
+        PLT(96, 161, 104),  //COMMENT
+        PLT(200, 50, 50)    //ERROR
+    };
 
     void Highlight::actAdvance()
     {
-        if(!palette) return;
+        if(!buf_palette) return;
         
         char color = 0;
 
@@ -32,7 +47,7 @@ namespace tcc
         }
 
         for(int i = 0; i < lexer.length; i++)
-            palette[lexer.lexeme - lexer.source + i] = color;
+            buf_palette[lexer.lexeme - lexer.source + i] = color;
     }
 
     void Highlight::colorize(const char *source)
@@ -44,30 +59,12 @@ namespace tcc
         catch(std::string &err)
         {
             for(int i = 0; i < lexer.length; i++)
-                palette[lexer.lexeme - lexer.source + i] = 9; //offending lexeme in 'red'
-            try
-            {
-                lexer.advance(false);
-            }
-            catch(std::string &err)
-            {
-                while(*lexer.lexeme != 0)
-                    palette[lexer.lexeme++ - lexer.source] = 0;
-                return;
-            }
+                buf_palette[lexer.lexeme - lexer.source + i] = 9; //offending lexeme in 'red'
+            try { lexer.advance(false); } catch(std::string &err){}
             while(lexer.type != TokenType::EOI)
             {
-                try
-                {
-                    lexer.advance(false);
-                }
-                catch(std::string &err)
-                {
-                    while(*lexer.lexeme != 0)
-                        palette[lexer.lexeme++ - lexer.source] = 0;
-                    return;
-                }
-                lexer.advance(true);
+                actAdvance();
+                try { lexer.advance(false); } catch(std::string &err){}
             }
         }
     }

@@ -40,7 +40,13 @@ namespace tcc
             {
                 type = TokenType::NUMBER;
                 int k = sscanf(lexeme, "%f%n\n", &number, &length);
-                if(k != 1) throw "sscanf failure";
+                if(k != 1)
+                {
+                    //simple guess
+                    number = 0;
+                    length = 1;
+                    throw std::string("sscanf failure");
+                }
                 return;
             }
 

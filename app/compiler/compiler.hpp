@@ -3,6 +3,7 @@
 #include "parser.hpp"
 #include <glm/glm.hpp>
 #include <sstream>
+#include <imgui.h>
 
 namespace tcc
 {
@@ -289,12 +290,14 @@ namespace tcc
         Highlight
     Syntax Highlighting for text editor
     Implements lexer's semantic action actAdvance
-    palette: points to color string
+    palette: points to palette string
+    buf_palette: points to color string
     colosize: main function
     */
     struct Highlight : public Parser
     {
-        char *palette = nullptr;
+        static ImU32 palette[];
+        char *buf_palette = nullptr;
         void actAdvance();
         void colorize(const char *source);
     };

@@ -298,7 +298,7 @@ void tri(vec2 angle, vec3 vecs[3])
     vecs[2] = cross(vecs[0], vecs[1]);
 }
 
-char palette[1024 * 16];
+char buf_palette[1024 * 16];
 
 //callback to text editor
 int syntaxHighlight(ImGuiInputTextCallbackData* data)
@@ -306,10 +306,10 @@ int syntaxHighlight(ImGuiInputTextCallbackData* data)
     if(data->EventFlag != ImGuiInputTextFlags_CallbackEdit) return 0;
 
     Highlight *h = new Highlight;
-    h->palette = palette;
+    h->buf_palette = buf_palette;
     h->colorize(data->Buf);
     delete h;
-    
+
     return 0;   
 }
 
@@ -342,7 +342,7 @@ int main(int, char**)
     ImGuiIO& io = ImGui::GetIO();
 
     io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 18);
-    ImFont * f2 = io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 24);
+    ImFont * f2 = io.Fonts->AddFontFromFileTTF("Cousine-Regular.ttf", 32);
 
     ImGui::StyleColorsClassic();
 
@@ -374,7 +374,7 @@ int main(int, char**)
 
             ImGui::PushFont(f2);
             ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text),
-            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackEdit, syntaxHighlight, NULL, palette);
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackEdit, syntaxHighlight, NULL, buf_palette, Highlight::palette);
 			ImGui::PopFont();
 
             static int frameSize = 512;
