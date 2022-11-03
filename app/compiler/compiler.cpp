@@ -45,10 +45,28 @@ namespace tcc
         {
             for(int i = 0; i < lexer.length; i++)
                 palette[lexer.lexeme - lexer.source + i] = 9; //offending lexeme in 'red'
-            lexer.advance(true);
+            try
+            {
+                lexer.advance(false);
+            }
+            catch(std::string &err)
+            {
+                while(*lexer.lexeme != 0)
+                    palette[lexer.lexeme++ - lexer.source] = 0;
+                return;
+            }
             while(lexer.type != TokenType::EOI)
             {
-                actAdvance();
+                try
+                {
+                    lexer.advance(false);
+                }
+                catch(std::string &err)
+                {
+                    while(*lexer.lexeme != 0)
+                        palette[lexer.lexeme++ - lexer.source] = 0;
+                    return;
+                }
                 lexer.advance(true);
             }
         }
