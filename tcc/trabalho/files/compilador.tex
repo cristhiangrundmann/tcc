@@ -429,12 +429,11 @@ e são invocados pelo parser quando uma estrutura sintática é detectada.
 O método \texttt{advance} chama \texttt{actAdvance} e avança o token.
 Isso possibilita uma reação a um comentário ou a um token qualquer.
 O compilador não usa essa ação semântica.
-A intenção inicial era a existência de um outro `compilador'
-que ao invés de compilar, fizesse \textit{syntax highlighting}
-no texto, ou seja, colorisse os tokens conforme seu tipo.
-Isso incluiria comentários, por isso são considerados tokens,
-mas ignorados gramaticalmente pelo parser.
-Essa ideia não se viabilizou.
+Essa ação semântica é usada no \textit{syntax highlighting},
+uma outro ``compilador'', que serve para atribuir cores ao texto do programa.
+As cores são determinadas conforme o tipo de token e conforme uma 
+paleta pré-definida.
+Desse modo, um comentário pode ser colorido pois não é exatamente ignorado.
 
 Quando uma função está sendo definida, os identificadores de seus argumentos
 passam a ser do tipo \texttt{VARIABLE}.
