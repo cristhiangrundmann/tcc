@@ -15,7 +15,7 @@ namespace tcc
 {
     ImU32 Highlight::palette[10] =
     {
-        PLT(200, 200, 200),   //other symbols
+        PLT(200, 200, 200), //other symbols
         PLT(30, 30, 30),    //EOI
         PLT(78, 201, 176),  //UNDEFINED = VARIABLE
         PLT(86, 156, 214),  //DECLARE
@@ -1141,7 +1141,7 @@ namespace tcc
         "void main()\n{\n"
         "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
         "p = mat2(cos(angle), sin(angle), -sin(angle), cos(angle))*p;"
-        "if(abs(2*p.x) > -p.y) discard;\n"
+        "if(abs(2*p.x) > -(p.y-0.06)) discard;\n"
         "if(p.y < -0.25) discard;\n"
         "color = col;\n"
         "\n}\n");
@@ -1154,6 +1154,26 @@ namespace tcc
         "gl_Position = vec4(pos, 0, 1);\n"
         "opos = pos;\n"
         "\n}\n"
+        );
+
+        lineGeom.compile(GL_GEOMETRY_SHADER,
+        VERSION
+        "layout (lines) in;\n"
+        "layout (triangle_strip, max_vertices = 4) out;\n"
+        "void main()\n{\n"
+        "vec4 diff = gl_in[1].gl_Position/(gl_in[1].gl_Position.w) - gl_in[0].gl_Position/(gl_in[0].gl_Position.w);\n"
+        "vec2 normal = normalize(vec2(-diff.y, diff.x));\n"
+        "vec4 normal4 = vec4(normal, 0, 0);\n"
+        "gl_Position = gl_in[0].gl_Position + normal4/100;\n"
+        "EmitVertex();\n"
+        "gl_Position = gl_in[1].gl_Position + normal4/100;\n"
+        "EmitVertex();\n"
+        "gl_Position = gl_in[0].gl_Position - normal4/100;\n"
+        "EmitVertex();\n"
+        "gl_Position = gl_in[1].gl_Position - normal4/100;\n"
+        "EmitVertex();\n"
+        "EndPrimitive();\n"
+        "}"
         );
 
         for(int objIndex = 0; objIndex < (int)objects.size(); objIndex++)
@@ -1229,10 +1249,10 @@ namespace tcc
                 
                 str << VERSION << hdr.str();
                 compileFunction(o.compSub[0], o.name->argIndex, str, "c");
-                str << "layout (location = 0) in float t;\n";
-                str << "void main()\n{\n";
-                str << "gl_Position = camera*vec4(";
-                str << "c(t), 1);\n}\n";
+                str << "layout (location = 0) in float t;\n"
+                "void main()\n{\n"
+                "gl_Position = camera*vec4("
+                "c(t), 1);\n}\n";
                 
                 //generate opengl objects
                 Shader *sh = new Shader;
@@ -1240,6 +1260,7 @@ namespace tcc
                 sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                 o.program[0].ID = glCreateProgram();
                 glAttachShader(o.program[0].ID, defaultFrag.ID);
+                glAttachShader(o.program[0].ID, lineGeom.ID);
                 o.program[0].link();
                 o.array.create1DGrid(gridt, o.intervals[0]);
                 o.col[0] = 1;
@@ -1326,12 +1347,12 @@ namespace tcc
                 //3d view shader
                 str << VERSION << hdr.str();
                 compileFunction(o.compSub[0], o.name->argIndex, str, "s");     
-                str << "layout (location = 0) in vec2 uv;\n";
-                str << "out vec2 opos;\n";
-                str << "void main()\n{\n";
-                str << "opos = uv;\n";
-                str << "gl_Position = camera*vec4(";
-                str << "s(uv.x, uv.y), 1);\n}\n";
+                str << "layout (location = 0) in vec2 uv;\n"
+                "out vec2 opos;\n"
+                "void main()\n{\n"
+                "opos = uv;\n"
+                "gl_Position = camera*vec4("
+                "s(uv.x, uv.y), 1);\n}\n";
 
                 Shader *sh = new Shader;
                 o.program[0].shaders.push_back(sh);
@@ -1377,54 +1398,53 @@ namespace tcc
                 compileFunction(compute(&s_Gu, subs), o.name->argIndex, str,  "s_Gu");
                 compileFunction(compute(&s_Gv, subs), o.name->argIndex, str,  "s_Gv");
 
-                str << "vec2 accel(float u, float v, float du, float dv)\n{\n";
-                str << "float _E = s_E(u, v);\n";
-                str << "float _F = s_F(u, v);\n";
-                str << "float _G = s_G(u, v);\n";
-                str << "float Eu = s_Eu(u,v);\n";
-                str << "float Ev = s_Ev(u,v);\n";
-                str << "float Fu = s_Fu(u,v);\n";
-                str << "float Fv = s_Fv(u,v);\n";
-                str << "float Gu = s_Gu(u,v);\n";
-                str << "float Gv = s_Gv(u,v);\n";
-                str << "float A = (Gu/2-Fv)*dv*dv-(Eu/2*du+Ev*dv)*du;\n";
-                str << "float B = (Ev/2-Fu)*du*du-(Gv/2*dv+Gu*du)*dv;\n";
-                str << "float R = _E*_G - _F*_F;\n";
-                str << "return mat2(_G, -_F, -_F, _E)*vec2(A, B)/R;\n";
-                str << "}\n";
+                str << "vec2 accel(float u, float v, float du, float dv)\n{\n"
+                "float _E = s_E(u, v);\n"
+                "float _F = s_F(u, v);\n"
+                "float _G = s_G(u, v);\n"
+                "float Eu = s_Eu(u,v);\n"
+                "float Ev = s_Ev(u,v);\n"
+                "float Fu = s_Fu(u,v);\n"
+                "float Fv = s_Fv(u,v);\n"
+                "float Gu = s_Gu(u,v);\n"
+                "float Gv = s_Gv(u,v);\n"
+                "float A = (Gu/2-Fv)*dv*dv-(Eu/2*du+Ev*dv)*du;\n"
+                "float B = (Ev/2-Fu)*du*du-(Gv/2*dv+Gu*du)*dv;\n"
+                "float R = _E*_G - _F*_F;\n"
+                "return mat2(_G, -_F, -_F, _E)*vec2(A, B)/R;\n"
+                "}\n";
 
-                str << "uniform sampler2D tex;\n";
-                str << "out vec4 color;\n";
-                str << "layout (location = 0) uniform vec2 center;\n";
-                str << "layout (location = 1) uniform vec2 X;\n";
-                str << "layout (location = 2) uniform vec2 Y;\n";
-                str << "in vec2 opos;\n";
-                str << "void main()\n{\n";
+                str << "uniform sampler2D tex;\n"
+                "out vec4 color;\n"
+                "layout (location = 0) uniform vec2 center;\n"
+                "layout (location = 1) uniform vec2 X;\n"
+                "layout (location = 2) uniform vec2 Y;\n"
+                "in vec2 opos;\n"
+                "void main()\n{\n";
 
-                str << "color = vec4(0);\n";
-                str << "float l = length(opos);\n";
-                str << "if(l < 0.01) return;\n";
-                str << "int N = int(l * 64);\n";
-                str << "float h = 1.0f/N;\n";
-                str << "vec2 pos = center\n;";
-                str << "vec2 vel = opos.x*X + opos.y*Y;\n";
+                str << "color = vec4(0);\n"
+                "float l = length(opos);\n"
+                "if(l < 0.01) return;\n"
+                "int N = int(l * 64);\n"
+                "float h = 1.0f/N;\n"
+                "vec2 pos = center\n;"
+                "vec2 vel = opos.x*X + opos.y*Y;\n";
 
                 //Runge-Kutta 4 iteration
-                str << "for(int i = 0; i < N; i++)\n{\n";
-                str << "vec2 k1_pos = h*vel;\n";
-                str << "vec2 k1_vel = h*accel(pos.x, pos.y, vel.x, vel.y);\n";
-                str << "vec2 k2_pos = h*(vel+k1_vel/2);\n";
-                str << "vec2 k2_vel = h*accel(pos.x+k1_pos.x/2, pos.y+k1_pos.y/2, vel.x+k1_vel.x/2, vel.y+k1_vel.y/2);\n";
-                str << "vec2 k3_pos = h*(vel+k2_vel/2);\n";
-                str << "vec2 k3_vel = h*accel(pos.x+k2_pos.x/2, pos.y+k2_pos.y/2, vel.x+k2_vel.x/2, vel.y+k2_vel.y/2);\n";
-                str << "vec2 k4_pos = h*(vel+k3_vel);\n";
-                str << "vec2 k4_vel = h*accel(pos.x+k3_pos.x, pos.y+k3_pos.y, vel.x+k3_vel.x, vel.y+k3_vel.y);\n";
-                str << "pos += (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)/6;\n";
-                str << "vel += (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)/6;\n";
-                str << "}\n";
+                str << "for(int i = 0; i < N; i++)\n{\n"
+                "vec2 k1_pos = h*vel;\n"
+                "vec2 k1_vel = h*accel(pos.x, pos.y, vel.x, vel.y);\n"
+                "vec2 k2_pos = h*(vel+k1_vel/2);\n"
+                "vec2 k2_vel = h*accel(pos.x+k1_pos.x/2, pos.y+k1_pos.y/2, vel.x+k1_vel.x/2, vel.y+k1_vel.y/2);\n"
+                "vec2 k3_pos = h*(vel+k2_vel/2);\n"
+                "vec2 k3_vel = h*accel(pos.x+k2_pos.x/2, pos.y+k2_pos.y/2, vel.x+k2_vel.x/2, vel.y+k2_vel.y/2);\n"
+                "vec2 k4_pos = h*(vel+k3_vel);\n"
+                "vec2 k4_vel = h*accel(pos.x+k3_pos.x, pos.y+k3_pos.y, vel.x+k3_vel.x, vel.y+k3_vel.y);\n"
+                "pos += (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)/6;\n"
+                "vel += (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)/6;\n"
+                "}\n";
 
-                str << "color = texture(tex, pos);\n";
-                str << "}";
+                str << "color = texture(tex, pos);\n}";
 
                 //compile the custom shader
                 {
@@ -1453,9 +1473,10 @@ namespace tcc
 
                 compileFunction(o.compSub[0], -1, str, "p");
 
-                str << "void main()\n{\n";
-                str << "gl_Position = camera*vec4(";
-                str << "p(), 1);\n}\n";
+                str << "void main()\n{\n"
+                "gl_Position = camera*vec4("
+                "p(), 1);\n"
+                "gl_PointSize = 40/gl_Position.w;\n}";
 
                 o.program[0].shaders.push_back(new Shader);
                 o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1495,21 +1516,23 @@ namespace tcc
                 compileFunction(o.compSub[0], -1, str, "v");
                 compileFunction(o.compSub[1], -1, str, "v_org");
 
-                str << "layout (location = 0) in float t;\n";
-                str << "out float angle;\n";
-                str << "void main()\n{\n";
-                str << "gl_Position = camera*vec4(v_org()+t*v(), 1);\n";
-                str << "vec4 b = camera*vec4(v_org()+v(), 1);\n";
-                str << "vec4 a = camera*vec4(v_org(), 1);\n";
-                str << "vec4 diff = b/abs(b.w)-a/abs(a.w);\n";
-                //get arrow angle
-                str << "angle = atan(diff.x, -diff.y);\n}\n";
+                str << "layout (location = 0) in float t;\n"
+                "out float angle;\n"
+                "void main()\n{\n"
+                "gl_Position = camera*vec4(v_org()+t*v(), 1);\n"
+                "gl_PointSize = 160/gl_Position.w;\n"
+                "vec4 b = camera*vec4(v_org()+v(), 1);\n"
+                "vec4 a = camera*vec4(v_org(), 1);\n"
+                "vec4 diff = b/abs(b.w)-a/abs(a.w);\n"
+                "//get arrow angle\n"
+                "angle = atan(diff.x, -diff.y);\n}\n";
 
                 o.program[0].shaders.push_back(new Shader);
                 o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
                 o.program[0].ID = glCreateProgram();
                 glAttachShader(o.program[0].ID, defaultFrag.ID);
+                glAttachShader(o.program[0].ID, lineGeom.ID);
 
                 o.program[0].link();
 
@@ -1534,9 +1557,9 @@ namespace tcc
     void Compiler::header(std::stringstream &str)
     {
         blockSize = 64; //camera matrix is 64 bytes
-        str << "float Cpi = " << Parser::CPI << ";\n";
-        str << "float Ce = " << Parser::CE << ";\n";
-        str << "layout (std140, binding = 0) uniform Header\n{\n\tmat4 camera;\n";
+        str << "float Cpi = " << Parser::CPI << ";\n"
+        "float Ce = " << Parser::CE << ";\n"
+        "layout (std140, binding = 0) uniform Header\n{\n\tmat4 camera;\n";
     
         for(Obj &o : objects)
         {

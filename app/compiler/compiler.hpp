@@ -260,6 +260,7 @@ namespace tcc
         Shader defaultFrag{};
         Shader texFrag{};
         Shader uvFrag{};
+        Shader lineGeom{};
 
         bool compiled = false;
 

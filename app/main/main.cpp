@@ -175,7 +175,6 @@ void draw3(Obj &o)
         glBindVertexArray(cmp->quad.ID);
         glBindFramebuffer(GL_FRAMEBUFFER, o.frame.ID);
         glViewport(0, 0, cmp->geoSize.width, cmp->geoSize.height);
-        glEnable(GL_TEXTURE_2D);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
@@ -214,7 +213,6 @@ void draw2(Obj &o)
 
     if(o.type == cmp->point)
     {
-        glPointSize(10);
         glUseProgram(o.program[0].ID);
         glBindVertexArray(cmp->line.ID);
         glDrawArrays(GL_POINTS, 0, 1);
@@ -222,7 +220,6 @@ void draw2(Obj &o)
 
     if(o.type == cmp->vector)
     {
-        glPointSize(40);
         glBindVertexArray(cmp->line.ID);
         glUseProgram(o.program[0].ID);
         glDrawArrays(GL_LINES, 0, 2);
@@ -350,12 +347,12 @@ int main(int, char**)
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     glEnable(GL_DEPTH_TEST);
-    glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
-
 
     defTexture = new Texture;
     defTexture->load("default.png");
     textures.push_front(defTexture);
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     while (!glfwWindowShouldClose(window))
     {
