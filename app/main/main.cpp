@@ -45,6 +45,7 @@ struct PersInt
 struct Pers
 {
     std::string name;
+    std::string type;
     Color color{};
     Texture *texture{};
     std::vector<PersInt> ints;
@@ -412,12 +413,19 @@ int main(int, char**)
                     //save persistence
                     for(Obj &o : cmp->objects)
                     {
+                        if(o.type == cmp->define) continue;
+                        if(o.type == cmp->grid) continue;
+                        if(o.type == cmp->function) continue;
                         Pers p;
                         p.name = o.name->str;
+                        p.type = o.type->str;
                         p.texture = o.texture;
                         for(int i = 0; i < 4; i++) p.color[i] = o.col[i];
-                        for(Interval &ivl : o.intervals)
-                            p.ints.push_back({ivl.number, ivl.animate});
+                        if(o.type == cmp->param)
+                        {
+                            for(Interval &ivl : o.intervals)
+                                p.ints.push_back({ivl.number, ivl.animate});
+                        }
                         p.zoom = o.zoom;
                         p.center = o.center;
                         p.X = o.X;
@@ -446,6 +454,7 @@ int main(int, char**)
 
                         for(Pers &p : persistence)
                         if(p.name.compare(o.name->str) == 0)
+                        if(p.type.compare(o.type->str) == 0)
                         {
                             o.texture = p.texture;
 
