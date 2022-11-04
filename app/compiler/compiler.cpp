@@ -1243,7 +1243,7 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
                 
                 if(o.nTuple != 3)
-                    throw std::string("Curves should be in 2d or 3d space: ") + o.name->str;
+                    throw std::string("Curves should be in 3d space: ") + o.name->str;
 
                 SymbExpr ct = op(S(TOTAL), o.sub[0]);
                 
@@ -1467,7 +1467,7 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
 
                 if(o.nTuple != 3)
-                    throw std::string("Points must be in 2d or 3d space: ") + o.name->str;
+                    throw std::string("Points must be in 3d space: ") + o.name->str;
 
                 str << VERSION << hdr.str();
 
@@ -1506,10 +1506,10 @@ namespace tcc
                 o.nTuple = o.compSub[0]->nTuple;
 
                 if(o.nTuple != 3)
-                    throw std::string("Vectors must be in 2d or 3d space: ") + o.name->str;
+                    throw std::string("Vectors must be in 3d space: ") + o.name->str;
 
                 if(o.compSub[1]->nTuple != o.nTuple)
-                    throw std::string("Vectors must be in 2d or 3d space: ") + o.name->str;
+                    throw std::string("Vectors must be in 3d space: ") + o.name->str;
 
                 str << VERSION << hdr.str();
 

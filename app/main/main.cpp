@@ -31,6 +31,31 @@ vec3 center = vec3(0, 0, 0); //camera center
 vec2 angle = vec2(0, 0); //camera spherical angles
 float speed = 1.0f; //camera speed (affects geodesic tracing camera too)
 
+//for text editor
+#define SIZE 1024*16
+char text[SIZE];
+char buf_palette[SIZE];
+
+struct PersInt
+{
+    float number{};
+    bool animate{};
+};
+
+struct Pers
+{
+    std::string name;
+    Color color{};
+    Texture *texture{};
+    std::vector<PersInt> ints;
+    float zoom = 1;
+    glm::vec2 center{}, X{}, Y{};
+};
+
+//Color and texture persistence for objects
+//Any changes to programs would reset all settings
+std::vector<Pers> persistence;
+
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -295,8 +320,6 @@ void tri(vec2 angle, vec3 vecs[3])
     vecs[2] = cross(vecs[0], vecs[1]);
 }
 
-char buf_palette[1024 * 16];
-
 //callback to text editor
 int syntaxHighlight(ImGuiInputTextCallbackData* data)
 {
@@ -367,7 +390,6 @@ int main(int, char**)
         //Program input text, frame and geo sizes and camera speed controls
 		{
 			ImGui::Begin("Program");
-			static char text[1024 * 16];
 
             ImGui::PushFont(f2);
             ImGui::InputTextMultiline("src", text, IM_ARRAYSIZE(text),
@@ -387,6 +409,21 @@ int main(int, char**)
             {
                 if(cmp->compiled)
                 {
+                    //save persistence
+                    for(Obj &o : cmp->objects)
+                    {
+                        Pers p;
+                        p.name = o.name->str;
+                        p.texture = o.texture;
+                        for(int i = 0; i < 4; i++) p.color[i] = o.col[i];
+                        for(Interval &ivl : o.intervals)
+                            p.ints.push_back({ivl.number, ivl.animate});
+                        p.zoom = o.zoom;
+                        p.center = o.center;
+                        p.X = o.X;
+                        p.Y = o.Y;
+                        persistence.push_back(p);
+                    }
                     delete cmp;
                     cmp = new Compiler;
                 }
@@ -396,6 +433,58 @@ int main(int, char**)
                     cmp->geoSize = {(unsigned int)geoSize, (unsigned int)geoSize};
                     cmp->compile(text);
                     msg = "OK";
+                    
+                    changed = true;
+                    colorChanged = true;
+                    selectedObject = nullptr;
+                    selTex = false;
+
+                    //apply persistence
+                    for(Obj &o : cmp->objects)
+                    {
+                        o.texture = defTexture;
+
+                        for(Pers &p : persistence)
+                        if(p.name.compare(o.name->str) == 0)
+                        {
+                            o.texture = p.texture;
+
+                            for(int i = 0; i < 4; i++) o.col[i] = p.color[i];
+                            glUseProgram(o.program[0].ID);
+                            glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+
+                            if(o.type == cmp->vector)
+                            {
+                                glUseProgram(o.program[1].ID);
+                                glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
+                            }
+
+                            o.zoom = p.zoom;
+                            o.center = p.center;
+                            o.X = p.X;
+                            o.Y = p.Y;
+
+                            if(o.type == cmp->surface)
+                            {
+                                glUseProgram(o.program[2].ID);
+                                glUniform2f(0, o.center.x, o.center.y);
+                                glUniform2f(1, o.X.x, o.X.y);
+                                glUniform2f(2, o.Y.x, o.Y.y);
+                            }
+
+                            for(size_t i = 0; (i < o.intervals.size()) && (i < p.ints.size()); i++)
+                            {
+                                o.intervals[i].number = p.ints[i].number;
+                                o.intervals[i].animate = p.ints[i].animate;
+
+                                glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
+                                glBufferSubData(GL_UNIFORM_BUFFER, o.intervals[i].offset,
+                                4, &o.intervals[i].number);
+                                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+                            }
+                        }
+                    }
+
                     persp = glm::perspective<float>(120, 1, 0.1, 100);
                     vec3 vecs[3];
                     tri(angle, vecs);
@@ -404,10 +493,6 @@ int main(int, char**)
                     glBindBuffer(GL_UNIFORM_BUFFER, cmp->block.ID);
                     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &camera);
                     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-                    changed = true;
-                    selectedObject = nullptr;
-                    selTex = false;
-                    for(Obj &o : cmp->objects) o.texture = defTexture;
                 }
                 catch(std::string err)
                 {
@@ -416,6 +501,7 @@ int main(int, char**)
                    delete cmp;
                    cmp = new Compiler;
                 }
+                persistence.clear();
             }
 
             ImGui::Text("Status: %s", msg);
