@@ -352,7 +352,7 @@ int main(int, char**)
     GLFWwindow* window = glfwCreateWindow(1280, 720, "tcc", NULL, NULL);
     if(!window) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    //glfwSwapInterval(1);
 
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
@@ -380,6 +380,7 @@ int main(int, char**)
 
     while (!glfwWindowShouldClose(window))
     {
+        glfwSwapInterval(1);
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -751,6 +752,8 @@ int main(int, char**)
                 0, 0, cmp->frameSize.width, cmp->frameSize.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             }
 
+            if(changed || colorChanged) glfwSwapInterval(0);
+            
             changed = false;
             colorChanged = false;
 

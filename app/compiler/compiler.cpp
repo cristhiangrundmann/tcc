@@ -1128,8 +1128,9 @@ namespace tcc
         "layout (location = 0) out vec4 color;\n"
         "void main()\n{\n"
         "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
-        "if(length(p) > 0.5) discard;\n"
-        "color = col;\n"
+        "float l = 1-2*length(p);\n"
+        "if(l < 0) discard;\n"
+        "color = col * sqrt(l*1.25);\n"
         "\n}\n"
         );
 
@@ -1144,7 +1145,8 @@ namespace tcc
         "if(abs(2*p.x) > -(p.y-0.06)) discard;\n"
         "if(p.y < -0.25) discard;\n"
         "color = col;\n"
-        "\n}\n");
+        "\n}\n"
+        );
 
         defaultVert.compile(GL_VERTEX_SHADER, 
         VERSION
