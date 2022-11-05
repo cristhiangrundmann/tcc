@@ -26,7 +26,6 @@ point p2 = f2(t0, at0);
 point p3 = f2(t0, at0+pi);
 curve c3(t) = tp3 + (1-t)p2, t : [0, 1];
 
-
 #klein bottle
 surface s(u,v) = 
 (
@@ -44,7 +43,8 @@ surface s(u,v) = (-(2cos u + 3)cos v, -(2cos u + 3)sin v, -2sin u), u : [0, 2pi]
 
 #sphere and coordinates
 function f(u,v) = 
-	(sin(piv)cos(2piu), sin(piv)sin(2piu), cos(piv));
+	(sin(piv)cos(2piu), 
+	 -sin(piv)sin(2piu), cos(piv));
 
 param U : [0, 1];
 param V : [0, 1];
@@ -61,3 +61,7 @@ vector vv = Nf_v(U,V) @ p;
 
 surface s(u,v) = f(u,v)*0.99, 
 u : [0, 1], v : [0, 1];
+
+#cone
+surface s(u,v) = (u, v, sqrt(uu+vv)),
+u : [-1, 1], v : [-1, 1];

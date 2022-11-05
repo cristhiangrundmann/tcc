@@ -8,4 +8,4 @@ Orientando: Cristhian Grundmann
 
 Orientadora: Asla Medeiros e Sá
 
-![preview](preview.png)
+![preview](tcc/trabalho/files/preview.png)

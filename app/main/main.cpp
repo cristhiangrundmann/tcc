@@ -410,6 +410,8 @@ int main(int, char**)
             {
                 if(cmp->compiled)
                 {
+                    persistence.clear();
+                    
                     //save persistence
                     for(Obj &o : cmp->objects)
                     {
@@ -510,7 +512,6 @@ int main(int, char**)
                    delete cmp;
                    cmp = new Compiler;
                 }
-                persistence.clear();
             }
 
             ImGui::Text("Status: %s", msg);
