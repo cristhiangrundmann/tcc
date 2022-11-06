@@ -1130,7 +1130,7 @@ namespace tcc
         "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
         "float l = 1-2*length(p);\n"
         "if(l < 0) discard;\n"
-        "color = col * sqrt(l*1.25);\n"
+        "color = col * sqrt(l*1.5);\n"
         "\n}\n"
         );
 
@@ -1478,7 +1478,8 @@ namespace tcc
                 str << "void main()\n{\n"
                 "gl_Position = camera*vec4("
                 "p(), 1);\n"
-                "gl_PointSize = 40/gl_Position.w;\n}";
+                "gl_PointSize = (40.0f/512.0f)/gl_Position.w;\n"
+                "gl_PointSize *= " << std::to_string(frameSize.width) << ";\n}";
 
                 o.program[0].shaders.push_back(new Shader);
                 o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
@@ -1522,7 +1523,8 @@ namespace tcc
                 "out float angle;\n"
                 "void main()\n{\n"
                 "gl_Position = camera*vec4(v_org()+t*v(), 1);\n"
-                "gl_PointSize = 160/gl_Position.w;\n"
+                "gl_PointSize = (160.0f/512.0f)/gl_Position.w;\n"
+                "gl_PointSize *= " << std::to_string(frameSize.width) << ";\n"
                 "vec4 b = camera*vec4(v_org()+v(), 1);\n"
                 "vec4 a = camera*vec4(v_org(), 1);\n"
                 "vec4 diff = b/abs(b.w)-a/abs(a.w);\n"

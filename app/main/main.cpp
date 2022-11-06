@@ -30,6 +30,7 @@ mat4 look; //lookat/camera view matrix
 vec3 center = vec3(0, 0, 0); //camera center
 vec2 angle = vec2(0, 0); //camera spherical angles
 float speed = 1.0f; //camera speed (affects geodesic tracing camera too)
+Color back{};
 
 //for text editor
 #define SIZE 1024*16
@@ -584,6 +585,8 @@ int main(int, char**)
                 }
             }
 
+            colorChanged = false;
+
             //settings window
             ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -591,6 +594,8 @@ int main(int, char**)
                 ImGui::SliderFloat("Camera speed", &speed, 
                 0.1f, 10.0f, "%.3f",
                 ImGuiSliderFlags_AlwaysClamp);
+                if(ImGui::ColorEdit3("Background color", back, ImGuiColorEditFlags_NoInputs))
+                    colorChanged = true;
             }
 
             //handle parameter sliders
@@ -636,8 +641,6 @@ int main(int, char**)
                 }
             }
 
-            colorChanged = false;
-
             //handle drawable objects' colors and textures
             for(Obj &o : cmp->objects)
             {
@@ -647,16 +650,9 @@ int main(int, char**)
                 o.type == cmp->point ||
                 o.type == cmp->vector)
                 {
-                    Color col = {o.col[0], o.col[1], o.col[2], o.col[3]};
-                    ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs);
-
-                    glUseProgram(o.program[0].ID);
-
-                    if(col[0] != o.col[0] ||
-                    col[1] != o.col[1] ||
-                    col[2] != o.col[2] ||
-                    col[3] != o.col[3])
+                    if(ImGui::ColorEdit3(o.name->str.c_str(), o.col, ImGuiColorEditFlags_NoInputs))
                     {
+                        glUseProgram(o.program[0].ID);
                         colorChanged = true;
                         glUniform4f(0, o.col[0], o.col[1], o.col[2], o.col[3]);
 
@@ -731,7 +727,7 @@ int main(int, char**)
             {
                 glBindFramebuffer(GL_FRAMEBUFFER, cmp->frameMS.ID);
                 glViewport(0, 0, cmp->frameSize.width, cmp->frameSize.height);
-                glClearColor(0, 0, 0, 1);
+                glClearColor(back[0], back[1], back[2], 1);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             }
 
