@@ -4,15 +4,16 @@ espaço ambiente 3D ou 2D, como em MatLab, Mathematica e Geogebra.
 Uma curva ou superfície é definida numa linguagem e então é renderizada.
 Uma forma muito comum de renderização é a discretização da curva ou superfície,
 formando segmentos no caso de uma curva, ou triângulos para superfícies.
-O usuário então pode interagir com a software, podendo mudar a orientação e a posição
-da câmera.
+O usuário então é um observador externo à superfície, posicionado no espaço ambiente
+3D, podendo se mover e mudar seu ponto de vista da superfície.
 
 O objetivo desse projeto é a visualização de curvas e superfícies.
 Esse projeto também implementa uma visualização de superfícies que não depende de um espaço ambiente.
 Para isso, é necessário uma imagem sobre a superfície, para poder observá-la.
 
-A visualização pode ser comparada ao que um ser bidimensional interno à superfície observaria:
-simula-se raios de luz partindo da posição do ser, e os pontos iluminados são observados.
+A visualização simula um observador posicionado sobre a superfície, que percorre o mundo
+restrito à essa dimensão.
+Para isso, imula-se raios de luz partindo da posição do ser, e os pontos iluminados são observados.
 Os raios de luz devem seguir caminhos em `linha reta', que minimizam distância.
 Para uma superfície qualquer, esses caminhos são chamados de geodésicos,
 estudados na geometria diferencial, e descritos no capítulo \ref{geomdiff}.
@@ -46,3 +47,9 @@ A interface está descrita no capítulo \ref{interface}.
 O objetivo primário desse projeto é a visualização de curvas, superfícies, e o geodesic tracing.
 Porém, a estética dos gráficos e da linguagem descritiva, performance
 e robustez do sistema também são levados em consideração.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{preview.png}
+    \caption{Exemplo da visualização}
+    \label{img:preview}
+\end{figure}

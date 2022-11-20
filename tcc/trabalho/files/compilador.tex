@@ -38,6 +38,9 @@ Um lexema, sua classe gramatical e seus atributos juntos formam um \textbf{token
 
 Os tipos de token são:
 
+\begin{table}[ht]
+\caption{Tipos de tokens}
+\label{tokentypes}
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
 \hline \texttt{COMMENT} & texto livre, começando com \texttt{"\#"} e
@@ -53,6 +56,7 @@ terminando com uma quebra de linha ou o fim do código-fonte.\\
 \hline
 \end{tabularx}
 \end{centering}
+\end{table}
 
 A estrutura \texttt{Lexer}(\ref{lexer}) define o analisador léxico.
 \begin{lstlisting}[label=lexer, caption=Extrutura do Lexer]
@@ -75,6 +79,9 @@ struct Lexer
 O lexer lê os tokens um de cada vez, da esquerda para a direita.
 Essa estrutura guarda as seguintes informações sobre o token atual:
 
+\begin{table}[ht]
+\caption{Estrutura do token}
+\label{token}
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
 \hline \texttt{source} & string do código-fonte inteiro. \\
@@ -90,6 +97,7 @@ contendo mais informações sobre o token. \\
 \hline
 \end{tabularx}
 \end{centering}
+\end{table}
 
 O lexer tem apenas o método \texttt{advance}, que serve para avançar
 para o próximo token. O método também é usado para inicializar o

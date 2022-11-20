@@ -55,6 +55,7 @@
 \usepackage{amsthm, amssymb, amsmath, mathtools}
 
 % Outros 
+%\usepackage{float}
 \usepackage{tabularx}
 \usepackage{listings}
 \renewcommand{\lstlistingname}{Código}
@@ -209,7 +210,7 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 %----------- Personal Definitions ---------------------
 %------------------------------------------------------
 
-\input{files/definitions.tex}
+%\input{files/definitions.tex}
 
 %-------------------------------------------------
 %----------------- Document ----------------------
@@ -248,9 +249,9 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 %\listoffigures*
 %\cleardoublepage
 
-% \pdfbookmark[0]{\listofquadrosname}{loq}
-% \listofquadros*
-% \cleardoublepage
+%\pdfbookmark[0]{\listofquadrosname}{loq}
+%\listofquadros*
+%\cleardoublepage
 
 %\pdfbookmark[0]{\listtablename}{lot}
 %\listoftables*
@@ -282,15 +283,15 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 % ----------------------------------------------------------
 \phantompart
 
-\input{files/linguagem.tex}
-
 \input{files/geomdiff.tex}
+
+\input{files/linguagem.tex}
 
 \input{files/numeric.tex}
 
 \input{files/interface.tex}
 
-\input{files/compilador.tex}
+%\input{files/compilador.tex}
 
 %\input{files/desenvolvimento.tex}
 
@@ -314,12 +315,14 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 % ---
 % Inicia os apêndices
 % ---
-% \begin{apendicesenv}
+\begin{apendicesenv}
 
 % % Imprime uma página indicando o início dos apêndices
-% \partapendices
+%\partapendices
 
-% \end{apendicesenv}
+\input{files/compilador.tex}
+
+\end{apendicesenv}
 % ---
 
 % ----------------------------------------------------------
