@@ -4,6 +4,9 @@ O objetivo primário do projeto é visualizar curvas e superfícies.
 As curvas são visualizadas apenas em espaço 3D.
 As superfícies são visualizadas em espaço 3D e em \textit{geodesic tracing}.
 
+O estudo da geometria diferencial de curvas e superfícies é
+essencial para o geodesic tracing, e a teoria foi baseada em \cite{GeomDiff:1}.
+
 \section{Curvas}
 Há duas principais maneiras de se definir uma curva na geometria analítica:
 por parametrização e por equação. Esse trabalho apenas consideras curvas paramétricas.
@@ -22,7 +25,7 @@ O vetor tangente pode ser calculado com $\gamma'(t)$.
 \section{Superfícies}
 Assim como as curvas, apenas superfícies parametrizadas serão consideradas nesse trabalho:
 $\sigma :  I_1 \times I_2 \rightarrow \mathbb{R}^3$, onde $I_1$ e $I_2$ são intervalos fechados reais.
-Além disso, apenas superfícies regulares serão consideradas: a parametrização é suave e
+Além disso, apenas superfícies \textit{regulares} serão consideradas: a parametrização é suave e
 os vetores tangentes são linearmente independentes.
 
 As superfícies são desenhadas através de vários triângulos,
@@ -111,6 +114,7 @@ Como o produto escalar pode definir as noções de comprimento e ângulo, vetore
 paralelamente à uma curva mantém seus comprimentos e ângulos entre si.
 
 \subsection{Equação de um caminho geodésico}
+Uma curva $\gamma$ é dita regular quando $\gamma' \neq 0$ em todo ponto.
 Uma curva regular $\gamma$ sobre a superfície é dita geodésica quando
 $\gamma'$ é paralelo ao longo de $\gamma$.
 Nesse caso, um ser perceberia $\gamma'$(velocidade) como constante, e a curva $\gamma$ pode

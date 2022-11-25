@@ -4,7 +4,7 @@ espaço ambiente 3D ou 2D, como em MatLab, Mathematica e Geogebra.
 Uma curva ou superfície é definida numa linguagem e então é renderizada.
 Uma forma muito comum de renderização é a discretização da curva ou superfície,
 formando segmentos no caso de uma curva, ou triângulos para superfícies.
-O usuário então é um observador externo à superfície, posicionado no espaço ambiente
+Nesse caso, o usuário é um observador externo à superfície, posicionado no espaço ambiente
 3D, podendo se mover e mudar seu ponto de vista da superfície.
 
 O objetivo desse projeto é a visualização de curvas e superfícies.
@@ -13,7 +13,7 @@ Para isso, é necessário uma imagem sobre a superfície, para poder observá-la
 
 A visualização simula um observador posicionado sobre a superfície, que percorre o mundo
 restrito à essa dimensão.
-Para isso, imula-se raios de luz partindo da posição do ser, e os pontos iluminados são observados.
+Para isso, simula-se raios de luz partindo da posição do observador, e os pontos iluminados são observados.
 Os raios de luz devem seguir caminhos em `linha reta', que minimizam distância.
 Para uma superfície qualquer, esses caminhos são chamados de geodésicos,
 estudados na geometria diferencial, e descritos no capítulo \ref{geomdiff}.
@@ -28,8 +28,8 @@ O compilador fornece uma maneira do usuário definir as superfícies e outros ob
 O usuário escreve um texto, seguindo algumas regras gramaticais, que então é processado.
 A teoria de compiladores é essencial para essa etapa,
 principalmente a análise léxica e a análise sintática \cite{Dragon:1}.
-O compilador está descrito no capítulo \ref{comp}.
-A linguagem, com exemplos de programas, está descrita no capítulo \ref{lang}.
+O compilador está descrito no apêndice \ref{comp}.
+A linguagem de especificação dos objetos gráficos, com exemplos de programas, está descrita no capítulo \ref{lang}.
 
 O método numérico se refere à simulação dos raios de luz na superfície.
 Um raio de luz é determinado pela posição e direção inicial, que são as condições iniciais.
@@ -48,8 +48,36 @@ O objetivo primário desse projeto é a visualização de curvas, superfícies, 
 Porém, a estética dos gráficos e da linguagem descritiva, performance
 e robustez do sistema também são levados em consideração.
 
+A figura \ref{img:preview} demonstra a interface gráfica.
+
 \begin{figure}[!ht]
     \includegraphics[width=\linewidth]{preview.png}
     \caption{Exemplo da visualização}
     \label{img:preview}
 \end{figure}
+
+A figura \ref{img:chart} representa os estágios da aplicação.
+
+\begin{figure}[!ht]
+    \includegraphics[width=\linewidth]{chart.png}
+    \caption{Estágios da aplicação}
+    \label{img:chart}
+\end{figure}
+
+A entrada se refere ao texto que o usuário escreve para definir os objetos matemáticos.
+O texto é digitado na própria interface gráfica, numa caixa de texto multilinha
+e com \textit{Syntax Highlighting}: cores associadas às palavras e símbolos.
+
+A compilação se refere ao processamento da entrada.
+Eventualmente, o usuário pode cometer erros sintáticos ou semânticos.
+Esses erros são detectados no compilador, e uma mensagem de erro é emitida.
+Se o texto for válido, várias estruturas de dados são geradas,
+com todas as informações relevantes sobre os objetos. Além disso,
+\textit{Shaders} são gerados e compilados.
+Cada shader faz a renderização de um objeto.
+Para superfícies, um outro shader é necessário para fazer o geodesic tracing.
+
+A saída se refere ao produto final da compilação.
+Todos os objetos são desenhados na interface gráfica.
+Além disso, o usuário pode controlar vários aspectos da visualização,
+como a câmera, e controles deslizantes para os parâmetros.

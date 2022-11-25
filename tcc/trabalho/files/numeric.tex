@@ -23,6 +23,10 @@ t_1 & = t_0 + h
 \end{split}
 \end{equation}
 
+Após um passo, o erro de $y_1$ estimado com o valor real é da ordem de $O(h^4)$.
+Como a aproximação é melhor para $h \rightarrow 0$, esse resultado garante uma precisão
+muito melhor que ao método de Euler, que possui erro na ordem de $O(h)$.
+
 As equações devem ser adaptadas para o sistema \ref{geoeq2}, pois é de 
 segunda ordem e possui mais de uma equação.
 O sistema pode ser escrito vetorialmente:
@@ -54,3 +58,27 @@ e fazendo $y$ como $(\text{pos}, \text{vel})$.
     \text{vel}_1 & = (v_1+2v_2+2v_3+v_4)/6
 \end{split}
 \end{equation}
+
+A implementação do sistema \ref{method} define um passo do método de Runge-Kutta,
+e é feita no código \ref{impMethod}
+
+\begin{lstlisting}[caption=Implementação do método de Runge-Kutta, label=impMethod]
+//Runge-Kutta 4 step on surfaces
+void step(Obj &o, vec2 &pos, vec2 &vec, float h)
+{
+    vec2 k1_pos = h*vec;
+    vec2 k1_vec = h*accel(o, pos, vec);
+    vec2 k2_pos = h*(vec+k1_vec/2.0f);
+    vec2 k2_vec = h*accel(o, pos+k1_pos/2.0f, vec+k1_vec/2.0f);
+    vec2 k3_pos = h*(vec+k2_vec/2.0f);
+    vec2 k3_vec = h*accel(o, pos+k2_pos/2.0f, vec+k2_vec/2.0f);
+    vec2 k4_pos = h*(vec+k3_vec);
+    vec2 k4_vec = h*accel(o, pos+k3_pos, vec+k3_vec);
+    pos += (k1_pos + 2.0f*k2_pos + 2.0f*k3_pos + k4_pos)/6.0f;
+    vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
+}
+\end{lstlisting}
+
+No código, o argumento \texttt{o} representa o objeto da superfície dado pelo compilador.
+Os argumentos \texttt{pos}, \texttt{vel} e \texttt{h} são as variáveis correspondentes ao sistema \ref{method}.
+A função \texttt{accel} obtém a aceleração baseada na posição e velocidade.

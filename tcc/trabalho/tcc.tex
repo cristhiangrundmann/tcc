@@ -147,8 +147,8 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 		pdftitle={\@title}, 
 		pdfauthor={\@author},
     	pdfsubject={\imprimirpreambulo},
-	    pdfcreator={LaTeX with abnTeX2},
-		pdfkeywords={abnt}{latex}{abntex}{abntex2}{trabalho acadêmico}, 
+	    pdfcreator={pdflatex},
+		pdfkeywords={tcc}, 
 		colorlinks=true,       		% false: boxed links; true: colored links
     	linkcolor=blue,          	% color of internal links
     	citecolor=blue,        		% color of links to bibliography
@@ -228,7 +228,7 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 %----------------------------------------------
 %--------------- Pré-textuais -----------------
 %----------------------------------------------
-%\pretextual
+\pretextual
 
 \imprimircapa
 
@@ -259,12 +259,14 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 
 %\input{files/siglas_simbolos.tex}
 
-%\pdfbookmark[0]{\listtablename}{loc}
+%\counterwithout{lstlisting}{chapter}
+%\pdfbookmark[0]{\lstlistlistingname}{loc} %why duplicate?
 %\lstlistoflistings
 %\cleardoublepage
 
 }\fi
 
+%\renewcommand{\tocheadstart}{\ABNTEXchapterfont}
 %\pdfbookmark[0]{\contentsname}{toc}
 %\tableofcontents*
 %\cleardoublepage
@@ -318,7 +320,7 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 \begin{apendicesenv}
 
 % % Imprime uma página indicando o início dos apêndices
-%\partapendices
+\partapendices
 
 \input{files/compilador.tex}
 
