@@ -2,6 +2,7 @@
 \label{interface}
 
 A interface gráfica é responsável pela interação com o usuário.
+Nela, o usuário escreve o programa, visualiza e interage com os objetos.
 
 Uma janela, ``Program'', contém um caixa de texto multilinha, onde
 o usuário deve escrever o programa.
@@ -78,6 +79,10 @@ A câmera pode ser controlada da seguinte forma:
 \end{centering}
 \end{table}
 
+A renderização dos objetos utiliza um antiserrilhado, melhorando sua estética.
+Além disso, o desenho das linhas considera uma grossura que leva
+em consideração a perspectiva, assim como os pontos e vetores.
+
 Para uma superfície ``X'', a janela ``Geodesic Tracing - X'' é exibida.
 A janela exibe a visualização do geodesic tracing.
 
@@ -110,3 +115,17 @@ A câmera pode ser controlada da seguinte forma:
 \end{tabularx}
 \end{centering}
 \end{table}
+
+Dependendo da expansão ou contração da imagem gerada no geodesic tracing,
+o tamanho dos pixels pode ficar grandes ou pequenos demais. O primeiro caso
+deixa os pixels individuais evidentes, e o segundo gera ruído, pois pixels distantes
+de cores muito diferentes ``competem'' para serem exibidos.
+A exibição da textura é feita com filtro de magnificação linear, fazendo as transições
+de pixels grandes mais suave, resolvendo o primeiro problema.
+O segundo problema foi resolvido com a técnica de \textit{mipmapping} linear.
+Nessa técnica, a textura é copiada em resoluções progressivamente menores.
+Por exemplo, um tabuleiro de xadrez possui casas brancas e pretas, e sua menor resolução
+é apenas um píxel cinza. Desse modo, quando a textura está muito contraída, 
+uma versão de resolução menor é usada, resolvendo o ruído.
+Essas técnicas podem ser facilmente obtidas configurando o OpenGL,
+como pode ser observado em \cite{LearnOpenGL}.

@@ -1,0 +1,14 @@
+//Runge-Kutta 4 step on surfaces
+void step(Obj &o, vec2 &pos, vec2 &vec, float h)
+{
+    vec2 k1_pos = h*vec;
+    vec2 k1_vec = h*accel(o, pos, vec);
+    vec2 k2_pos = h*(vec+k1_vec/2.0f);
+    vec2 k2_vec = h*accel(o, pos+k1_pos/2.0f, vec+k1_vec/2.0f);
+    vec2 k3_pos = h*(vec+k2_vec/2.0f);
+    vec2 k3_vec = h*accel(o, pos+k2_pos/2.0f, vec+k2_vec/2.0f);
+    vec2 k4_pos = h*(vec+k3_vec);
+    vec2 k4_vec = h*accel(o, pos+k3_pos, vec+k3_vec);
+    pos += (k1_pos + 2.0f*k2_pos + 2.0f*k3_pos + k4_pos)/6.0f;
+    vec += (k1_vec + 2.0f*k2_vec + 2.0f*k3_vec + k4_vec)/6.0f;
+}

@@ -58,8 +58,11 @@
 %\usepackage{float}
 \usepackage{tabularx}
 \usepackage{listings}
+\usepackage{tocloft}
+\usepackage{newfloat}
+
+%\renewcommand{\lstlistlistingname}{Lista de códigos}
 \renewcommand{\lstlistingname}{Código}
-\renewcommand{\lstlistlistingname}{Lista de códigos}
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true, numbers=left,
 inputencoding=utf8, extendedchars=true, frame=single,
 literate=%
@@ -91,6 +94,22 @@ literate=%
         {Î}{{\^{I}}}1
         {í}{{\'{i}}}1
         {Í}{{\~{Í}}}1
+}
+
+%remake table of contents for code listings
+\newcommand{\listofcodesname}{Lista de códigos}
+\newcommand{\codename}{Código}
+\newlistof{codestoc}{locd}{\listofcodesname}
+%\setcounter{locddepth}{1}
+\newlistentry{codestocchapter}{locd}{0}
+\renewcommand{\cftcodestocchaptername}{\codename\space}
+\renewcommand*{\cftcodestocchapteraftersnum}{\hfill--\hfill}
+\counterwithout{codestocchapter}{chapter}
+
+\newcommand{\code}[3]{%
+    \refstepcounter{codestocchapter}%
+    \addcontentsline{locd}{codestocchapter}{{\protect\numberline{\thecodestocchapter}#2}}%
+    \lstinputlisting[caption=#2, label=#3]{#1}%
 }
 
 % Citações 
@@ -164,27 +183,6 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 \setlength{\@fptop}{5pt} % Set distance from top of page to first float
 \makeatother
 
-%---------------------------------------
-%--------- Mais configurações-----------
-%---------------------------------------
-
-% Possibilita criação de Quadros e Lista de quadros.
-% Ver https://github.com/abntex/abntex2/issues/176
-\newcommand{\quadroname}{Quadro}
-\newcommand{\listofquadrosname}{Lista de quadros}
-
-\newfloat[chapter]{quadro}{loq}{\quadroname}
-\newlistof{listofquadros}{loq}{\listofquadrosname}
-\newlistentry{quadro}{loq}{0}
-
-% configurações para atender às regras da ABNT
-\setfloatadjustment{quadro}{\centering}
-\counterwithout{quadro}{chapter}
-\renewcommand{\cftquadroname}{\quadroname\space} 
-\renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
-
-\setfloatlocations{quadro}{hbtp} % Ver https://github.com/abntex/abntex2/issues/176
-
 %-----------------------------------------------------
 %--------------------- Margens -----------------------
 %-----------------------------------------------------
@@ -236,40 +234,28 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 {\imprimirfolhaderosto*
 
 %\input{files/ficha_catalografica.tex}
-
-%\input{files/errata.tex}
-
 %\input{files/folha_aprovacao.tex}
-
 %\input{files/dedicatoria_agradecimentos.tex}
 
 \input{files/resumo.tex}
 
-%\pdfbookmark[0]{\listfigurename}{lof}
-%\listoffigures*
-%\cleardoublepage
+\pdfbookmark[0]{\listfigurename}{lof}
+\listoffigures*
+\cleardoublepage
 
-%\pdfbookmark[0]{\listofquadrosname}{loq}
-%\listofquadros*
-%\cleardoublepage
+\pdfbookmark[0]{\listtablename}{lot}
+\listoftables*
+\cleardoublepage
 
-%\pdfbookmark[0]{\listtablename}{lot}
-%\listoftables*
-%\cleardoublepage
-
-%\input{files/siglas_simbolos.tex}
-
-%\counterwithout{lstlisting}{chapter}
-%\pdfbookmark[0]{\lstlistlistingname}{loc} %why duplicate?
-%\lstlistoflistings
-%\cleardoublepage
+\pdfbookmark[0]{\listofcodesname}{locd}
+\codestoc*
+\cleardoublepage
 
 }\fi
 
-%\renewcommand{\tocheadstart}{\ABNTEXchapterfont}
-%\pdfbookmark[0]{\contentsname}{toc}
-%\tableofcontents*
-%\cleardoublepage
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage
 
 % ----------------------------------------------------------
 % ELEMENTOS TEXTUAIS
@@ -286,18 +272,10 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 \phantompart
 
 \input{files/geomdiff.tex}
-
 \input{files/linguagem.tex}
-
 \input{files/numeric.tex}
-
 \input{files/interface.tex}
-
-%\input{files/compilador.tex}
-
-%\input{files/desenvolvimento.tex}
-
-%\input{files/conclusao.tex}
+\input{files/conclusao.tex}
 
 % -----------------------------------
 % ELEMENTOS PÓS-TEXTUAIS
@@ -318,12 +296,8 @@ Matemática Aplicada. \\ \\ Área de estudo: curvas e superfícies.}
 % Inicia os apêndices
 % ---
 \begin{apendicesenv}
-
-% % Imprime uma página indicando o início dos apêndices
 \partapendices
-
 \input{files/compilador.tex}
-
 \end{apendicesenv}
 % ---
 

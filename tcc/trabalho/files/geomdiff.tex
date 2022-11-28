@@ -224,3 +224,20 @@ As curvaturas da superfície causam distorções na imagem observada.
 Ao se mover, pode-se perceber curvatura pela forma com que a imagem se distorce.
 Curvatura gaussiana positiva faz os ``objetos'' expandirem ao se afastar.
 Curvatura negativa faz os ``objetos'' contraírem ao se afastar.
+Curvatura nula faz os ``objetos'' se moverem de forma rígida.
+Além disso, é possível fazer um ``passeio paralelo'': apenas movimentos geodésicos
+e sem rotacionar a câmera. Se um passeio paralelo cobre uma área
+e retorna à posição inicial, observa-se uma rotação da câmera em relação à direção
+inicial. Essa rotação depende da curvatura da superfície na área envolvida.
+Uma área de curvatura positiva causa rotações no mesmo sentido do caminho.
+O contrário pode ser observado em curvatura negativa, a câmera rotaciona no
+sentido oposto ao sentido do caminho: ao andar num círculo em sentido horário,
+a câmera é rotacionada do sentido anti-horário.
+
+No caso de um cone, é possível observar uma geometria localmente plana, ou de curvatura nula.
+Ao se mover, a imagem se deforma(localmente) rigidamente.
+Um passeio paralalo não causa rotações quando a ponta do cone não está no interior do caminho.
+Nesse caso, a distância da ponta ao interior da região é completamente irrelevante.
+Porém, se a ponta do cone estiver no interior da região percorrida,
+observa-se uma rotação de ângulo fixo. Nesse caso, a distância da ponta
+ao exterior da região é irrelevante também.

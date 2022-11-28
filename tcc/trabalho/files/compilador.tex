@@ -61,22 +61,7 @@ terminando com uma quebra de linha ou o fim do código-fonte.\\
 \end{table}
 
 A estrutura \texttt{Lexer}(\ref{lexer}) define o analisador léxico.
-\begin{lstlisting}[label=lexer, caption=Extrutura do Lexer]
-struct Lexer
-{
-    const char *source{};
-    const char *lexeme{};
-    int length = 0;
-    int lineno = 0;
-    int column = 0;
-    TokenType type = TokenType::UNDEFINED;
-    float number{};
-    Table *node{};
-    Table *table{};
-
-    void advance(bool match = true);
-};
-\end{lstlisting}
+\code{files/lexer.txt}{Estrutura do Lexer}{lexer}
 
 O lexer lê os tokens um de cada vez, da esquerda para a direita.
 Essa estrutura guarda as seguintes informações sobre o token atual:
@@ -138,23 +123,7 @@ que são o tipo do token, os argumentos da função e o índice do objeto.
 
 A estrutura \texttt{Table}(\ref{table}) define a tabela de símbolos.
 
-\begin{lstlisting}[caption=Tabela de símbolos, label=table]
-struct Table
-{
-    Table *parent{};
-    std::unique_ptr<Table> children[62];
-    int argIndex = -1;
-    int objIndex = -1;
-    int length = 0;
-    TokenType type = TokenType::UNDEFINED;
-    char character{};
-    std::string str{};
-
-    Table *next(char c);
-    Table *procString(const char *str, bool match);
-    Table *initString(const char *str, TokenType type);
-};
-\end{lstlisting}
+\code{files/table.txt}{Tabela de símbolos}{table}
 
 Essa estrutura é uma árvore de prefixos(trie):
 cada nó representa um identificador. Para encontrar um nó a partir
@@ -216,43 +185,7 @@ O analisador sintático é chamado de parser.
 \newpage
 A gramática livre de contexto (\ref{grammar}) define as
 regras gramaticais da linguagem.
-\begin{lstlisting}[caption=Gramática livre de contexto, label=grammar]
-PROG    = DECL PROG | ;
-
-DECL    = "param"     id ":" INTS ";" ;
-DECL    = "grid"      id ":" GRIDS ";" ;
-DECL    = "define"    id "=" EXPR ";" ;
-DECL    = "curve"     FDECL "," TINTS ";" ;
-DECL    = "surface"   FDECL "," TINTS ";" ;
-DECL    = "function"  FDECL ";" ;
-DECL    = "point"     id "=" EXPR ";" ;
-DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
-
-FDECL   = id "(" IDS ")" "=" EXPR ;
-IDS     = IDS "," id | id ;
-INT     = "[" EXPR "," EXPR "]" ;
-GRID    = "[" EXPR "," EXPR "," EXPR "]" ;
-TINT    = id ":" INT | id ":" GRID ;
-INTS    = INTS "," INT | INT ;
-TINTS   = TINTS "," TINT | TINT ;
-GRIDS   = GRIDS "," GRID | GRID ;
-
-EXPR    = ADD ;
-ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
-JUX     = JUX MULT2 | MULT ;
-MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
-MULT2   = MULT2 "*" UNARY | MULT2 "/" UNARY | APP ;
-UNARY   = "+" UNARY | "-" UNARY | "*" UNARY | "/" UNARY | APP;
-APP     = FUNC UNARY | POW ;
-FUNC    = FUNC2 "^" UNARY | FUNC2 ;
-FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
-
-POW     = COMP "^" UNARY | COMP ;
-COMP    = COMP "_" num | FACT ;
-FACT    = const | num | var
-        | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
-TUPLE   = ADD "," TUPLE | ADD ;
-\end{lstlisting}
+\code{files/grammar.txt}{Gramática livre de contexto}{grammar}
 
 A gramática consiste em diversas igualdades.
 Os termos que aparecem no lado esquerdo de alguma igualdade
@@ -376,47 +309,7 @@ com base na gramática.
 \newpage
 A estrutura \texttt{Parser} (\ref{parser}) define o parser.
 
-\begin{lstlisting}[caption=Estrutura parcial do parser, label=parser]
-struct Parser
-{
-    Lexer lexer;
-    std::unique_ptr<Table> table = std::make_unique<Table>();
-    std::vector<std::vector<Table*>> argList;
-    Table *objType{};
-    Table *objName{};
-    Table *tag{};
-    int tupleSize = 0;
-
-    #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
-        INIT(param,     DECLARE)
-        INIT(pi,        CONSTANT)
-        INIT(sqrt,      FUNCTION)
-        /*.....*/
-    #undef INIT
-
-    Parser();
-    void advance(bool match = true);
-
-    typedef void Parse();
-
-    void parseProgram(const char *source);
-
-    Parse 
-        parseFDecl, parseParam, parseGrid, parseDefine /*.....*/;
-
-    void parseInt(ExprType type);
-    void parseInts(ExprType type);
-
-    void parseMult(bool unary);
-
-    virtual void actAdvance();
-    virtual void actInt(ExprType type);
-    virtual void actOp(ExprType type);
-    virtual void actDecl();
-
-    virtual ~Parser() = 0;
-};
-\end{lstlisting}
+\code{files/parser.txt}{Estrutura parcial do parser}{parser}
 
 O membro \texttt{lexer} é o analisador léxico.
 O parser controla o avanço dos tokens diretamente.
@@ -462,44 +355,7 @@ Para os objetos desenháveis, cria as funções para a renderização.
 \newpage
 A estrutura \texttt{Compiler} (\ref{compiler}) define o compilador.
 
-\begin{lstlisting}[caption=Estrutura parcial do compilador, label=compiler]
-struct Compiler : public Parser
-{
-    std::vector<std::unique_ptr<SymbExpr>> symbExprs;
-    std::vector<std::unique_ptr<CompExpr>> compExprs;
-    std::vector<SymbExpr*> expStack;
-    std::vector<Interval> intStack;
-    std::vector<Obj> objects;
-    Size frameSize = {512, 512};
-
-    Buffer block{};
-    uint blockSize{};
-    /*.....*/
-
-    bool compiled = false;
-
-    void actInt(ExprType type);
-    void actOp(ExprType type);
-    void actDecl();
-    
-    SymbExpr *newExpr(SymbExpr &e);
-    CompExpr *newExpr(CompExpr &e);
-    SymbExpr op(Parser::ExprType type, SymbExpr *a = nullptr, SymbExpr *b = nullptr, float number = 0, Table *name = nullptr);
-    CompExpr *op(CompExpr::ExprType type, CompExpr *a = nullptr, CompExpr *b = nullptr, float number = 0, Table *name = nullptr, int nTuple = 1);
-    CompExpr *_comp(CompExpr *e, unsigned int index, std::vector<Subst> &subs);
-    CompExpr *compute(SymbExpr *e, std::vector<Subst> &subs);
-    CompExpr *substitute(CompExpr *e, std::vector<Subst> &subs);
-    CompExpr *derivative(CompExpr *e, Table *var);
-    float calculate(CompExpr *e, std::vector<Subst> &subs);
-    void dependencies(CompExpr *e, std::vector<int> &grids, bool allow = false);
-
-    void compile(CompExpr *e, std::stringstream &str, int &v);
-    void compile(const char *source);
-    void header(std::stringstream &str);
-    void compileFunction(CompExpr *exp, int argIndex, std::stringstream &str, std::string name);
-    void declareFunction(int N, int argIndex, std::stringstream &str, std::string name, bool declareOnly = false);
-};
-\end{lstlisting}
+\code{files/compiler.txt}{Estrutura parcial do compilador}{compiler}
 
 Os métodos de prefixo \texttt{act} implementam as
 ações semânticas invocadas pelo parser.

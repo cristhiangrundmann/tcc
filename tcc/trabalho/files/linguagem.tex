@@ -10,20 +10,7 @@ Na linguagem desse projeto, a definição seria
 \texttt{curve c(t) = (cos(t), sin(t), 0), t : [0, 2pi];}.
 
 O código \ref{ex1} é um exemplo.
-\begin{lstlisting}[caption=Exemplo de objetos,label=ex1]
-#circle and tangents
-param r : [/2, 1];
-param o : [0, 2pi];
-curve c(t) = r(cost, sint, 0), t : [0, 2pi];
-grid k : [0, 2pi, 8];
-define k2 = k + o;
-point p = ck2;
-vector v = c'k2 @ p;
-
-#function and surface
-#function f(x, y) = x^2+y^2;
-#surface s(u,v) = (u,v,f(u,v)), u : [-1, 1], v : [-1, 1];
-\end{lstlisting}
+\code{files/ex1.txt}{Exemplo de objetos}{ex1}
 
 A linguagem permite comentários no estilo da linguagem Python, usando \texttt{\#}.
 
@@ -137,25 +124,10 @@ mesmo que \texttt{sinx} seja definido posteriormente
 Em geral, o maior identificador definido será reconhecido.
 \end{itemize}
 
+\newpage
+
 O código \ref{ex2} é outro exemplo.
-\begin{lstlisting}[caption=Exemplo de objetos,label=ex2]
-#sphere and coordinates
-function f(u,v) = 
-    (sin(piv)cos(2piu), sin(piv)sin(2piu), cos(piv));
-
-param U : [0, 1];
-param V : [0, 1];
-point p = f(U,V);
-
-curve cu(t) = f(t, V), t : [0, 1];
-curve cv(t) = f(U, t), t : [0, 1];
-
-function N(x) = x/sqrt*x;
-vector vu = Nf_u(U,V) @ p;
-vector vv = Nf_v(U,V) @ p;
-
-surface s(u,v) = f(u,v)*0.99, u : [0, 1], v : [0, 1];
-\end{lstlisting}
+\code{files/ex2.txt}{Outro exemplo de objetos}{ex2}
 
 A figura \ref{img:ex2} demonstra o programa em perspectiva 3D.
 \begin{figure}[!ht]

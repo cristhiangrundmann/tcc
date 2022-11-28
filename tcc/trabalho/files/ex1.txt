@@ -1,0 +1,12 @@
+#circle and tangents
+param r : [/2, 1];
+param o : [0, 2pi];
+curve c(t) = r(cost, sint, 0), t : [0, 2pi];
+grid k : [0, 2pi, 8];
+define k2 = k + o;
+point p = ck2;
+vector v = c'k2 @ p;
+
+#function and surface
+#function f(x, y) = x^2+y^2;
+#surface s(u,v) = (u,v,f(u,v)), u : [-1, 1], v : [-1, 1];

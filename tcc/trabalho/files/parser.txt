@@ -1,0 +1,39 @@
+struct Parser
+{
+    Lexer lexer;
+    std::unique_ptr<Table> table = std::make_unique<Table>();
+    std::vector<std::vector<Table*>> argList;
+    Table *objType{};
+    Table *objName{};
+    Table *tag{};
+    int tupleSize = 0;
+
+    #define INIT(x, y) Table *x = table->initString(#x, TokenType::y);
+        INIT(param,     DECLARE)
+        INIT(pi,        CONSTANT)
+        INIT(sqrt,      FUNCTION)
+        /*.....*/
+    #undef INIT
+
+    Parser();
+    void advance(bool match = true);
+
+    typedef void Parse();
+
+    void parseProgram(const char *source);
+
+    Parse 
+        parseFDecl, parseParam, parseGrid, parseDefine /*.....*/;
+
+    void parseInt(ExprType type);
+    void parseInts(ExprType type);
+
+    void parseMult(bool unary);
+
+    virtual void actAdvance();
+    virtual void actInt(ExprType type);
+    virtual void actOp(ExprType type);
+    virtual void actDecl();
+
+    virtual ~Parser() = 0;
+};

@@ -1,0 +1,35 @@
+PROG    = DECL PROG | ;
+
+DECL    = "param"     id ":" INTS ";" ;
+DECL    = "grid"      id ":" GRIDS ";" ;
+DECL    = "define"    id "=" EXPR ";" ;
+DECL    = "curve"     FDECL "," TINTS ";" ;
+DECL    = "surface"   FDECL "," TINTS ";" ;
+DECL    = "function"  FDECL ";" ;
+DECL    = "point"     id "=" EXPR ";" ;
+DECL    = "vector"    id "=" EXPR "@" EXPR ";" ;
+
+FDECL   = id "(" IDS ")" "=" EXPR ;
+IDS     = IDS "," id | id ;
+INT     = "[" EXPR "," EXPR "]" ;
+GRID    = "[" EXPR "," EXPR "," EXPR "]" ;
+TINT    = id ":" INT | id ":" GRID ;
+INTS    = INTS "," INT | INT ;
+TINTS   = TINTS "," TINT | TINT ;
+GRIDS   = GRIDS "," GRID | GRID ;
+
+EXPR    = ADD ;
+ADD     = ADD "+" JUX | ADD "-" JUX | JUX ;
+JUX     = JUX MULT2 | MULT ;
+MULT    = MULT "*" UNARY | MULT "/" UNARY | UNARY ;
+MULT2   = MULT2 "*" UNARY | MULT2 "/" UNARY | APP ;
+UNARY   = "+" UNARY | "-" UNARY | "*" UNARY | "/" UNARY | APP;
+APP     = FUNC UNARY | POW ;
+FUNC    = FUNC2 "^" UNARY | FUNC2 ;
+FUNC2   = FUNC2 "_" var | FUNC2 "'" | func ;
+
+POW     = COMP "^" UNARY | COMP ;
+COMP    = COMP "_" num | FACT ;
+FACT    = const | num | var
+        | "(" TUPLE ")" | "[" TUPLE "]" | "{" TUPLE "}" ;
+TUPLE   = ADD "," TUPLE | ADD ;
