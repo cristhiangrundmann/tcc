@@ -1,10 +1,27 @@
 \chapter{Conclusão}
 
 A interface gráfica, a linguagem de especificação e o compilador
-funcionam sem irregularidades ou inconsistências, e possuem perfórmance razoável.
+funcionam sem irregularidades ou inconsistências, e possuem performance em tempo-real.
 Além disso, a estética da interface e da linguagem foi levada em consideração:
-a linguagem possui syntax highlighting, e a interface é construída usando uma biblioteca
-terceira. O desenho de objetos gráficos é feito com antiserrilhado, melhorando a estética.
-
-Para o geodesic tracing, é possível observar os fenômenos de curvatura
+a linguagem possui \textit{Syntax Highlighting}, e a interface é construída usando uma biblioteca
+terceira. O desenho de objetos gráficos é feito com anti-serrilhado, melhorando a estética.
+Para o \textit{Geodesic Tracing}, é possível observar os fenômenos de curvatura
 correspondentes à teoria da geometria diferencial.
+
+Uma das limitações desse projeto é a linguagem de especificação.
+Curvas e superfícies devem ser definidas por equações paramétricas.
+Muitas curvas e superfícies são melhores definidas implicitamente.
+Outra limitação é o fato do programa ser estrito apenas em forma textual, sem poder utilizar
+notações matemáticas como por exemplo, subscritos e expoentes, frações e raízes.
+
+Um possível trabalho futuro é aprimorar a discretização das curvas e superfícies.
+Assim, cada segmento ou triângulo se ajusta melhor à curva ou superfície.
+Para o desenho das superfícies em 3D, truques de textura podem ser usados.
+Com os vetores normais à superfície, é possível fazer um sombreado na superfície(sem projeção de sombras),
+aumentando a compreensão e o realismo da forma da superfície.
+Com isso, é possível reduzir a quantidade de segmentos ou triângulos da discretização
+sem degradar o realismo.
+O \textit{Geodesic Tracing} desconsidera o domínio da parametrização da superfície.
+Isso significa que superfícies como a faixa de \textit{M\"obius} e a garrafa de \textit{Klein}
+não são exibidas de forma totalmente correta, pois deveria ser possível inverter a orientação da câmera
+ao dar um passeio paralelo.

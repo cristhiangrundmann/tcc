@@ -61,10 +61,23 @@
 \usepackage{tocloft}
 \usepackage{newfloat}
 
+\definecolor{programBack}{RGB}{43,43,43}
+\definecolor{CC0}{RGB}{200, 200, 200}
+\definecolor{CC1}{RGB}{30, 30, 30}
+\definecolor{CC2}{RGB}{78, 201, 176}
+\definecolor{CC3}{RGB}{86, 156, 214}
+\definecolor{CC4}{RGB}{156, 220, 254}
+\definecolor{CC5}{RGB}{78, 201, 176}
+\definecolor{CC6}{RGB}{181, 206, 168}
+\definecolor{CC7}{RGB}{197, 134, 192}
+\definecolor{CC8}{RGB}{96, 161, 104}
+\definecolor{CC9}{RGB}{200, 50, 5}
+
 %\renewcommand{\lstlistlistingname}{Lista de códigos}
 \renewcommand{\lstlistingname}{Código}
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true, numbers=left,
 inputencoding=utf8, extendedchars=true, frame=single,
+escapeinside={$}{$}, captionpos=b,
 literate=%
         {é}{{\'{e}}}1
         {è}{{\`{e}}}1
@@ -96,6 +109,10 @@ literate=%
         {Í}{{\~{Í}}}1
 }
 
+\AtBeginDocument{% the counter is defined later
+  \counterwithout{lstlisting}{chapter}%
+}
+
 %remake table of contents for code listings
 \newcommand{\listofcodesname}{Lista de códigos}
 \newcommand{\codename}{Código}
@@ -109,7 +126,9 @@ literate=%
 \newcommand{\code}[3]{%
     \refstepcounter{codestocchapter}%
     \addcontentsline{locd}{codestocchapter}{{\protect\numberline{\thecodestocchapter}#2}}%
+    \makeatletter%
     \lstinputlisting[caption=#2, label=#3]{#1}%
+    \makeatother%
 }
 
 % Citações 
@@ -134,8 +153,8 @@ literate=%
 
 \input{files/capa_folha_rosto.tex}
 
-\titulo{Geodesic Tracing}
-\subtitulo{Visualização de curvas e superfícies através de geodésicas}
+\titulo{\textit{Geodesic Tracing}}
+\subtitulo{Um sistema de especificação e visualização de curvas e superfícies através de geodésicas}
 \autor{Cristhian Grundmann}
 \orientador{Asla Medeiros e Sá}
 \local{Rio de Janeiro}

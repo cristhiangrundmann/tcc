@@ -3,30 +3,30 @@
 
 A interface gráfica é responsável pela interação com o usuário.
 Nela, o usuário escreve o programa, visualiza e interage com os objetos.
-
-Uma janela, ``Program'', contém um caixa de texto multilinha, onde
-o usuário deve escrever o programa.
-Um botão, ``Compile'', compila o texto escrito.
-A resposta do compilador será ``Status: OK'' para um programa compilado 
-corretamente, ou ``Status: ...'' com uma mensagem de erro, indicando a
-linha e a coluna correspondentes.
-Dois controles deslizantes definem o tamanho, em pixels, da janela
-de visualização 3D(``Frame size'') e do Geodesic Tracing(``Geo Size'').
-Um botão, ``Open Texture'', serve para carregar uma imagem local,
-com o nome informado à caixa de texto justaposta.
-
-A figura \ref{img:program} ilustra a janela ``Program''.
+A Figura \ref{img:comp} ilustra os componentes da interface gráfica.
 
 \begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{program.png}
-    \caption{Janela ``Program''}
-    \label{img:program}
+    \centering
+    \includegraphics[width=\linewidth]{comp.png}
+    \caption{Componentes da interface gráfica}
+    \label{img:comp}
 \end{figure}
 
+A Janela (A) da Figura \ref{img:comp} ilustra a janela \texttt{"Program"}, que contém uma
+caixa de texto multilinha, onde o usuário deve escrever o programa.
+O botão \texttt{"Compile"} compila o texto escrito.
+A resposta do compilador será \texttt{"Status: OK"} para um programa compilado 
+corretamente, ou \texttt{"Status: ..."} com uma mensagem de erro, indicando a
+linha e a coluna correspondentes.
+Dois controles deslizantes definem o tamanho, em \textit{pixels}, da janela
+de visualização 3D(\texttt{"Frame size"}) e do \textit{Geodesic Tracing}(\texttt{"Geo Size"}).
+O botão \texttt{"Open Texture"} serve para carregar uma imagem local,
+com o nome informado à caixa de texto justaposta.
 Quando o programa é compilado corretamente, duas janelas extras são exibidas.
 
-A janela ``Settings'' controla algumas propriedades dos objetos.
-Para os parâmetros, um controle deslizante é criado, com a opção ``Animate''.
+A Janela (B) da Figura \ref{img:comp} ilustra a janela \texttt{"Settings"},
+que controla algumas propriedades dos objetos.
+Para os parâmetros, um controle deslizante é criado, com a opção \texttt{"Animate"}.
 Quando ativado, o parâmetro é controlado pelo tempo,
 crescendo uma unidade por segundo.
 Quando o limite superior do parâmetro é atingido,
@@ -39,20 +39,12 @@ são multiplicadas pelos componentes RGB da cor escolhida.
 A cor branca deixa a textura inalterada,
 e preto deixa a textura completamente preta.
 Além disso, é possível escolher uma textura previamente carregada para
-uma superfície. A textura padrão é a textura local de nome ``default.png''.
+uma superfície. A textura padrão é a textura local de nome \texttt{"default.png"}.
 
-A velocidade da câmera é controlada por ``Camera speed''.
-Esse valor afeta as câmeras das janelas ``3D view'' e de ``Geodesic Tracing''.
+A velocidade da câmera é controlada por \texttt{"Camera speed"}.
 
-A figura \ref{img:settings} ilustra a janela ``Settings''.
-
-\begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{settings.png}
-    \caption{Janela ``Settings''}
-    \label{img:settings}
-\end{figure}
-
-A janela ``3D View'' exibe os objetos desenháveis no espaço 3d.
+A Janela (C) da Figura \ref{img:comp} ilustra a janela \texttt{"3D View"},
+que exibe os objetos desenháveis no espaço 3d a partir de uma câmera.
 A câmera pode ser controlada da seguinte forma:
 
 \begin{table}[ht]
@@ -73,23 +65,24 @@ A câmera pode ser controlada da seguinte forma:
     \hline
     \texttt{E} & move a câmera para baixo (absoluto) \\
     \hline
-    \texttt{Click \& move} & gira a câmera conforme o movimento do mouse \\
+    \texttt{Clicar e mover} & gira a câmera conforme o movimento do mouse \\
     \hline
 \end{tabularx}
 \end{centering}
 \end{table}
 
-A renderização dos objetos utiliza um antiserrilhado, melhorando sua estética.
+A renderização dos objetos utiliza um anti-serrilhado, melhorando sua estética.
 Além disso, o desenho das linhas considera uma grossura que leva
 em consideração a perspectiva, assim como os pontos e vetores.
 
-Para uma superfície ``X'', a janela ``Geodesic Tracing - X'' é exibida.
-A janela exibe a visualização do geodesic tracing.
+Para uma superfície \texttt{\textit{x}}, a janela \texttt{"Geodesic Tracing - \textit{x}"} é exibida.
+A janela exibe a visualização do \textit{Geodesic Tracing},
+e está ilustrada na Janela (D) da Figura \ref{img:comp}.
 
 A câmera pode ser controlada da seguinte forma:
 
 \begin{table}[ht]
-\caption{Controles do geodesic tracing}
+\caption{Controles do \textit{Geodesic Tracing}}
 \label{gtctrl}
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
@@ -110,22 +103,22 @@ A câmera pode ser controlada da seguinte forma:
     \hline
     \texttt{X} & zoom out \\
     \hline
-    \texttt{Click \& move} & move a câmera conforme o movimento do mouse \\
+    \texttt{Clicar e mover} & move a câmera conforme o movimento do mouse \\
     \hline
 \end{tabularx}
 \end{centering}
 \end{table}
 
-Dependendo da expansão ou contração da imagem gerada no geodesic tracing,
-o tamanho dos pixels pode ficar grandes ou pequenos demais. O primeiro caso
-deixa os pixels individuais evidentes, e o segundo gera ruído, pois pixels distantes
-de cores muito diferentes ``competem'' para serem exibidos.
+Dependendo da expansão ou contração da imagem gerada no \textit{Geodesic Tracing},
+o tamanho dos \textit{pixels} pode ficar grandes ou pequenos demais. O primeiro caso
+deixa os \textit{pixels} individuais evidentes, e o segundo gera ruído, pois \textit{pixels} distantes
+de cores muito diferentes `competem' para serem exibidos.
 A exibição da textura é feita com filtro de magnificação linear, fazendo as transições
-de pixels grandes mais suave, resolvendo o primeiro problema.
+de \textit{pixels} grandes mais suave, resolvendo o primeiro problema.
 O segundo problema foi resolvido com a técnica de \textit{mipmapping} linear.
 Nessa técnica, a textura é copiada em resoluções progressivamente menores.
 Por exemplo, um tabuleiro de xadrez possui casas brancas e pretas, e sua menor resolução
-é apenas um píxel cinza. Desse modo, quando a textura está muito contraída, 
+é apenas um \textit{pixel} cinza. Desse modo, quando a textura está muito contraída, 
 uma versão de resolução menor é usada, resolvendo o ruído.
-Essas técnicas podem ser facilmente obtidas configurando o OpenGL,
+Essas técnicas podem ser facilmente obtidas configurando o \textit{OpenGL},
 como pode ser observado em \cite{LearnOpenGL}.

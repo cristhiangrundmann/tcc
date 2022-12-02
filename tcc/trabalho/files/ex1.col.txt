@@ -1,0 +1,12 @@
+$\textcolor{CC8}{\#circle and tangents}$
+$\textcolor{CC3}{param}$ $\textcolor{CC4}{r}$ $\textcolor{CC0}{:}$ $\textcolor{CC0}{[}$$\textcolor{CC0}{/}$$\textcolor{CC6}{2}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{1}$$\textcolor{CC0}{]}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{param}$ $\textcolor{CC4}{o}$ $\textcolor{CC0}{:}$ $\textcolor{CC0}{[}$$\textcolor{CC6}{0}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{2}$$\textcolor{CC4}{pi}$$\textcolor{CC0}{]}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{curve}$ $\textcolor{CC7}{c}$$\textcolor{CC0}{(}$$\textcolor{CC2}{t}$$\textcolor{CC0}{)}$ $\textcolor{CC0}{=}$ $\textcolor{CC4}{r}$$\textcolor{CC0}{(}$$\textcolor{CC7}{cos}$$\textcolor{CC5}{t}$$\textcolor{CC0}{,}$ $\textcolor{CC7}{sin}$$\textcolor{CC5}{t}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{0}$$\textcolor{CC0}{)}$$\textcolor{CC0}{,}$ $\textcolor{CC2}{t}$ $\textcolor{CC0}{:}$ $\textcolor{CC0}{[}$$\textcolor{CC6}{0}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{2}$$\textcolor{CC4}{pi}$$\textcolor{CC0}{]}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{grid}$ $\textcolor{CC4}{k}$ $\textcolor{CC0}{:}$ $\textcolor{CC0}{[}$$\textcolor{CC6}{0}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{2}$$\textcolor{CC4}{pi}$$\textcolor{CC0}{,}$ $\textcolor{CC6}{8}$$\textcolor{CC0}{]}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{define}$ $\textcolor{CC4}{k2}$ $\textcolor{CC0}{=}$ $\textcolor{CC4}{k}$ $\textcolor{CC0}{+}$ $\textcolor{CC4}{o}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{point}$ $\textcolor{CC4}{p}$ $\textcolor{CC0}{=}$ $\textcolor{CC7}{c}$$\textcolor{CC4}{k2}$$\textcolor{CC0}{;}$
+$\textcolor{CC3}{vector}$ $\textcolor{CC4}{v}$ $\textcolor{CC0}{=}$ $\textcolor{CC7}{c}$$\textcolor{CC0}{'}$$\textcolor{CC4}{k2}$ $\textcolor{CC0}{@}$ $\textcolor{CC4}{p}$$\textcolor{CC0}{;}$
+
+$\textcolor{CC8}{\#function and surface}$
+$\textcolor{CC8}{\#function f(x, y) = x\textasciicircum2+y\textasciicircum2;}$
+$\textcolor{CC8}{\#surface s(u,v) = (u,v,f(u,v)), u : [-1, 1], v : [-1, 1];}$

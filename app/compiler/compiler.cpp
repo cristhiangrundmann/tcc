@@ -659,6 +659,7 @@ namespace tcc
                     c->sub.push_back(substitute(e, subs));
                 return c;
             }
+            default: throw std::string("Invalid Type");
         }
     }
 
@@ -750,6 +751,7 @@ namespace tcc
                     return op(C(UDIVIDE), op(C(TIMES), 
                     op(C(NUMBER), nullptr, nullptr, 2), e));
                 if(e->name == id) return op(C(NUMBER), nullptr, nullptr, 1);
+                throw std::string("Invalid Function");
             }
             case C(TUPLE):
             {
@@ -759,6 +761,7 @@ namespace tcc
                     c->sub.push_back(derivative(exp, var));
                 return c;
             }
+            default: throw std::string("Invalid Type");
         }
     }
 
@@ -1792,7 +1795,7 @@ namespace tcc
         buffers.clear();
         if(ID) glDeleteVertexArrays(1, &ID);
     }
-};
+}
 
 #undef S
 #undef C

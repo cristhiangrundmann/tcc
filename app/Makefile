@@ -35,17 +35,14 @@ imgui.a: $(IMGUI)
 
 STB_IMAGE += stb_image/stb_image.o
 
-stb_image.o: $(STB_IMAGE)
-	cp $(STB_IMAGE) stb_image.o
-
 main/main.o: compiler/compiler.hpp
 
-prog.out: compiler.a imgui.a stb_image.o main/main.o
-	$(CXX) $(CPPFLAGS) main/main.o compiler.a imgui.a stb_image.o -o prog.out $(LIBS)
+prog.out: compiler.a imgui.a $(STB_IMAGE) main/main.o
+	$(CXX) $(CPPFLAGS) main/main.o compiler.a imgui.a $(STB_IMAGE) -o prog.out $(LIBS)
 
 clean:
 	-rm $(IMGUI) imgui.a
 	-rm $(COMPILER) compiler.a
-	-rm $(STB_IMAGE) stb_image.o
+	-rm $(STB_IMAGE)
 	-rm main/main.o
 	-rm prog.out

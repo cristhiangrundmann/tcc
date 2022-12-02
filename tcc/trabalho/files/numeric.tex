@@ -2,7 +2,7 @@
 \label{numeric}
 
 A equação \ref{geoeq2} caracteriza as curvas geodésicas que devem ser 
-computadas para a visualização do Geodesic Tracing.
+computadas para a visualização do \textit{Geodesic Tracing}.
 Nem sempre é possível resolver a equação de forma analítica, então uma aproximação
 deve ser computada no lugar.
 
@@ -60,9 +60,9 @@ e fazendo $y$ como $(\text{pos}, \text{vel})$.
 \end{equation}
 
 A implementação do sistema \ref{method} define um passo do método de Runge-Kutta,
-e é feita no código \ref{impMethod}
+e é feita no Código \ref{impmethod}
 
-\code{files/runge.txt}{Implementação do método de Runge-Kutta}{impMethod}
+\lstset{language=c++, backgroundcolor=\color{white}}\code{files/runge.txt}{Implementação do método de Runge-Kutta}{impmethod}
 
 No código, o argumento \texttt{o} representa o objeto da superfície dado pelo compilador.
 Os argumentos \texttt{pos}, \texttt{vel} e \texttt{h} são as variáveis correspondentes ao sistema \ref{method}.

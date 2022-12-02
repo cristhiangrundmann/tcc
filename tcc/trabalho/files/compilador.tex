@@ -1,18 +1,22 @@
 \chapter{Compilador}
 \label{comp}
 
+\lstset{commentstyle=\color{green},
+keywordstyle=\color{blue},
+stringstyle=\color{red},backgroundcolor=\color{white}}
+
 O processo de compilação não é trivial, e é dividido em 3 estágios:
 \begin{itemize}
-    \item análise léxica: reconheçe as ``palavras'' que compõe um programa,
+    \item \textbf{análise léxica}: reconhece as ``palavras'' que compõe um programa,
     ignorando espaços em branco. É capaz de identificar números, 
     constantes, nomes de objetos e pontuação.
     Os termos são usados no estágio seguinte.
 
-    \item análise sintática: reconheçe a estrutura do programa, como
+    \item \textbf{análise sintática}: reconhece a estrutura do programa, como
     as declarações dos objetos e as expressões matemáticas.
     A gramática \ref{grammar} é usada como base.
 
-    \item análise semântica e síntese: gera todas as estruturas de dados
+    \item \textbf{análise semântica e síntese}: gera todas as estruturas de dados
     necessárias para a visualização dos objetos.
     Verifica também a semântica do programa,
     detectando erros que não podem ser verificados com noções gramaticais.
@@ -26,7 +30,7 @@ A teoria de compiladores é essencial para esses estágios \cite{Dragon:1}.
 A análise léxica tem a função de ler o código-fonte que descreve um programa
 e abstrair as palavras e símbolos presentes.
 Dessa forma, os estágios seguintes se beneficiam dessa abstração.
-O analisador léxico é chamado de lexer.
+O analisador léxico é chamado de \textit{lexer}.
 
 As palavras-chave, números, constantes, símbolos, etc. são chamados de lexemas.
 Todo lexema deve pertencer a uma classe gramatical.
@@ -36,12 +40,12 @@ Conforme a classe, um lexema pode ter atributos.
 No caso de \texttt{NUMBER}, o próprio número em forma de ponto flutuante é um atributo.
 No caso de um símbolo como \texttt{";"}, não há atributos.
 
-Um lexema, sua classe gramatical e seus atributos juntos formam um \textbf{token}.
+Um lexema, sua classe gramatical e seus atributos juntos formam um \textit{token}.
 
-Os tipos de token são:
+Os tipos de \textit{token} são:
 
 \begin{table}[ht]
-\caption{Tipos de tokens}
+\caption{Tipos de \textit{token}}
 \label{tokentypes}
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
@@ -61,55 +65,55 @@ terminando com uma quebra de linha ou o fim do código-fonte.\\
 \end{table}
 
 A estrutura \texttt{Lexer}(\ref{lexer}) define o analisador léxico.
-\code{files/lexer.txt}{Estrutura do Lexer}{lexer}
+\lstset{language=c++}\code{files/lexer.txt}{Estrutura do \textit{lexer}}{lexer}
 
-O lexer lê os tokens um de cada vez, da esquerda para a direita.
-Essa estrutura guarda as seguintes informações sobre o token atual:
+O \textit{lexer} lê os \textit{tokens} um de cada vez, da esquerda para a direita.
+Essa estrutura guarda as seguintes informações sobre o \textit{token} atual:
 
 \begin{table}[ht]
-\caption{Estrutura do token}
+\caption{Estrutura do \textit{token}}
 \label{token}
 \begin{centering}
 \begin{tabularx}{\textwidth}{||c|X||}
-\hline \texttt{source} & string do código-fonte inteiro. \\
-\hline \texttt{lexeme} & aponta para o primeiro caractere do lexema atual(dentro da string \texttt{source}) \\
-\hline \texttt{length} & comprimento do token. \\
+\hline \texttt{source} & \textit{string} do código-fonte inteiro. \\
+\hline \texttt{lexeme} & aponta para o primeiro caractere do lexema atual(dentro da \textit{string} \texttt{source}) \\
+\hline \texttt{length} & comprimento do \textit{token}. \\
 \hline \texttt{lineno} e \texttt{column} & o número da linha e coluna do lexema. \\
-\hline \texttt{type} & tipo do token. \\
-\hline \texttt{number} e \texttt{node} & atributos do token.
+\hline \texttt{type} & tipo do \textit{token}. \\
+\hline \texttt{number} e \texttt{node} & atributos do \textit{token}.
 No caso de um número, \texttt{number} é o atributo.
 No caso de um identificador, \texttt{node} é sua posição na tabela de símbolos(\ref{table}),
-contendo mais informações sobre o token. \\
+contendo mais informações sobre o \textit{token}. \\
 \hline \texttt{table} & tabela de símbolos compartilhada pelos estágios da compilação. \\
 \hline
 \end{tabularx}
 \end{centering}
 \end{table}
 
-O lexer tem apenas o método \texttt{advance}, que serve para avançar
-para o próximo token. O método também é usado para inicializar o
-lexer e obter o primeiro token do código-fonte,
+O \textit{lexer} tem apenas o método \texttt{advance}, que serve para avançar
+para o próximo \textit{token}. O método também é usado para inicializar o
+\textit{lexer} e obter o primeiro \textit{token} do código-fonte,
 invocando-o com \texttt{lexeme=source} e \texttt{length=0}.
 
 O método começa avançando a posição do \texttt{lexeme} a quantidade de
 \texttt{length} caracteres à direita.
 Em seguida, espaços em branco são ignorados: espaços, tabulações e quebras de linha.
 
-Se o caractere em \texttt{lexeme} for \texttt{"\#"}, então o token é um
+Se o caractere em \texttt{lexeme} for \texttt{"\#"}, então o \textit{token} é um
 comentário(tipo \texttt{COMMENT}),
-que se extende até uma quebra de linha ou até o \texttt{EOI}, sem incluí-los.
+que se estende até uma quebra de linha ou até o \texttt{EOI}, sem incluí-los.
 
-Se o caractere for nulo(0), então o tipo do token é \texttt{EOI} e \texttt{length=0}.
-Isso faz com que o lexer trave nesse token e nunca mais avance.
+Se o caractere for nulo(0), então o tipo do \textit{token} é \texttt{EOI} e \texttt{length=0}.
+Isso faz com que o \textit{lexer} trave nesse \textit{token} e nunca mais avance.
 
-Se o caractere for um dígito ou \texttt{"."}, então o token é um número(tipo \texttt{NUMBER}),
+Se o caractere for um dígito ou \texttt{"."}, então o \textit{token} é um número(tipo \texttt{NUMBER}),
 e é lido pela função \texttt{sscanf} da linguagem C.
 
 Se o caractere pertencer ao alfabeto dos identificadores,
-então o lexer o procura na tabela de símbolos obtendo o \texttt{node}.
-Com esse nó, o tipo de token e comprimento são obtidos.
+então o \textit{lexer} o procura na tabela de símbolos obtendo o \texttt{node}.
+Com esse nó, o tipo de \textit{token} e comprimento são obtidos.
 
-Caso contrário, o token é um símbolo, seu tipo é o próprio símbolo
+Caso contrário, o \textit{token} é um símbolo, seu tipo é o próprio símbolo
 e seu comprimento é 1.
 
 \newpage
@@ -119,15 +123,14 @@ Os estágios da compilação compartilham uma tabela de símbolos,
 que é inicializada com palavras-chave,
 funções e constantes pré-definidas.
 A tabela de símbolos define os atributos dos identificadores,
-que são o tipo do token, os argumentos da função e o índice do objeto.
+que são o tipo do \textit{token}, os argumentos da função e o índice do objeto.
 
 A estrutura \texttt{Table}(\ref{table}) define a tabela de símbolos.
-
-\code{files/table.txt}{Tabela de símbolos}{table}
+\lstset{language=c++}\code{files/table.txt}{Tabela de símbolos}{table}
 
 Essa estrutura é uma árvore de prefixos(trie):
 cada nó representa um identificador. Para encontrar um nó a partir
-de um identificador, basta traçar um caminho a partir da raíz.
+de um identificador, basta traçar um caminho a partir da raiz.
 Os filhos de um nó correspondem a um caractere do alfabeto \texttt{a-zA-Z0-9}.
 Os 26 primeiros filhos são \texttt{a-z}, os próximos 26 são \texttt{A-Z},
 e os 10 últimos são \texttt{0-9}.
@@ -135,13 +138,13 @@ Assim, cada letra do alfabeto indica qual filho seguir.
 
 O membro \texttt{character} representa a letra conforme o pai do nó.
 Por exemplo, se o nó é o primeiro filho, então a letra é \texttt{a}.
-Para a raíz, o caractere é nulo(0).
-O membro \texttt{parent} é o pai do nó, ou nulo para a raíz.
+Para a raiz, o caractere é nulo(0).
+O membro \texttt{parent} é o pai do nó, ou nulo para a raiz.
 Os nós \texttt{children[62]} são os $26+26+10$ filhos.
 O tamanho do identificador é \texttt{length}, e seus atributos são
 \texttt{type}, \texttt{argIndex} e \texttt{objIndex}.
 O atributo \texttt{argIndex} representa os argumentos de uma função definida.
-\texttt{type} sempre indica o tipo do token.
+\texttt{type} sempre indica o tipo do \textit{token}.
 \texttt{objType} representa o índice de um objeto.
 
 O método \texttt{next} encontra o filho correspondente ao caractere \texttt{c},
@@ -163,49 +166,49 @@ Nesse caso, um espaço em branco faz diferença.
 
 O método \texttt{initString} usa \texttt{procString}
 para criar o identificador em \texttt{str},
-inicializando seu tipo de token com \texttt{type}.
+inicializando seu tipo de \textit{token} com \texttt{type}.
 
-Para o exemplo \ref{ex1}, a tabela é a trie ilustrada na figura \ref{img:ex1table}.
+Para o exemplo \ref{ex1}, a tabela é a trie ilustrada na Figura \ref{img:ex1table}.
 \begin{figure}[!ht]
     \includegraphics[width=\linewidth]{ex1table.png}
-    \caption{Tabela de símbolos do exemplo 1}
+    \caption{Tabela de símbolos do Código \ref{ex1}}
     \label{img:ex1table}
 \end{figure}
 
-Nessa figura, o nó corresponente ao termo \texttt{cos} indica \texttt{type=FUNCTION},
+Nessa Figura, o nó correspondente ao termo \texttt{cos} indica \texttt{type=FUNCTION},
 e para \texttt{k2}, \texttt{type=CONSTANT}.
 
 \section{Análise sintática}
 A análise sintática tem a função de identificar as estruturas sintáticas
-presentes nos tokens gerados pelo lexer.
+presentes nos \textit{tokens} gerados pelo \textit{lexer}.
 O gerador, no estágio seguinte, atribui um significado para as estruturas
 sintáticas reconhecidas, gerando as estruturas de dados desejadas.
-O analisador sintático é chamado de parser.
+O analisador sintático é chamado de \textit{parser}.
 
 \newpage
-A gramática livre de contexto (\ref{grammar}) define as
+A gramática livre-de-contexto (\ref{grammar}) define as
 regras gramaticais da linguagem.
-\code{files/grammar.txt}{Gramática livre de contexto}{grammar}
+\lstset{language=}\code{files/grammar.txt}{Gramática livre-de-contexto}{grammar}
 
 A gramática consiste em diversas igualdades.
 Os termos que aparecem no lado esquerdo de alguma igualdade
 são chamados de não-terminais,
 e representam um conjunto de sentenças(uma sentença é uma sequência de terminais).
 Os outros termos, como \texttt{";"} e \texttt{id}, são terminais,
-e correspondem a tokens. Os termos \texttt{id}, \texttt{var},
+e correspondem a \textit{tokens}. Os termos \texttt{id}, \texttt{var},
 \texttt{const}, \texttt{num}
-e \texttt{func} representam qualquer token do tipo indicado:
+e \texttt{func} representam qualquer \textit{token} do tipo indicado:
 \texttt{UNDEFINED}, \texttt{VARIABLE}, \texttt{CONSTANT},
 \texttt{NUMBER} e \texttt{FUNCTION} respectivamente.
 Os termos \texttt{"param"}, \texttt{"grid"}, \texttt{"define"}, etc.
-representam os tokens do tipo \texttt{DECLARE}, que são os tipos de objeto.
+representam os \textit{tokens} do tipo \texttt{DECLARE}, que são os tipos de objeto.
 
 Uma igualdade na gramática é dita uma produção para o não-terminal à esquerda.
 O símbolo \texttt{"\textbar"}  abrevia uma produção alternativa. 
 Por exemplo: \texttt{ADD = ADD + JUX | ADD - JUX | JUX}
 é uma abreviação de \texttt{ADD = ADD + JUX},
 \texttt{ADD = ADD - JUX} e \texttt{ADD = JUX}.
-Uma produção pode ser a string vazia, por exemplo: \texttt{PROG = DECL PROG | ;}
+Uma produção pode ser a \textit{string} vazia, por exemplo: \texttt{PROG = DECL PROG | ;}
 (o ponto e vírgula no final das igualdades pertence à meta-linguagem).
 
 Uma produção significa que o não-terminal à esquerda pode ser substituído
@@ -218,44 +221,44 @@ o não-terminal inicial \texttt{PROG} deve ser derivado até se obter somente te
 Uma gramática é dita ambígua quando existe uma sentença com mais de uma forma de
 obtê-la a partir do não-terminal inicial.
 
-A gramática (\ref{grammar}) não é ambígua.
+A gramática (\ref{grammar}) é inambígua.
 A verificação foi feita em \cite{GramCheck}.
 Algumas transformações na gramática a fizeram ser uma gramática LL(1).
-Uma consequência disso é a não ambiguidade.
+Uma consequência disso é a in-ambiguidade.
 Em uma iteração anterior da gramática, a potenciação de funções
 era associativa à esquerda,
 enquanto a potenciação de números era à direita.
 Isso causou uma ambiguidade que não foi detectada no momento.
 Ela só foi descoberta ao tentar verificar a propriedade LL(1), que falhou.
 
-O trabalho do parser, então, é achar uma forma de derivar uma
+O trabalho do \textit{parser}, então, é achar uma forma de derivar uma
 sentença a partir de \texttt{PROG}.
-O método mais simples de parsing se aplica a gramáticas LL(1).
+O método mais simples de \textit{parsing} se aplica a gramáticas LL(1).
 
-Num parser LL(1), cada não-terminal possui sua própria subrotina.
-As subrotinas simulam a substituição de seu não-terminal
+Num \textit{parser} LL(1), cada não-terminal possui sua própria sub-rotina.
+As sub-rotinas simulam a substituição de seu não-terminal
 por uma de suas formas sentenciais possíveis.
-Ou seja, uma subrotina simula uma produção de seu não-terminal.
-Para decidir qual produção aplicar, as subrotinas devem consultar o token atual.
-O fato da gramática ser LL(1) garante que o token atual fornece
+Ou seja, uma sub-rotina simula uma produção de seu não-terminal.
+Para decidir qual produção aplicar, as sub-rotinas devem consultar o \textit{token} atual.
+O fato da gramática ser LL(1) garante que o \textit{token} atual fornece
 informação suficiente para determinar qual é a produção correta e,
 na falta de produção adequada,
 detectar um erro gramatical. Após decidir a produção,
-a subrotina começa sua simulação.
+a sub-rotina começa sua simulação.
 Os termos da forma sentencial da produção são tratados da esquerda para a direita.
-Terminais são comparados com o token atual e um erro é detectado quando diferem.
-Quando são iguais, o lexer avança para o próximo token.
-Os não-terminais são substituídos imediatamente, através de suas subrotinas.
+Terminais são comparados com o \textit{token} atual e um erro é detectado quando diferem.
+Quando são iguais, o \textit{lexer} avança para o próximo \textit{token}.
+Os não-terminais são substituídos imediatamente, através de suas sub-rotinas.
 
 Por exemplo, considere a produção \texttt{FUNC = FUNC2 \textasciicircum UNARY}.
-Para simulá-la, deve-se derivar \texttt{FUNC2}, chamando sua subrotina.
-Após a subrotina terminar, o token atual é comparado com \texttt{\textasciicircum},
-e caso seja igual, o lexer avança para o próximo token.
-Em seguida, a subrotina \texttt{UNARY} é chamada.
-No final de uma subrotina, seu não-terminal derivou uma sub-sentença,
-e o token atual ficou imediatamente à direita dessa sub-sentença.
+Para simulá-la, deve-se derivar \texttt{FUNC2}, chamando sua sub-rotina.
+Após a sub-rotina terminar, o \textit{token} atual é comparado com \texttt{\textasciicircum},
+e caso seja igual, o \textit{lexer} avança para o próximo \textit{token}.
+Em seguida, a sub-rotina \texttt{UNARY} é chamada.
+No final de uma sub-rotina, seu não-terminal derivou uma sub-sentença,
+e o \textit{token} atual ficou imediatamente à direita dessa sub-sentença.
 Assim, indutivamente, a rotina para \texttt{FUNC2} avançou
-o token para \texttt{\textasciicircum} na produção examinada.
+o \textit{token} para \texttt{\textasciicircum} na produção examinada.
 
 O termo \texttt{EXPR} define como funcionam as expressões matemáticas,
 definindo operações, ordens de precedência e associatividades.
@@ -264,14 +267,14 @@ Para a estética das expressões ser mais agradável, a multiplicação pode ser
 por justaposição, por exemplo: \texttt{3*x = 3x}.
 Em notação matemática comum, isso deixa as fórmulas muito mais simples de ler.
 Vários ambientes computacionais não possuem essa facilidade,
-como o Matlab, Scilab, e linguagens de programação geral.
+como o \textit{Matlab}, \textit{Scilab}, e linguagens de programação geral.
 Além disso, a aplicação de função não precisa
 necessariamente de parênteses: \texttt{f(x) = fx}.
 Entretanto, deve-se tomar cuidado para entender
 quando que parênteses são necessários.
 O fato dessa linguagem ser de domínio bem específico facilita essas decisões.
 
-A tabela \ref{order} descreve as operações e suas ordens de precedência,
+A Tabela \ref{order} descreve as operações e suas ordens de precedência,
 com base na gramática.
 
 \begin{table}[ht]
@@ -307,16 +310,16 @@ com base na gramática.
 \end{table}
 
 \newpage
-A estrutura \texttt{Parser} (\ref{parser}) define o parser.
+A estrutura \texttt{Parser} (\ref{parser}) define o \textit{parser}.
 
-\code{files/parser.txt}{Estrutura parcial do parser}{parser}
+\lstset{language=c++}\code{files/parser.txt}{Estrutura parcial do \textit{parser}}{parser}
 
 O membro \texttt{lexer} é o analisador léxico.
-O parser controla o avanço dos tokens diretamente.
+O \textit{parser} controla o avanço dos \textit{\textit{token}s} diretamente.
 O membro \texttt{table} é a tabela de símbolos compartilhada
 pelos estágios da compilação.
 O membro \texttt{argList} é uma lista de listas identificadores.
-O atributo \texttt{argIndex} de um token de função é um índice dessa lista,
+O atributo \texttt{argIndex} de um \textit{token} de função é um índice dessa lista,
 indicando a lista de parâmetros da função(exceto para as funções pré-definidas).
 Os membros \texttt{objType} e \texttt{objName} auxiliam o estágio da geração,
 e correspondem ao tipo de objeto e seu nome.
@@ -324,19 +327,19 @@ O membro \texttt{tag} é o nome do argumento marcado em um intervalo do tipo tag
 Os membros \texttt{param}, \texttt{pi}, \texttt{sqrt}, etc. são
 as palavras-chave, funções e constantes pré-definidas.
 
-Os métodos com prefixo \texttt{parse} são as subrotinas dos não-terminais.
+Os métodos com prefixo \texttt{parse} são as sub-rotinas dos não-terminais.
 A lógica do código foi simplificada, então não há uma correspondência exata.
 Os métodos com prefixo \texttt{act}, marcados com \texttt{virtual},
 são implementados no estágio seguinte.
 Esses métodos são chamados de ações semânticas,
-e são invocados pelo parser quando uma estrutura sintática é detectada.
+e são invocados pelo \textit{parser} quando uma estrutura sintática é detectada.
 
-O método \texttt{advance} chama \texttt{actAdvance} e avança o token.
-Isso possibilita uma reação a um comentário ou a um token qualquer.
+O método \texttt{advance} chama \texttt{actAdvance} e avança o \textit{token}.
+Isso possibilita uma reação a um comentário ou a um \textit{token} qualquer.
 O compilador não usa essa ação semântica.
 Essa ação semântica é usada no \textit{syntax highlighting},
 uma outro ``compilador'', que serve para atribuir cores ao texto do programa.
-As cores são determinadas conforme o tipo de token e conforme uma 
+As cores são determinadas conforme o tipo de \textit{token} e conforme uma 
 paleta pré-definida.
 Desse modo, um comentário pode ser colorido pois não é exatamente ignorado.
 
@@ -355,12 +358,12 @@ Para os objetos desenháveis, cria as funções para a renderização.
 \newpage
 A estrutura \texttt{Compiler} (\ref{compiler}) define o compilador.
 
-\code{files/compiler.txt}{Estrutura parcial do compilador}{compiler}
+\lstset{language=c++}\code{files/compiler.txt}{Estrutura parcial do compilador}{compiler}
 
 Os métodos de prefixo \texttt{act} implementam as
-ações semânticas invocadas pelo parser.
+ações semânticas invocadas pelo \textit{parser}.
 \texttt{actInt} é a ação mais simples e apenas junta as informações
-para construír um intervalo.
+para construir um intervalo.
 \texttt{actOp} gera as árvores de expressões matemáticas.
 \texttt{actDecl} junta as informações para contruír um objeto declarado.
 
@@ -380,9 +383,9 @@ as expressões são compiladas apenas para a \textit{GPU}.
 O método \texttt{dependencies} detecta de quais grades um objeto depende.
 
 Os métodos de \texttt{compile} a \texttt{declareFunction} geram o produto final.
-Juntos, geram os códigos-fonte na linguagem de \textit{shader}(GLSL) do OpenGL.
-O método \texttt{header} auxilia a declaração dos parâmetros na linguagem GLSL.
-O método \texttt{compileFunction} apenas auxilia o retorno das funções no código GLSL.
+Juntos, geram os códigos-fonte na linguagem de \textit{shader}(\textit{GLSL}) do \textit{OpenGL}.
+O método \texttt{header} auxilia a declaração dos parâmetros na linguagem \textit{GLSL}.
+O método \texttt{compileFunction} apenas auxilia o retorno das funções no código \textit{GLSL}.
 O método \texttt{declareFunction} auxilia na declaração das funções.
 O primeiro método \texttt{compile} gera o código-fonte para calcular o valor de uma
 expressão.
@@ -401,12 +404,12 @@ O código é gerado por um algoritmo na árvore da expressão,
 então o código-fonte gerado pode ser bem verboso/grande.
 
 O segundo método \texttt{compile} é o método principal.
-Ele inicializa e invoca o parser.
-Após o parser finalizar seu trabalho, os objetos estão descritos
+Ele inicializa e invoca o \textit{parser}.
+Após o \textit{parser} finalizar seu trabalho, os objetos estão descritos
 numa estrutura de dados fácil de manipular.
 O método então compila as expressões matemáticas, e finalmente gera o produto final.
 Para os objetos desenháveis, gera as funções para desenhá-los.
-Para superfícies, compila também o geodesic tracing.
+Para superfícies, compila também o \textit{Geodesic Tracing}.
 Para os parâmetros, gera controles deslizantes na interface.
 Ao finalizar, a interface está pronta para a interação com os objetos.
 

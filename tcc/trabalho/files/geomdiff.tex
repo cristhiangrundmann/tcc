@@ -1,41 +1,74 @@
 \chapter{Caminhos Geodésicos}
 \label{geomdiff}
+
+\theoremstyle{definition}
+\newtheorem{thm}{Definição}
+\newtheorem{defCurveParam}[thm]{Definição}
+\newtheorem{defCurveReg}[thm]{Definição}
+\newtheorem{defSurfParamReg}[thm]{Definição}
+\newtheorem{defSurfForm}[thm]{Definição}
+\newtheorem{defSurfRotate}[thm]{Definição}
+\newtheorem{defSurfParallel}[thm]{Definição}
+\newtheorem{defSurfGeodesic}[thm]{Definição}
+
 O objetivo primário do projeto é visualizar curvas e superfícies.
 As curvas são visualizadas apenas em espaço 3D.
-As superfícies são visualizadas em espaço 3D e em \textit{geodesic tracing}.
+As superfícies são visualizadas em espaço 3D e em \textit{Geodesic Tracing}.
 
 O estudo da geometria diferencial de curvas e superfícies é
-essencial para o geodesic tracing, e a teoria foi baseada em \cite{GeomDiff:1}.
+essencial para o \textit{Geodesic Tracing}, e a teoria foi baseada em \cite{GeomDiff:1}.
 
 \section{Curvas}
 Há duas principais maneiras de se definir uma curva na geometria analítica:
-por parametrização e por equação. Esse trabalho apenas consideras curvas paramétricas.
+por equação paramétrica ou equação implícita.
+Esse trabalho apenas considera curvas paramétricas.
 
-Uma curva pode ser parametrizada por um número real.
-Formalmente, uma parametrização é uma função $\gamma : I \rightarrow \mathbb{R}^n$, onde $I$ é um intervalo real.
-Nesse trabalho, o intervalo é fechado, e $n=3$.
+\begin{defCurveParam}
+Uma curva paramétrica $\gamma$ é uma função $\gamma : I \rightarrow \mathbb{R}^n$, onde $I$ é um intervalo real.
+\end{defCurveParam}
+
+\begin{defCurveReg}
+Numa curva paramétrica $\gamma$, o vetor tangente pode ser facilmente calculado com $\gamma'(t)$.
+Uma curva $\gamma$ é regular quando é diferenciável e $\gamma'(t) \neq 0$ para todo $t \in I$.
+\end{defCurveReg}
+
+Nesse trabalho, o intervalo é fechado, e $n=3$. Isso significa que todas as
+curvas devem ser definidas no espaço 3D. Para desenhar curvas planares,
+uma possibilidade é defini-las no plano $xy$, fazendo $z=0$.
 
 As curvas são desenhadas através de vários segmentos.
 Dada uma partição de $I$ de $k$ pontos,
 pode-se aproximar a curva pelos segmentos de extremidade $\gamma(t_{i})$ e $\gamma(t_{i-1})$ para $i<k$,
-onde $t_i$ é o i-ésimo ponto da partição. Nesse trabalho, a partição depende apenas de $k$ e é uniforme.
-
-O vetor tangente pode ser calculado com $\gamma'(t)$.
+onde $t_i$ é o i-ésimo ponto da partição.
+Nesse trabalho, a partição depende apenas de $k$ e é uniforme.
+Essa escolha foi feita pois essa é a forma mais simples de se implementar.
+Porém, dependendo da curvatura de $\gamma$, o intervalo fixo entre os pontos pode
+ser demasiadamente pequeno, custando performance, ou demasiadamente grande,
+degradando a estética.
 
 \section{Superfícies}
-Assim como as curvas, apenas superfícies parametrizadas serão consideradas nesse trabalho:
-$\sigma :  I_1 \times I_2 \rightarrow \mathbb{R}^3$, onde $I_1$ e $I_2$ são intervalos fechados reais.
-Além disso, apenas superfícies \textit{regulares} serão consideradas: a parametrização é suave e
-os vetores tangentes são linearmente independentes.
+Assim como as curvas, apenas superfícies parametrizadas regulares
+serão consideradas nesse trabalho, e apenas definidas em um
+espaço ambiente 3D.
+
+\begin{defSurfParamReg}
+Uma superfície parametrizada regular $\sigma$ é uma função suave
+$\sigma :  I_1 \times I_2 \rightarrow \mathbb{R}^3$,
+onde $I_1$ e $I_2$ são intervalos fechados reais.
+Além disso, os vetores tangentes $\sigma_u(u,v)$ e $\sigma_v(u,v)$
+devem ser linearmente independentes.
+\end{defSurfParamReg}
 
 As superfícies são desenhadas através de vários triângulos,
 a partir de partições dos intervalos $I_1$ e $I_2$.
 Juntas, as partições formam uma grade de retângulos, e cada retângulo pode ser dividido em 2 triângulos.
 Esses são os triângulos desenhados.
-
-Os vetores tangentes nas direções coordenadas são as derivadas parciais $\sigma_u(u,v)$ e $\sigma_v(u,v)$, onde os parâmetros são $u$ e $v$.
+De forma similar às curvas, essa escolha é a mais simples.
+Há maneiras mais inteligentes de escolher as partições, considerando os vetores tangentes,
+seus tamanhos e o ângulo formado pelos vetores.
 
 \subsection{Primeira forma fundamental}
+\begin{defSurfForm}
 Numa superfície parametrizada regular,
 a primeira forma fundamental no ponto paramétrico $(u,v)$ é definida como
 \[
@@ -54,6 +87,7 @@ a primeira forma fundamental no ponto paramétrico $(u,v)$ é definida como
     \right]
 \]
 onde as funções são todas aplicadas no ponto $(u,v)$.
+\end{defSurfForm}
 
 Os vetores $\sigma_u$ e $\sigma_v$ formam uma base do espaço tangente.
 O produto escalar de dois vetores tangentes 
@@ -93,17 +127,28 @@ Então
     v' &= vR
 \end{align*}
 
-O vetor rotacionado é
 \[w' = \left(u'\text{cos}\theta-v'\text{sin}\theta\right)\sigma'_u + \left(u'\text{sin}\theta+v'\text{cos}\theta\right)\sigma'_v\]
 \[w' = \left(u\text{cos}\theta-\frac{uF+vG}{R}\text{sin}\theta\right)\sigma_u+\left(\frac{uE+vF}{R}\text{sin}\theta+v\text{cos}\theta\right)\sigma_v\]
+
+
+\begin{defSurfRotate}
+Seja $w = u\sigma_u+v\sigma_v$ um vetor tangente à superfície $\sigma$.
+O vetor $w$ rotacionado pelo ângulo $\theta$ é
+\[w' = \left(u\text{cos}\theta-\frac{uF+vG}{R}\text{sin}\theta\right)\sigma_u+\left(\frac{uE+vF}{R}\text{sin}\theta+v\text{cos}\theta\right)\sigma_v\]
+\end{defSurfRotate}
 
 Como esperado, esse vetor só depende da primeira forma fundamental,
 dos componentes originais e do ângulo de rotação.
 
 \subsection{Transporte Paralelo}
-Seja $\gamma$ uma curva sobre a superfície e $v$ um campo vetorial tangente sobre a curva $\gamma$.
-Diz-se que $v$ é paralelo ao longo de $\gamma$ quando $v'$ é ortogonal à superfície
-para qualquer ponto de $\gamma$.
+\begin{defSurfParallel}
+Seja $\gamma$ uma curva sobre a superfície e $v$ um campo vetorial tangente à $\sigma$ definido sobre a curva $\gamma$.
+Diz-se que $v$ é paralelo ao longo de $\gamma$ quando $v'$ é ortogonal à superfície $\sigma$
+para qualquer ponto de $\gamma$. Ou seja,
+\[v'(t) \perp \{\sigma_u(\gamma(t)), \sigma_v(\gamma(t))\}\]
+para todo ponto $t \in I$ da curva.
+\end{defSurfParallel}
+
 Nesse caso, um ser sobre a superfície não observaria mudanças em $v$ ao traçar a curva $\gamma$.
 A variação de $v$ se dá ortogonalmente à superfície, logo não seria percebida pelo ser.
 Diz-se que o vetor $v$ está sendo transportado paralelamente ao longo de $\gamma$.
@@ -114,9 +159,11 @@ Como o produto escalar pode definir as noções de comprimento e ângulo, vetore
 paralelamente à uma curva mantém seus comprimentos e ângulos entre si.
 
 \subsection{Equação de um caminho geodésico}
-Uma curva $\gamma$ é dita regular quando $\gamma' \neq 0$ em todo ponto.
+\begin{defSurfGeodesic}
 Uma curva regular $\gamma$ sobre a superfície é dita geodésica quando
 $\gamma'$ é paralelo ao longo de $\gamma$.
+\end{defSurfGeodesic}
+
 Nesse caso, um ser perceberia $\gamma'$(velocidade) como constante, e a curva $\gamma$ pode
 ser considerada como reta nesse espaço.
 
@@ -160,13 +207,10 @@ Sua solução depende de uma posição e uma velocidade inicial.
 Na maioria das superfícies interessantes, esse sistema é muito difícil, ou até impossível,
 de resolver analiticamente.
 
-\subsection{Geodesic Tracing}
-A visualização do Geodesic Tracing requer uma imagem sobre a superfície.
-Para isso, uma cor é associada a cada ponto $(u,v)$ do domínio da parametrização.
-
-O geodesic tracing gera uma imagem a partir de duas informações:
+\subsection{\textit{Geodesic Tracing}}
+O \textit{Geodesic Tracing} gera uma imagem a partir de duas informações:
 \begin{itemize}
-    \item um ponto $(u,v)$ da superície, representando a posição da câmera
+    \item um ponto $(u,v)$ sobre a superfície, representando a posição da câmera
     \item dois vetores tangentes $X$ e $Y$ no ponto $(u,v)$.
     Os vetores $X$ e $Y$ são de mesmo comprimento($z$), são ortogonais entre si e
     representam a orientação da câmera.
@@ -175,29 +219,37 @@ O geodesic tracing gera uma imagem a partir de duas informações:
 A imagem gerada é um quadrado $[-1, +1] \times [-1, +1]$.
 O primeiro eixo corresponde ao vetor $X$, e o segundo ao $Y$.
 
-Cada ponto $(x,y)$ é associado a um ponto $(u_1, v_1)$ da superfície,
-e logo a um ponto da imagem original, obtendo-se uma cor.
+Cada ponto $(x,y)$ é associado a um ponto $(u_1, v_1)$ da superfície.
 O ponto $(u_1, v_1)$ é determinado traçando-se uma curva geodésica $\gamma$.
 A posição inicial de $\gamma$ é $(u,v)$, e a velocidade inicial é $xX+yY$.
 Finalmente, o ponto $(u_1, v_1)$ é definido como $\gamma(1)$.
 A distância percorrida, ou comprimento de arco, é o próprio comprimento
 da velocidade inicial: $z\sqrt{x^2+y^2}$.
 
-A figura \ref{img:geotracing} ilustra o geodesic tracing.
+A Figura \ref{img:geotracing} ilustra o \textit{Geodesic Tracing}.
 Os vetores em rosa são os vetores $X$ e $Y$, ancorados na câmera, o ponto verde.
 O vetor azul é uma combinação linear de $X$ e $Y$, e portanto está no espaço tangente.
 O ponto da superfície observado pelo vetor azul é o final da curva vermelha.
 A curva é uma geodésica com velocidade inicial igual ao vetor azul, partindo da câmera.
 
 \begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{geotracing.png}
-    \caption{Ilustração do geodesic tracing}
+    \centering
+    \includegraphics[width=0.6\linewidth]{geotracing.png}
+    \caption[Ilustração do \textit{Geodesic Tracing}]{
+    Os vetores rosa são os vetores $X$ e $Y$.
+    O ponto verde é o centro da câmera. O vetor azul representa um ponto
+    da imagem, e corresponde ao ponto vermelho. O ponto é obtido pela curva geodésica
+    vermelha, que é determinada pelo vetor azul e pelo ponto verde.}
     \label{img:geotracing}
 \end{figure}
 
+A visualização do \textit{Geodesic Tracing} requer uma imagem sobre a superfície.
+A cor observada pelo vetor azul, na Figura \ref{img:geotracing}, é a cor da superfície
+no ponto vermelho, que é um ponto da imagem original.
+
 \subsection{Interação}
-Para compreender melhor o geodesic tracing,
-é necessário alterar as condições e observar as alterações na imagem.
+Para compreender melhor o \textit{Geodesic Tracing},
+é necessário alterar as condições iniciais e observar as alterações na imagem.
 
 A interação mais simples é a rotação.
 Os vetores $X$ e $Y$ são apenas rotacionados por um ângulo $\theta$.
@@ -236,8 +288,18 @@ a câmera é rotacionada do sentido anti-horário.
 
 No caso de um cone, é possível observar uma geometria localmente plana, ou de curvatura nula.
 Ao se mover, a imagem se deforma(localmente) rigidamente.
-Um passeio paralalo não causa rotações quando a ponta do cone não está no interior do caminho.
+Um passeio paralelo não causa rotações quando a ponta do cone não está no interior do caminho.
 Nesse caso, a distância da ponta ao interior da região é completamente irrelevante.
 Porém, se a ponta do cone estiver no interior da região percorrida,
 observa-se uma rotação de ângulo fixo. Nesse caso, a distância da ponta
 ao exterior da região é irrelevante também.
+
+O domínio de parametrização é desprezado no \textit{Geodesic Tracing}.
+A fórmula da parametrização é usada no plano $uv$ todo, supondo-se que
+a fórmula não faça operações indefinidas, como raiz quadrada de números negativos
+ou divisão por zero.
+A textura deve ser um arquivo de imagem, sempre retangular.
+No quadrado $[0, 1] \times [0, 1]$ se encontra a imagem/textura original.
+Se a textura não for quadrada, ela será distorcida. A textura é repetida
+para cobrir o plano, simplesmente transladando o quadrado, sem mudar a orientação
+da textura.

@@ -27,8 +27,8 @@ bool changed; //any update
 //3d view vars
 mat4 persp; //perspective matrix
 mat4 look; //lookat/camera view matrix
-vec3 center = vec3(0, 0, 0); //camera center
-vec2 angle = vec2(0, 0); //camera spherical angles
+vec3 center = vec3(2, 0, 2); //camera center
+vec2 angle = vec2(0, Parser::CPI*3/4); //camera spherical angles
 float speed = 1.0f; //camera speed (affects geodesic tracing camera too)
 Color back{};
 

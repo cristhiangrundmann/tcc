@@ -61,9 +61,9 @@ namespace tcc
 
     void Parser::parseInt(ExprType type)
     {
+        tag = {};
         switch(type)
         {
-            tag = {};
             case ExprType::TAGGED:
                 require(TokenType::UNDEFINED);
                 tag = lexer.node;

@@ -3,14 +3,14 @@
 
 O usuário se comunica com a interface através de um texto, chamado de programa,
 que contém os objetos de interesse. 
-Por exemplo, em GeoGebra, o círculo unitário pode ser
+Por exemplo, em \textit{GeoGebra}, o círculo unitário pode ser
 definido como
 \texttt{c = Curve(cos(t), sin(t), t, 0, 2pi)}.
 Na linguagem desse projeto, a definição seria
 \texttt{curve c(t) = (cos(t), sin(t), 0), t : [0, 2pi];}.
 
-O código \ref{ex1} é um exemplo.
-\code{files/ex1.txt}{Exemplo de objetos}{ex1}
+O Código \ref{ex1} é um exemplo.
+\lstset{backgroundcolor=\color{programBack}}\code{files/ex1.col.txt}{Código para a Figura \ref{img:ex1}}{ex1}
 
 A linguagem permite comentários no estilo da linguagem Python, usando \texttt{\#}.
 
@@ -53,10 +53,11 @@ O programa declara os seguintes objetos:
 \end{centering}
 \end{table}
 
-A figura \ref{img:ex1} demonstra os objetos declarados em perspectiva 3D.
+A Figura \ref{img:ex1} demonstra os objetos declarados em perspectiva 3D.
 \begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{ex1.png}
-    \caption{Exemplo 1}
+    \centering
+    \includegraphics[width=0.6\linewidth]{ex1.png}
+    \caption{Renderização do Código \ref{ex1}}
     \label{img:ex1}
 \end{figure}
 
@@ -126,19 +127,18 @@ Em geral, o maior identificador definido será reconhecido.
 
 \newpage
 
-O código \ref{ex2} é outro exemplo.
-\code{files/ex2.txt}{Outro exemplo de objetos}{ex2}
+O Código \ref{ex2} é outro exemplo.
+\lstset{backgroundcolor=\color{programBack}}\code{files/ex2.col.txt}{Código para as Figuras \ref{img:ex2} e \ref{img:ex2gt}}{ex2}
 
-A figura \ref{img:ex2} demonstra o programa em perspectiva 3D.
 \begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{ex2.png}
-    \caption{Exemplo 2 - Perspectiva em 3D}
-    \label{img:ex2}
-\end{figure}
-
-A figura \ref{img:ex2gt} demonstra o geodesic tracing.
-\begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{ex2gt.png}
-    \caption{Exemplo 2 - geodesic tracing}
-    \label{img:ex2gt}
+\centering
+\subfloat[Perspectiva em 3D]{\includegraphics[width=0.42\linewidth]{ex2.png}%
+\label{img:ex2}}
+\hfil
+\subfloat[\textit{Geodesic Tracing}]{\includegraphics[width=0.42\linewidth]{ex2gt.png}%
+\label{img:ex2gt}}
+\caption[Renderizações do Código \ref{ex2}]
+{A Figura \ref{img:ex2} à esquerda é a renderização em perspectiva 3D.
+A Figura \ref{img:ex2gt} à direita é a renderização em \textit{Geodesic Tracing}}
+\label{img:ex2Both}
 \end{figure}
