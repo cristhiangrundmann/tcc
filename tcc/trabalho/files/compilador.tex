@@ -1,10 +1,6 @@
 \chapter{Compilador}
 \label{comp}
 
-\lstset{commentstyle=\color{green},
-keywordstyle=\color{blue},
-stringstyle=\color{red},backgroundcolor=\color{white}}
-
 O processo de compilação não é trivial, e é dividido em 3 estágios:
 \begin{itemize}
     \item \textbf{análise léxica}: reconhece as ``palavras'' que compõe um programa,
@@ -170,7 +166,7 @@ inicializando seu tipo de \textit{token} com \texttt{type}.
 
 Para o exemplo \ref{ex1}, a tabela é a trie ilustrada na Figura \ref{img:ex1table}.
 \begin{figure}[!ht]
-    \includegraphics[width=\linewidth]{ex1table.png}
+    \includegraphics[width=\linewidth, frame]{ex1table.png}
     \caption{Tabela de símbolos do Código \ref{ex1}}
     \label{img:ex1table}
 \end{figure}
@@ -187,8 +183,8 @@ O analisador sintático é chamado de \textit{parser}.
 
 \newpage
 A gramática livre-de-contexto (\ref{grammar}) define as
-regras gramaticais da linguagem.
-\lstset{language=}\code{files/grammar.txt}{Gramática livre-de-contexto}{grammar}
+regras gramaticais da linguagem. A gramática está descrita na forma BNF.
+\lstset{language=Octave}\code{files/grammar.txt}{Gramática livre-de-contexto em BNF}{grammar}
 
 A gramática consiste em diversas igualdades.
 Os termos que aparecem no lado esquerdo de alguma igualdade
@@ -221,7 +217,7 @@ o não-terminal inicial \texttt{PROG} deve ser derivado até se obter somente te
 Uma gramática é dita ambígua quando existe uma sentença com mais de uma forma de
 obtê-la a partir do não-terminal inicial.
 
-A gramática (\ref{grammar}) é inambígua.
+A gramática (\ref{grammar}) é in-ambígua.
 A verificação foi feita em \cite{GramCheck}.
 Algumas transformações na gramática a fizeram ser uma gramática LL(1).
 Uma consequência disso é a in-ambiguidade.

@@ -68,3 +68,13 @@ No código, o argumento \texttt{o} representa o objeto da superfície dado pelo 
 Os argumentos \texttt{pos}, \texttt{vel} e \texttt{h} são as variáveis correspondentes ao sistema \ref{method}.
 A função \texttt{accel} obtém a aceleração em função da posição e da velocidade
 (condições iniciais).
+
+Para o método de Runge-Kutta, é possível modificar o tamanho do passo
+a cada iteração para se obter obter uma precisão mais controlada,
+além de aliviar a escolha arbitrária do tamanho do passo, no sentido de
+que a escolha não será forçada até os últimos passos, apenas nas iterações iniciais.
+Essa versão do método(Runge-Kutta adaptativo) não foi implementada nesse projeto.
+
+Há diversos métodos numéricos e suas variações que poderiam 
+ter sido escolhidos. A escolha do Runge-Kutta levou em consideração
+a precisão juntamente com a facilidade de implementação.

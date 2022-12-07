@@ -56,7 +56,7 @@ O programa declara os seguintes objetos:
 A Figura \ref{img:ex1} demonstra os objetos declarados em perspectiva 3D.
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.6\linewidth]{ex1.png}
+    \includegraphics[width=0.6\linewidth, frame]{ex1.png}
     \caption{Renderização do Código \ref{ex1}}
     \label{img:ex1}
 \end{figure}
@@ -83,7 +83,7 @@ Há duas constantes pré-definidas: \texttt{pi} e \texttt{e};
 e diversas funções pré-definidas:
 \texttt{sin}, \texttt{cos}, \texttt{tan},
 \texttt{exp}, \texttt{log}, \texttt{sqrt} e \texttt{id}.
-A função \texttt{id} é a identidade é útil apenas no funcionamento interno do sistema.
+A função \texttt{id} é a identidade e é útil apenas no funcionamento interno do sistema.
 
 \item
 Parâmetros e grades podem ser multidimensionais:
@@ -95,7 +95,9 @@ e seus elementos podem ser obtidos com \texttt{T\_1} e \texttt{T\_2}.
 tipo grade: \texttt{[0, 2pi, 250]}.
 
 \item
-Há 4 operadores unários. Os operadores \texttt{+} e \texttt{-} são os usuais.
+Há 4 operadores unários. Os operadores \texttt{+} e \texttt{-} são usuais:
+podem representar as operações binárias simples, como \texttt{1+3}, ou podem
+representar sinais como operações unárias, por exemplo \texttt{-x}.
 A operação \texttt{*x} representa \texttt{xx}, e \texttt{/x} é igual a \texttt{1/x}.
 Para números reais, multiplicação com \texttt{*} e por justaposição são equivalentes.
 Porém, para tuplas, \texttt{a*b} representa o produto vetorial
@@ -125,6 +127,9 @@ mesmo que \texttt{sinx} seja definido posteriormente
 Em geral, o maior identificador definido será reconhecido.
 \end{itemize}
 
+A especificação completa da gramática está descrita no Código \ref{grammar}
+do Apêndice \ref{compiler}.
+
 \newpage
 
 O Código \ref{ex2} é outro exemplo.
@@ -132,13 +137,24 @@ O Código \ref{ex2} é outro exemplo.
 
 \begin{figure}[!ht]
 \centering
-\subfloat[Perspectiva em 3D]{\includegraphics[width=0.42\linewidth]{ex2.png}%
+\subfloat[Perspectiva em 3D]{\includegraphics[width=0.42\linewidth, frame]{ex2.png}%
 \label{img:ex2}}
 \hfil
-\subfloat[\textit{Geodesic Tracing}]{\includegraphics[width=0.42\linewidth]{ex2gt.png}%
+\subfloat[\textit{Geodesic Tracing}]{\includegraphics[width=0.42\linewidth, frame]{ex2gt.png}%
 \label{img:ex2gt}}
 \caption[Renderizações do Código \ref{ex2}]
 {A Figura \ref{img:ex2} à esquerda é a renderização em perspectiva 3D.
 A Figura \ref{img:ex2gt} à direita é a renderização em \textit{Geodesic Tracing}}
 \label{img:ex2Both}
 \end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.6\linewidth, frame]{map.png}
+    \caption[Textura utilizada na Figura \ref{img:ex2Both}]{Textura utilizada na Figura \ref{img:ex2Both} \\ Versão modificada de \url{https://commons.wikimedia.org/wiki/File:Equirectangular\_projection\_SW.jpg}}
+    \label{img:original}
+\end{figure}
+
+Para o geodesic tracing na Figura \ref{img:ex2gt} é possível observar anomalias para
+os `raios' que chegam muito perto dos polos. Essa anomalia é uma instabilidade numérica
+causada pela parametrização da superfície.

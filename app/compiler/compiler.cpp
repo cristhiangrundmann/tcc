@@ -1103,8 +1103,9 @@ namespace tcc
             }
         }
 
-        //default fragment and vertex shaders
-        defaultFrag.compile(GL_FRAGMENT_SHADER, 
+        //many shaders
+
+        lineFrag.compile(GL_FRAGMENT_SHADER, 
         VERSION
         "layout (location = 0) uniform vec4 col;\n"
         "layout (location = 0) out vec4 color;\n"
@@ -1129,9 +1130,10 @@ namespace tcc
         VERSION
         "layout (location = 0) uniform vec4 col;\n"
         "layout (location = 0) out vec4 color;\n"
+        "in vec2 coord;\n"
         "void main()\n{\n"
-        "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
-        "float l = 1-2*length(p);\n"
+        "vec2 p = coord;\n"
+        "float l = 1-length(p);\n"
         "if(l < 0) discard;\n"
         "color = col * sqrt(l*1.5);\n"
         "\n}\n"
@@ -1140,13 +1142,14 @@ namespace tcc
         arrowFrag.compile(GL_FRAGMENT_SHADER, 
         VERSION
         "layout (location = 0) uniform vec4 col;\n"
-        "in float angle;\n"
+        "in float pAngle;\n"
         "layout (location = 0) out vec4 color;\n"
+        "in vec2 coord;\n"
         "void main()\n{\n"
-        "vec2 p = gl_PointCoord - vec2(0.5, 0.5);\n"
-        "p = mat2(cos(angle), sin(angle), -sin(angle), cos(angle))*p;"
-        "if(abs(2*p.x) > -(p.y-0.06)) discard;\n"
-        "if(p.y < -0.25) discard;\n"
+        "vec2 p = coord;\n"
+        "p = mat2(cos(pAngle), sin(pAngle), -sin(pAngle), cos(pAngle))*p;"
+        "if(abs(p.x) > -(p.y/2-0.06)) discard;\n"
+        "if(p.y < -0.5) discard;\n"
         "color = col;\n"
         "\n}\n"
         );
@@ -1176,6 +1179,36 @@ namespace tcc
         "gl_Position = gl_in[0].gl_Position - normal4/100;\n"
         "EmitVertex();\n"
         "gl_Position = gl_in[1].gl_Position - normal4/100;\n"
+        "EmitVertex();\n"
+        "EndPrimitive();\n"
+        "}"
+        );
+
+        pointGeom.compile(GL_GEOMETRY_SHADER,
+        VERSION
+        "layout (points) in;\n"
+        "layout (triangle_strip, max_vertices = 4) out;\n"
+        "out vec2 coord;\n"
+        "out float pAngle;\n"
+        "in float angle[];\n"
+        "in float size[];\n"
+        "void main()\n{\n"
+        "pAngle = angle[0];\n"
+        "coord = vec2(-1, -1);\n"
+        "float u = 1.0f/20;\n"
+        "gl_Position = gl_in[0].gl_Position + size[0]*vec4(-u, +u, 0, 0);\n"
+        "EmitVertex();\n"
+        "pAngle = angle[0];\n"
+        "coord = vec2(+1, -1);\n"
+        "gl_Position = gl_in[0].gl_Position + size[0]*vec4(+u, +u, 0, 0);\n"
+        "EmitVertex();\n"
+        "pAngle = angle[0];\n"
+        "coord = vec2(-1, +1);\n"
+        "gl_Position = gl_in[0].gl_Position + size[0]*vec4(-u, -u, 0, 0);\n"
+        "EmitVertex();\n"
+        "pAngle = angle[0];\n"
+        "coord = vec2(+1, +1);\n"
+        "gl_Position = gl_in[0].gl_Position + size[0]*vec4(+u, -u, 0, 0);\n"
         "EmitVertex();\n"
         "EndPrimitive();\n"
         "}"
@@ -1264,7 +1297,7 @@ namespace tcc
                 o.program[0].shaders.push_back(sh);
                 sh->compile(GL_VERTEX_SHADER, str.str().c_str());
                 o.program[0].ID = glCreateProgram();
-                glAttachShader(o.program[0].ID, defaultFrag.ID);
+                glAttachShader(o.program[0].ID, lineFrag.ID);
                 glAttachShader(o.program[0].ID, lineGeom.ID);
                 o.program[0].link();
                 o.array.create1DGrid(gridt, o.intervals[0]);
@@ -1478,17 +1511,18 @@ namespace tcc
 
                 compileFunction(o.compSub[0], -1, str, "p");
 
-                str << "void main()\n{\n"
+                str << "out float size;\n"
+                "void main()\n{\n"
                 "gl_Position = camera*vec4("
                 "p(), 1);\n"
-                "gl_PointSize = (40.0f/512.0f)/gl_Position.w;\n"
-                "gl_PointSize *= " << std::to_string(frameSize.width) << ";\n}";
+                "size = 1.0f;\n}";
 
                 o.program[0].shaders.push_back(new Shader);
                 o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
                 o.program[0].ID = glCreateProgram();
                 glAttachShader(o.program[0].ID, pointFrag.ID);
+                glAttachShader(o.program[0].ID, pointGeom.ID);
 
                 o.program[0].link();
 
@@ -1524,10 +1558,10 @@ namespace tcc
 
                 str << "layout (location = 0) in float t;\n"
                 "out float angle;\n"
+                "out float size;\n"
                 "void main()\n{\n"
                 "gl_Position = camera*vec4(v_org()+t*v(), 1);\n"
-                "gl_PointSize = (160.0f/512.0f)/gl_Position.w;\n"
-                "gl_PointSize *= " << std::to_string(frameSize.width) << ";\n"
+                "size = 4.0f;\n"
                 "vec4 b = camera*vec4(v_org()+v(), 1);\n"
                 "vec4 a = camera*vec4(v_org(), 1);\n"
                 "vec4 diff = b/abs(b.w)-a/abs(a.w);\n"
@@ -1538,13 +1572,14 @@ namespace tcc
                 o.program[0].shaders[0]->compile(GL_VERTEX_SHADER, str.str().c_str());
 
                 o.program[0].ID = glCreateProgram();
-                glAttachShader(o.program[0].ID, defaultFrag.ID);
+                glAttachShader(o.program[0].ID, lineFrag.ID);
                 glAttachShader(o.program[0].ID, lineGeom.ID);
 
                 o.program[0].link();
 
                 o.program[1].ID = glCreateProgram();
                 glAttachShader(o.program[1].ID, arrowFrag.ID);
+                glAttachShader(o.program[1].ID, pointGeom.ID);
                 glAttachShader(o.program[1].ID, o.program[0].shaders[0]->ID);
                 o.program[1].link();
 

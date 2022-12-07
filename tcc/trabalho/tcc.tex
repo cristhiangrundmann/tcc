@@ -60,6 +60,7 @@
 \usepackage{listings}
 \usepackage{tocloft}
 \usepackage{newfloat}
+\usepackage[export]{adjustbox}
 
 \definecolor{programBack}{RGB}{43,43,43}
 \definecolor{CC0}{RGB}{200, 200, 200}
@@ -78,6 +79,10 @@
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true, numbers=left,
 inputencoding=utf8, extendedchars=true, frame=single,
 escapeinside={$}{$}, captionpos=b,
+commentstyle=\color{green},
+keywordstyle=\color{blue},
+stringstyle=\color{red},
+backgroundcolor=\color{white},
 literate=%
         {é}{{\'{e}}}1
         {è}{{\`{e}}}1

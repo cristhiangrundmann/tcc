@@ -257,10 +257,11 @@ namespace tcc
         Shader defaultVert{};
         Shader pointFrag{};
         Shader arrowFrag{};
-        Shader defaultFrag{};
+        Shader lineFrag{};
         Shader texFrag{};
         Shader uvFrag{};
         Shader lineGeom{};
+        Shader pointGeom{};
 
         bool compiled = false;
 
